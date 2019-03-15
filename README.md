@@ -1,9 +1,12 @@
 # Tensor2Robot
 
-This repository contains distributed machine learning and reinforcement learning infrastructure.
+This repository contains distributed machine learning and reinforcement learning
+infrastructure.
 
-It is used internally at Alphabet, and open-sourced with the intention of making our research more reproducible for the broader robotics and deep learning 
-research community.
+It is used internally at Alphabet, and open-sourced with the intention of making
+research at Robotics @ Google more reproducible for the broader robotics and
+computer vision communities.
+
 
 ## Projects and Publications Using Tensor2Robot
 
@@ -13,33 +16,87 @@ research community.
 
 ## Features
 
-Tensor2Robot is a library for training, evaluation, and inference of deep neural networks, tailored specifically for neural networks relating to robotic perception and control. It is based on the [TensorFlow](tensorflow.org).
+Tensor2Robot is a library for training, evaluation, and inference of large-scale 
+deep neural networks, tailored specifically for neural networks relating to 
+robotic perception and control. It is based on the [TensorFlow](tensorflow.org)
+deep learning framework.
 
-A common task in robotics research involves adding a new sensor modality or new label tensor to a neural network graph. This involves 1) changing what data is saved, 2) changing data pipeline code to read in new modalities at training time 3) adding a new `tf.placeholder` to handle the new input modality at test time. The main feature of Tensor2Robot is the automatic generation of TensorFlow code for steps 2 and 3. Tensor2Robot can automatically generate placeholders for a model to match its inputs, or alternatively exports a `SavedModel` that can be used with a `TFExportedSavedModelPolicy` so that the original graph does not have to be re-constructed.
+A common task in robotics research involves adding a new sensor modality or new
+label tensor to a neural network graph. This involves 1) changing what data is
+saved, 2) changing data pipeline code to read in new modalities at training
+time 3) adding a new `tf.placeholder` to handle the new input modality at test
+time. The main feature of Tensor2Robot is the automatic generation of TensorFlow
+code for steps 2 and 3. Tensor2Robot can automatically generate placeholders for
+a model to match its inputs, or alternatively exports a `SavedModel` that can be
+used with a `TFExportedSavedModelPolicy` so that the original graph does not
+have to be re-constructed.
 
-Another common task encountered in ML involves cropping / transforming input modalities, such as jpeg-decoding and applying random image distortions at training time. The `Preprocessor` class declares its own input features and labels, and is expected to output shapes compatible with the input features and labels of the model. Example preprocessors can be found in [preprocessors](preprocessors/).
+Another common task encountered in ML involves cropping / transforming input
+modalities, such as jpeg-decoding and applying random image distortions at
+training time. The `Preprocessor` class declares its own input features and
+labels, and is expected to output shapes compatible with the input features and
+labels of the model. Example preprocessors can be found in
+[preprocessors](preprocessors/).
 
 ## Design Decisions
 
-- Scalability: This codebase is designed for training large-scale, real-world robotic perception models with algorithms that do not require a tight perception-action-learning loop (supervised learning, off-policy reinforcement learning of large computer vision models). An example setup might involve multiple GPUs pulling data asynchronously from a replay buffer and training with an off-policy RL algorithm, while data collection agents periodically update their checkpoints and push experiences to the same replay buffer. This can also be run on a single workstation for smaller-scale experiments.
+- Scalability: This codebase is designed for training large-scale, real-world 
+robotic perception models with algorithms that do not require a tight 
+perception-action-learning loop (supervised learning, off-policy reinforcement 
+learning of large computer vision models). An example setup might involve 
+multiple GPUs pulling data asynchronously from a replay buffer and training 
+with an off-policy RL algorithm, while data collection agents periodically 
+update their checkpoints and push experiences to the same replay buffer. 
+This can also be run on a single workstation for smaller-scale experiments.
 
-- Due to the sizes of models we work with (e.g. grasping from vision) Inference is assumed to be within 1-10Hz and without real-time guarantees. If you are doing reinforcement learning with small networks (e.g. two-layer perceptron) with on-policy RL (e.g. PPO), or require hard real-time guarantees, this is probably not the right codebase to use. We recommend using [TF-Agents](https://github.com/tensorflow/agents) or [Dopamine](https://github.com/google/dopamine) for those use cases.
+- Due to the sizes of models we work with (e.g. grasping from vision) Inference 
+is assumed to be within 1-10Hz and without real-time guarantees. If you are 
+doing reinforcement learning with small networks (e.g. two-layer perceptron) 
+with on-policy RL (e.g. PPO), or require hard real-time guarantees, this is 
+probably not the right codebase to use. We recommend using 
+[TF-Agents](https://github.com/tensorflow/agents) or 
+[Dopamine](https://github.com/google/dopamine) for those use cases.
 
-- Minimize boilerplate: Tensor2Robot Models auto-generate their own data input pipelines and provide sensible defaults for optimizers, common architectures (actors, critics), and train/eval scaffolding. Models automatically work with both GPUs and TPUs (via `TPUEstimator`), parsing bmp/gif/jpeg/png-encoded images.
+- Minimize boilerplate: Tensor2Robot Models auto-generate their own data input 
+pipelines and provide sensible defaults for optimizers, common architectures 
+(actors, critics), and train/eval scaffolding. Models automatically work with 
+both GPUs and TPUs (via `TPUEstimator`), parsing bmp/gif/jpeg/png-encoded 
+images.
 
-- gin-configurable: [Gin-Config](https://github.com/google/gin-config) is used to configure models, policies, and other experiment hyperparameters.
+- gin-configurable: [Gin-Config](https://github.com/google/gin-config) is used 
+to configure models, policies, and other experiment hyperparameters.
+
+## Quickstart
+
+```
+git clone https://github.com/google/tensor2robot
+cd tensor2robot
+pip install -r requirements.txt
+# Collect some data with a random policy.
+# TODO(b/128694019) - finish example.
+# Train a model.
+# TODO(b/128694019) - finish example.
+# Evaluate a policy that uses the model.
+# TODO(b/128694019) - finish example.
+```
 
 
 ## TFModel
 
-To use Tensor2Robot, a user defines a `TFModel` object that define their input requirements by specifications - one for their features (feature_spec) and one for their labels (label_spec):
+To use Tensor2Robot, a user defines a `TFModel` object that define their input 
+requirements by specifications - one for their features (feature_spec) and one 
+for their labels (label_spec):
 
-These specifications define all required and optional tensors in order to call the
-model_fn. An input pipeline parameterized with the model's input pipeline will
-ensure that all required specifications are fulfilled. **Note**: we always
+These specifications define all required and optional tensors in order to call 
+the model_fn. An input pipeline parameterized with the model's input pipeline 
+will ensure that all required specifications are fulfilled. **Note**: we always
 omit the batch dimension and only specify the shape of a single element.
 
-At training time, the TFModel provides `model_train_fn` or `model_eval_fn` as the `model_fn` argument `tf.estimator.Estimator` class. Both `model_train_fn` and `model_eval_fn` are defined with respect to the features, labels, and outputs of `model_inference_fn`, which presumably implements the shared portions of the train/eval graphs.
+At training time, the TFModel provides `model_train_fn` or `model_eval_fn` as 
+the `model_fn` argument `tf.estimator.Estimator` class. Both `model_train_fn` 
+and `model_eval_fn` are defined with respect to the features, labels, and 
+outputs of `inference_network_fn`, which presumably implements the shared 
+portions of the train/eval graphs.
 
 
 ```bash
@@ -83,7 +140,7 @@ numpy_feed_dict. We ensure that the name is unique within the whole spec, unless
 the specs match, otherwise we cannot guarantee the mapping functionality.
 
 
-### Features of Inheriting a TFModel
+### Benefits of Inheriting a TFModel
 
 - Self-contained input specifications for features and labels.
 - Auto-generated `tf.data.Dataset` pipelines for
@@ -91,15 +148,21 @@ the specs match, otherwise we cannot guarantee the mapping functionality.
 - For policy inference, TFModels can generate placeholders or export
 `SavedModel`s that are hermetic and can be used with `ExportSavedModelPolicy`.
 - Automatic construction of `model_fn` for Estimator for training and evaluation
-graphs that share a single `inference_network_fn`.
+graphs that share a single `inference_network_fn`. 
+- It is possible to compose multiple models' `inference_network_fn` and 
+`model_train_fn` together under a single model. This abstraction allows us to 
+implement generic Meta-Learning models (e.g. MAML) that call their sub-model's
+`model_train_fn`.
 - Automatic support for distributed training on GPUs and TPUs.
 
 
 ### Policies and Placeholders
 
-For performance reasons, policy inference is done by a vanilla `session.run()` call on the output of a model (instead of Estimator.predict), and passing in a matching hierarchical specification of numpy arrays. `tensorspec_utils.make_placeholders` allows to create placeholders from a spec
-structure which can be used in combination with numpy inputs to create a
-feed_dict.
+For performance reasons, policy inference is done by a vanilla `session.run()` 
+or a `predict_fn` call on the output of a model, instead of Estimator.predict. 
+`tensorspec_utils.make_placeholders` automatically creates placeholders from a 
+spec structure which can be used in combination with a matching hierarchy of 
+numpy  inputs to create a feed_dict.
 
 ```bash
 # batch_size = -1 -> No batch size will be prepended to the spec.
@@ -231,8 +294,11 @@ spec['state'] = ExtendedTensorSpec(
   shape=(8,128), dtype=tf.float32, name='s', is_sequence=True)
 ```
 
-This will result in a parsed tensor of shape `(b, ?, 8, 128)` where b is the batch size and the second dimension is the unknown sequence length (only known at run-time). Note that if `is_sequence=True` for any
-ExtendedTensorSpec in the TensorSpecStruct, the proto will be assumed to be a SequenceExample (and non-sequential Tensors will be assumed to reside in example.context).
+This will result in a parsed tensor of shape `(b, ?, 8, 128)` where b is the 
+batch size and the second dimension is the unknown sequence length (only known 
+at run-time). Note that if `is_sequence=True` for any ExtendedTensorSpec in the 
+TensorSpecStruct, the proto will be assumed to be a SequenceExample (and 
+non-sequential Tensors will be assumed to reside in example.context).
 
 
 ### Flattening hierarchical specification structures
@@ -325,4 +391,5 @@ hierarchical structure.
 
 ## Disclaimer
 
-This is not an official Google product. External support not guaranteed. Please file a GitHub issue before working on a pull request.
+This is not an official Google product. External support not guaranteed. 
+Please file a GitHub issue before working on a pull request.
