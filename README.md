@@ -80,13 +80,6 @@ source ~/venv/bin/activate
 pip install -r tensor2robot/requirements.txt
 python -m tensor2robot.research.pose_env.pose_env_test
 python -m tensor2robot.research.pose_env.pose_env_models_test
-
-# Collect some data with a random policy.
-# TODO(b/128694019) - finish example.
-# Train a model.
-# TODO(b/128694019) - finish example.
-# Evaluate a policy that uses the model.
-# TODO(b/128694019) - finish example.
 ```
 
 
