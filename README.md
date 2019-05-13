@@ -16,10 +16,10 @@ computer vision communities.
 
 ## Features
 
-Tensor2Robot is a library for training, evaluation, and inference of large-scale 
-deep neural networks, tailored specifically for neural networks relating to 
-robotic perception and control. It is based on the [TensorFlow](tensorflow.org)
-deep learning framework.
+Tensor2Robot (T2R) is a library for training, evaluation, and inference of
+large-scale deep neural networks, tailored specifically for neural networks
+relating to robotic perception and control. It is based on the
+[TensorFlow](tensorflow.org) deep learning framework.
 
 A common task in robotics research involves adding a new sensor modality or new
 label tensor to a neural network graph. This involves 1) changing what data is
@@ -40,67 +40,69 @@ labels of the model. Example preprocessors can be found in
 
 ## Design Decisions
 
-- Scalability: This codebase is designed for training large-scale, real-world 
-robotic perception models with algorithms that do not require a tight 
-perception-action-learning loop (supervised learning, off-policy reinforcement 
-learning of large computer vision models). An example setup might involve 
-multiple GPUs pulling data asynchronously from a replay buffer and training 
-with an off-policy RL algorithm, while data collection agents periodically 
-update their checkpoints and push experiences to the same replay buffer. 
+- Scalability: This codebase is designed for training large-scale, real-world
+robotic perception models with algorithms that do not require a tight
+perception-action-learning loop (supervised learning, off-policy reinforcement
+learning of large computer vision models). An example setup might involve
+multiple GPUs pulling data asynchronously from a replay buffer and training
+with an off-policy RL algorithm, while data collection agents periodically
+update their checkpoints and push experiences to the same replay buffer.
 This can also be run on a single workstation for smaller-scale experiments.
 
-- Due to the sizes of models we work with (e.g. grasping from vision) Inference 
-is assumed to be within 1-10Hz and without real-time guarantees. If you are 
-doing reinforcement learning with small networks (e.g. two-layer perceptron) 
-with on-policy RL (e.g. PPO), or require hard real-time guarantees, this is 
-probably not the right codebase to use. We recommend using 
-[TF-Agents](https://github.com/tensorflow/agents) or 
+- T2R is *NOT* a general-purpose reinforcement learning library. Due to the
+sizes of models we work with (e.g. grasping from vision) Inference is assumed
+to be within 1-10Hz and without real-time guarantees, and training is assumed
+to be distributed by default. If you are doing reinforcement learning with small
+networks (e.g. two-layer perceptron) with on-policy RL (e.g. PPO), or require
+hard real-time guarantees, this is probably not the right codebase to use. We
+recommend using
+[TF-Agents](https://github.com/tensorflow/agents) or
 [Dopamine](https://github.com/google/dopamine) for those use cases.
 
-- Minimize boilerplate: Tensor2Robot Models auto-generate their own data input 
-pipelines and provide sensible defaults for optimizers, common architectures 
-(actors, critics), and train/eval scaffolding. Models automatically work with 
-both GPUs and TPUs (via `TPUEstimator`), parsing bmp/gif/jpeg/png-encoded 
+- Minimize boilerplate: Tensor2Robot Models auto-generate their own data input
+pipelines and provide sensible defaults for optimizers, common architectures
+(actors, critics), and train/eval scaffolding. Models automatically work with
+both GPUs and TPUs (via `TPUEstimator`), parsing bmp/gif/jpeg/png-encoded
 images.
 
-- gin-configurable: [Gin-Config](https://github.com/google/gin-config) is used 
+- gin-configurable: [Gin-Config](https://github.com/google/gin-config) is used
 to configure models, policies, and other experiment hyperparameters.
 
 ## Quickstart
 
+Requirements: Python 3.
+
 ```
 git clone https://github.com/google/tensor2robot
-cd tensor2robot
-pip install -r requirements.txt
-# Collect some data with a random policy.
-# TODO(b/128694019) - finish example.
-# Train a model.
-# TODO(b/128694019) - finish example.
-# Evaluate a policy that uses the model.
-# TODO(b/128694019) - finish example.
+# Optional: Create a virtualenv
+python3 -m venv ~/venv
+source ~/venv/bin/activate
+pip install -r tensor2robot/requirements.txt
+python -m tensor2robot.research.pose_env.pose_env_test
+python -m tensor2robot.research.pose_env.pose_env_models_test
 ```
 
 
-## TFModel
+## T2RModel
 
-To use Tensor2Robot, a user defines a `TFModel` object that define their input 
-requirements by specifications - one for their features (feature_spec) and one 
+To use Tensor2Robot, a user defines a `T2RModel` object that define their input
+requirements by specifications - one for their features (feature_spec) and one
 for their labels (label_spec):
 
-These specifications define all required and optional tensors in order to call 
-the model_fn. An input pipeline parameterized with the model's input pipeline 
+These specifications define all required and optional tensors in order to call
+the model_fn. An input pipeline parameterized with the model's input pipeline
 will ensure that all required specifications are fulfilled. **Note**: we always
 omit the batch dimension and only specify the shape of a single element.
 
-At training time, the TFModel provides `model_train_fn` or `model_eval_fn` as 
-the `model_fn` argument `tf.estimator.Estimator` class. Both `model_train_fn` 
-and `model_eval_fn` are defined with respect to the features, labels, and 
-outputs of `inference_network_fn`, which presumably implements the shared 
+At training time, the T2RModel provides `model_train_fn` or `model_eval_fn` as
+the `model_fn` argument `tf.estimator.Estimator` class. Both `model_train_fn`
+and `model_eval_fn` are defined with respect to the features, labels, and
+outputs of `inference_network_fn`, which presumably implements the shared
 portions of the train/eval graphs.
 
 
 ```bash
-class MyModel(TFModel):
+class MyModel(T2RModel):
   def get_feature_specification(self, mode):
     spec = tensorspec_utils.TensorSpecStruct()
     spec['state'] = ExtendedTensorSpec(
@@ -140,17 +142,17 @@ numpy_feed_dict. We ensure that the name is unique within the whole spec, unless
 the specs match, otherwise we cannot guarantee the mapping functionality.
 
 
-### Benefits of Inheriting a TFModel
+### Benefits of Inheriting a T2RModel
 
 - Self-contained input specifications for features and labels.
 - Auto-generated `tf.data.Dataset` pipelines for
 `tf.train.Examples` and `tf.train.SequenceExamples`.
-- For policy inference, TFModels can generate placeholders or export
+- For policy inference, T2RModels can generate placeholders or export
 `SavedModel`s that are hermetic and can be used with `ExportSavedModelPolicy`.
 - Automatic construction of `model_fn` for Estimator for training and evaluation
-graphs that share a single `inference_network_fn`. 
-- It is possible to compose multiple models' `inference_network_fn` and 
-`model_train_fn` together under a single model. This abstraction allows us to 
+graphs that share a single `inference_network_fn`.
+- It is possible to compose multiple models' `inference_network_fn` and
+`model_train_fn` together under a single model. This abstraction allows us to
 implement generic Meta-Learning models (e.g. MAML) that call their sub-model's
 `model_train_fn`.
 - Automatic support for distributed training on GPUs and TPUs.
@@ -158,10 +160,10 @@ implement generic Meta-Learning models (e.g. MAML) that call their sub-model's
 
 ### Policies and Placeholders
 
-For performance reasons, policy inference is done by a vanilla `session.run()` 
-or a `predict_fn` call on the output of a model, instead of Estimator.predict. 
-`tensorspec_utils.make_placeholders` automatically creates placeholders from a 
-spec structure which can be used in combination with a matching hierarchy of 
+For performance reasons, policy inference is done by a vanilla `session.run()`
+or a `predict_fn` call on the output of a model, instead of Estimator.predict.
+`tensorspec_utils.make_placeholders` automatically creates placeholders from a
+spec structure which can be used in combination with a matching hierarchy of
 numpy  inputs to create a feed_dict.
 
 ```bash
@@ -173,6 +175,12 @@ placeholders = tensorspec_utils.make_placeholders(hierarchical_spec, batch_size=
 feed_dict = inference_model.MakeFeedDict(placeholders, numpy_inputs)
 # This can be passed to a sess.run function to evaluate the model.
 ```
+
+If you use `TFExportedSavedModelPolicy`, note that your T2RModel should not query
+the static batch shape (`x.shape[0]`) in the graph. This is because placeholder
+generation creates inputs with unknown batch shape, causing static shape
+retrieval to fail. Instead, use `tf.shape(x)[0]` to access batch shapes
+dynamically.
 
 ## Working with Tensor Specifications
 
@@ -285,8 +293,8 @@ for key, value in simple_spec.items():
 
 ### Sequential Inputs
 
-Tensor2Robot can parse both `tf.train.Example` and `tf.train.SequenceExample` 
-protos (useful for training recurrent models like LSTMs). To declare a model 
+Tensor2Robot can parse both `tf.train.Example` and `tf.train.SequenceExample`
+protos (useful for training recurrent models like LSTMs). To declare a model
 whose data is parsed from SequenceExamples, set `is_sequence=True`.
 
 ```bash
@@ -294,10 +302,10 @@ spec['state'] = ExtendedTensorSpec(
   shape=(8,128), dtype=tf.float32, name='s', is_sequence=True)
 ```
 
-This will result in a parsed tensor of shape `(b, ?, 8, 128)` where b is the 
-batch size and the second dimension is the unknown sequence length (only known 
-at run-time). Note that if `is_sequence=True` for any ExtendedTensorSpec in the 
-TensorSpecStruct, the proto will be assumed to be a SequenceExample (and 
+This will result in a parsed tensor of shape `(b, ?, 8, 128)` where b is the
+batch size and the second dimension is the unknown sequence length (only known
+at run-time). Note that if `is_sequence=True` for any ExtendedTensorSpec in the
+TensorSpecStruct, the proto will be assumed to be a SequenceExample (and
 non-sequential Tensors will be assumed to reside in example.context).
 
 
@@ -391,5 +399,5 @@ hierarchical structure.
 
 ## Disclaimer
 
-This is not an official Google product. External support not guaranteed. 
-Please file a GitHub issue before working on a pull request.
+This is not an official Google product. External support not guaranteed. The API
+may change subject to Alphabet needs. File a GitHub issue if you have questions.
