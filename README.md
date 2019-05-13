@@ -176,11 +176,11 @@ feed_dict = inference_model.MakeFeedDict(placeholders, numpy_inputs)
 # This can be passed to a sess.run function to evaluate the model.
 ```
 
-If you use `TFExportedSavedModelPolicy`, note that your T2RModel should not query
-the static batch shape (`x.shape[0]`) in the graph. This is because placeholder
-generation creates inputs with unknown batch shape, causing static shape
-retrieval to fail. Instead, use `tf.shape(x)[0]` to access batch shapes
-dynamically.
+If you use `TFExportedSavedModelPolicy`, note that your T2RModel should not
+query the static batch shape (`x.shape[0]`) in the graph. This is because
+placeholder generation creates inputs with unknown batch shape `None`, causing
+static shape retrieval to fail. Instead, use `tf.shape(x)[0]` to access batch
+shapes dynamically.
 
 ## Working with Tensor Specifications
 
