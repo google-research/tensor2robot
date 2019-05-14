@@ -625,10 +625,6 @@ class AbstractT2RModel(model_interface.ModelInterface):
     inference_outputs = self.inference_network_fn(features, labels, mode,
                                                   config, params)
 
-    # After inference_fn no new variables are allowed to be added, otherwise
-    # we would not initialize these variables.
-    self.maybe_init_from_checkpoint()
-
     if mode == tf.estimator.ModeKeys.PREDICT:
       model_fn_results = self.create_export_outputs_fn(
           features, inference_outputs, mode, config, params)
@@ -676,6 +672,14 @@ class AbstractT2RModel(model_interface.ModelInterface):
       self.add_summaries(features, labels, inference_outputs, train_loss,
                          train_outputs, mode, config, params)
 
+      # Now the optimizer has been created, therefore, the checkpoint could be
+      # initialized.
+      # No new variables are allowed to be added, otherwise
+      # we would not initialize these variables.
+      # Note, this feature is only available for train to bootstrap a model
+      # (partially) from a different model. As soon as this checkpoint is
+      # written all other modes will use the local checkpoint within model_dir.
+      self.maybe_init_from_checkpoint()
       training_hooks = []
 
       # EstimatorSpec has training_chief_hooks, but TPUEstimatorSpec does not,
@@ -701,6 +705,7 @@ class AbstractT2RModel(model_interface.ModelInterface):
     if mode == tf.estimator.ModeKeys.EVAL:
       self.add_summaries(features, labels, inference_outputs, train_loss,
                          train_outputs, mode, config, params)
+
       eval_metrics = self.model_eval_fn(features, labels, inference_outputs,
                                         train_loss, train_outputs, mode, config,
                                         params)

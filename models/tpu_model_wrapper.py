@@ -177,10 +177,6 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
     inference_outputs = self._t2r_model.inference_network_fn(
         features, labels, mode, config, params)
 
-    # After inference_fn no new variables are allowed to be added, otherwise
-    # we would not initialize these variables.
-    self._t2r_model.maybe_init_from_checkpoint()
-
     if mode == tf.estimator.ModeKeys.PREDICT:
       model_fn_results = self._t2r_model.create_export_outputs_fn(
           features, inference_outputs, mode, config, params)
@@ -230,6 +226,19 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
                                     train_loss, train_outputs, mode, config,
                                     params)
 
+      # For TPUs the init has to happen in a scaffold function. Since the model
+      # already contains one implementation which is internal to the model
+      # this call is simply wrapped.
+      # No new variables are allowed to be added, otherwise
+      # we would not initialize these variables.
+      # Note, this feature is only available for train to bootstrap a model
+      # (partially) from a different model. As soon as this checkpoint is
+      # written all other modes will use the local checkpoint within
+      # model_dir.
+      def create_scaffold_fn():
+        self._t2r_model.maybe_init_from_checkpoint()
+        return self._t2r_model.scaffold_fn()
+
       training_hooks = []
 
       # EstimatorSpec has training_chief_hooks, but TPUEstimatorSpec does not,
@@ -244,7 +253,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
           loss=train_loss,
           train_op=train_op,
           training_hooks=training_hooks,
-          scaffold_fn=self._t2r_model.scaffold_fn)
+          scaffold_fn=create_scaffold_fn)
 
     if mode == tf.estimator.ModeKeys.EVAL:
       self._t2r_model.add_summaries(features, labels, inference_outputs,
