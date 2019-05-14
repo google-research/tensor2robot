@@ -76,15 +76,35 @@ gin_configurable_tpu_config_cls = gin.external_configurable(
 
 
 @gin.configurable
-def default_init_from_checkpoint_fn(checkpoint):
+def default_init_from_checkpoint_fn(checkpoint,
+                                    allow_partial_restore = False):
   """init_from_checkpoint_fn that can be used to init a model from a checkpoint.
 
   Args:
     checkpoint: String pointing to path of TF checkpoint.
+    allow_partial_restore: If True, we allow partial restore, otherwise we raise
+      an error if a variable cannot be restored.
+
+  Raises:
+    A ValueError if a variable(s) is missing and partial restore is not
+    explicitly enabled.
   """
   logging.info('Initializing model weights from %s', checkpoint)
+  reader = tf.train.load_checkpoint(checkpoint)
   variables_to_restore = tf.contrib.framework.get_trainable_variables()
-  assignment_map = {v.op.name: v for v in variables_to_restore}
+  assignment_map = {}
+  for v in variables_to_restore:
+    op_name = v.op.name
+    if reader.has_tensor(op_name):
+      logging.info('Loading variable %s from checkpoint', op_name)
+      assignment_map[op_name] = v
+    elif allow_partial_restore:
+      logging.warning('Variable %s is not in the checkpoint, skipping.',
+                      op_name)
+    else:
+      raise ValueError('Attempting to restore variable {} which is '
+                       'not in the checkpoint.'.format(op_name))
+
   tf.train.init_from_checkpoint(checkpoint, assignment_map)
 
 
