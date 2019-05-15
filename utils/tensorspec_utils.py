@@ -1470,7 +1470,7 @@ def write_to_file(in_feature_spec, in_label_spec, filename):
   """Writes feature and label specifications to file."""
   with tf.gfile.GFile(filename, 'w') as f:
     cPickle.dump({
-        'in_feature_spec': in_feature_spec, 'in_label_spec': in_label_spec}, f)
+        'in_feature_spec': in_feature_spec, 'in_label_spec': in_label_spec}, f)  # pytype: disable=wrong-arg-types
 
 
 def load_from_file(filename):

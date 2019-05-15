@@ -99,7 +99,7 @@ class AbstractInputGenerator(object):
     tensorspec_utils.assert_valid_spec_structure(self._out_label_spec)
     self._preprocess_fn = functools.partial(preprocessor.preprocess, mode=mode)
 
-  def set_preprocess_fn(self, preprocess_fn):
+  def set_preprocess_fn(self, preprocess_fn):  # pytype: disable=invalid-annotation
     """Register the preprocess_fn used during the input data generation.
 
     Note, the preprocess_fn can only have `features` and optionally `labels` as
@@ -114,7 +114,7 @@ class AbstractInputGenerator(object):
       preprocess_fn: The function called during the input dataset generation to
         preprocess the data.
     """
-    if isinstance(preprocess_fn, functools.partial):
+    if isinstance(preprocess_fn, functools.partial):  # pytype: disable=wrong-arg-types
       # Note, we do not combine both conditions into one since
       # inspect.getargspec does not work for functools.partial objects.
       if 'mode' not in preprocess_fn.keywords:
