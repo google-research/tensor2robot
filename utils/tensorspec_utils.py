@@ -1000,12 +1000,14 @@ def assert_equal_spec_or_tensor(expected_spec_or_tensor, actual_spec_or_tensor):
 
   if expected_spec.dtype != actual_spec.dtype:
     raise ValueError(
-        'TensorSpec.dtype {} does not match TensorSpec.dtype {}.'.format(
-            expected_spec.dtype, actual_spec.dtype))
+        'TensorSpec.dtype {} does not match TensorSpec.dtype {} in specs'
+        '\n expected: {}\n actual: {}'.format(
+            expected_spec.dtype, actual_spec.dtype, expected_spec, actual_spec))
   if len(expected_spec.shape) != len(actual_spec.shape):
     raise ValueError(
-        'TensorSpec.shape {} does not match TensorSpec.shape {}.'.format(
-            expected_spec.shape, actual_spec.shape))
+        'TensorSpec.shape {} does not match TensorSpec.shape {} in specs'
+        '\n expected: {}\n actual: {}'.format(
+            expected_spec.shape, actual_spec.shape, expected_spec, actual_spec))
   for expected_dim, actual_dim in zip(expected_spec.shape, actual_spec.shape):
     if expected_dim is None:
       continue
