@@ -211,7 +211,8 @@ def BuildImageFeaturesToPoseModel(expected_feature_points,
       These are the expected feature locations, i.e., the spatial softmax of
       feature_maps. The inner dimension is arranged as [x1, x2, x3 ... xN, y1,
       y2, y3, ... yN].
-    num_outputs: The dimensionality of the output vector.
+    num_outputs: The dimensionality of the output vector. If None, returns the
+      last hidden layer.
     aux_input: auxiliary inputs, such as robot configuration
     aux_output_dim: dimension of auxiliary predictions to make, eg button pose
     hidden_dim: dimensionality of the fully connected hidden layers.
@@ -248,9 +249,10 @@ def BuildImageFeaturesToPoseModel(expected_feature_points,
       net = slim.fully_connected(
           net, hidden_dim, scope='pose_fc{:d}'.format(layer_index),
           normalizer_fn=normalizer_fn)
-    net = slim.fully_connected(
-        net, num_outputs, activation_fn=None,
-        scope='pose_fc{:d}'.format(num_layers))
+    if num_outputs:
+      net = slim.fully_connected(
+          net, num_outputs, activation_fn=None,
+          scope='pose_fc{:d}'.format(num_layers))
     if aux_output_dim > 0:
       aux_output = slim.fully_connected(
           expected_feature_points, aux_output_dim, activation_fn=None,

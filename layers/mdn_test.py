@@ -57,7 +57,7 @@ class MDNTest(tf.test.TestCase, parameterized.TestCase):
     num_alphas = 5
     inputs = tf.random.normal((2, 16))
     with tf.variable_scope('test_scope'):
-      dist_params, _ = mdn.predict_mdn_params(
+      dist_params = mdn.predict_mdn_params(
           inputs, num_alphas, sample_size, condition_sigmas=condition_sigmas)
     expected_num_params = num_alphas * (1 + 2 * sample_size)
     self.assertEqual(dist_params.shape.as_list(), [2, expected_num_params])
