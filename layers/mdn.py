@@ -162,7 +162,7 @@ class MDNDecoder(object):
     return action
 
   def loss(self, labels):
-    nll_local = -self._gm.log_prob(labels)
+    nll_local = -self._gm.log_prob(labels.action)
     # Average across batch, sequence.
     return tf.reduce_mean(nll_local)
 
