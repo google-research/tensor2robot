@@ -10,9 +10,9 @@ computer vision communities.
 
 ## Projects and Publications Using Tensor2Robot
 
-- [QT-Opt](https://arxiv.org/abs/1806.10293)
-- [Grasp2Vec](https://sites.google.com/site/grasp2vec/)
-- More coming soon.
+-   [QT-Opt](https://arxiv.org/abs/1806.10293)
+-   [Grasp2Vec](research/grasp2vec)
+-   More coming soon.
 
 ## Features
 
