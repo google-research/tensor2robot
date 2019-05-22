@@ -230,6 +230,10 @@ class Grasp2VecModel(abstract_model.AbstractT2RModel):
     del config
     if not self.use_summaries(params):
       return
+    for key in ['pregrasp', 'postgrasp', 'goal']:
+      feature_name = key + '_image'
+      if feature_name in features.keys():
+        tf.summary.image('image/%s' % key, features[feature_name])
     heatmaps = visualization.add_heatmap_summary(
         inference_outputs['goal_vector'], inference_outputs['pre_spatial'],
         'goal_pregrasp_map')
