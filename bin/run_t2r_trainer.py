@@ -26,8 +26,6 @@ from tensor2robot import train_eval
 import tensorflow as tf
 
 
-flags.DEFINE_multi_string(
-    'dummy_flag', [], 'Dummy flag required until b/112361734 is resolved.')
 FLAGS = flags.FLAGS
 
 

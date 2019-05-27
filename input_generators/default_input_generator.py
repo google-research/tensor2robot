@@ -32,6 +32,7 @@ import tensorflow as tf
 from typing import Optional, Text
 
 
+
 @gin.configurable
 class DefaultRecordInputGenerator(
     abstract_input_generator.AbstractInputGenerator):
@@ -68,13 +69,16 @@ class DefaultRecordInputGenerator(
     self._assert_specs_initialized()
     logging.info('Creating InputGenerator %s with file patterns:\n%s',
                  self._label, self._file_patterns)
-    return tfdata.get_input_fn(
+    input_fn = tfdata.get_input_fn(
         file_patterns=self._file_patterns,
         batch_size=self.batch_size,
         feature_spec=self._feature_spec,
         label_spec=self._label_spec,
         mode=mode,
         preprocess_fn=self._preprocess_fn)
+
+
+    return input_fn
 
   def _create_dataset(self, **unused_kwargs):
     """This abstract function is not required for default input generators.
