@@ -13,7 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A preprocessor which wraps preprocessors for TPU usage."""
+"""A preprocessor which wraps preprocessors for TPU usage.
+
+This intended for usage as part of TPUT2RModelWrapper, which will automatically
+wrap preprocessors for TPU usage.
+"""
 
 from __future__ import absolute_import
 from __future__ import division
