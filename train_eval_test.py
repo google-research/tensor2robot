@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 import os
 from absl import flags
 import gin
@@ -29,6 +30,7 @@ import numpy as np
 from six.moves import zip
 from tensor2robot import train_eval
 from tensor2robot.hooks import hook_builder
+from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 import tensorflow as tf
@@ -81,7 +83,7 @@ class TrainEvalTest(tf.test.TestCase):
       error += np.maximum(0., negative - positive + 1.)
     return error
 
-  def test_train_eval_model(self):
+  def _test_train_eval_model(self):
     """Tests that a simple model trains and exported models are valid."""
     gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
     model_dir = self.create_tempdir().full_path
@@ -193,6 +195,51 @@ class TrainEvalTest(tf.test.TestCase):
     # we train on eval on the same fixed dataset the latest and greatest
     # model error should also be the best.
     np.testing.assert_almost_equal(ref_error, tf_example_error)
+
+  def test_init_from_checkpoint_global_step(self):
+    """Tests that a simple model trains and exported models are valid."""
+    gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
+    gin.bind_parameter('tf.estimator.RunConfig.keep_checkpoint_max', 10)
+    model_dir = self.create_tempdir().full_path
+    mock_t2r_model = mocks.MockT2RModel(
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor)
+
+    mock_input_generator_train = mocks.MockInputGenerator(
+        batch_size=_BATCH_SIZE)
+
+    train_eval.train_eval_model(
+        t2r_model=mock_t2r_model,
+        input_generator_train=mock_input_generator_train,
+        max_train_steps=_MAX_TRAIN_STEPS,
+        model_dir=model_dir,
+        eval_steps=_EVAL_STEPS,
+        eval_throttle_secs=_EVAL_THROTTLE_SECS,
+        create_exporters_fn=train_eval.create_default_exporters)
+    # The model trains for 1000 steps and saves a checkpoint each 100 steps and
+    # keeps 10 -> len == 10.
+    self.assertLen(tf.io.gfile.glob(os.path.join(model_dir, 'model*.meta')), 10)
+
+    # The continuous training has its own directory.
+    continue_model_dir = self.create_tempdir().full_path
+    init_from_checkpoint_fn = functools.partial(
+        abstract_model.default_init_from_checkpoint_fn, checkpoint=model_dir)
+    continue_mock_t2r_model = mocks.MockT2RModel(
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor,
+        init_from_checkpoint_fn=init_from_checkpoint_fn)
+    continue_mock_input_generator_train = mocks.MockInputGenerator(
+        batch_size=_BATCH_SIZE)
+    train_eval.train_eval_model(
+        t2r_model=continue_mock_t2r_model,
+        input_generator_train=continue_mock_input_generator_train,
+        model_dir=continue_model_dir,
+        max_train_steps=_MAX_TRAIN_STEPS + 100,
+        eval_steps=_EVAL_STEPS,
+        eval_throttle_secs=_EVAL_THROTTLE_SECS,
+        create_exporters_fn=train_eval.create_default_exporters)
+    # If the model was successful restored including the global step, only 1
+    # additional checkpoint to the init one should be created -> len == 2.
+    self.assertLen(
+        tf.io.gfile.glob(os.path.join(continue_model_dir, 'model*.meta')), 2)
 
 
 if __name__ == '__main__':

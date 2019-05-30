@@ -91,7 +91,9 @@ def default_init_from_checkpoint_fn(checkpoint,
   """
   logging.info('Initializing model weights from %s', checkpoint)
   reader = tf.train.load_checkpoint(checkpoint)
+  # Make sure that the global step exists and thus will be loaded.
   variables_to_restore = tf.contrib.framework.get_trainable_variables()
+  variables_to_restore.append(tf.train.get_or_create_global_step())
   assignment_map = {}
   for v in variables_to_restore:
     op_name = v.op.name
