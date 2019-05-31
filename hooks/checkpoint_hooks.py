@@ -72,7 +72,7 @@ class CheckpointExportListener(tf.train.CheckpointSaverListener):
     """
     self._export_fn = export_fn
     self._export_dir = export_dir
-    tf.io.gfile.mkdir(self._export_dir)
+    tf.io.gfile.makedirs(self._export_dir)
     self._gc = None
     if num_versions:
       self._gc = _DirectoryVersionGC(num_versions)
@@ -118,7 +118,7 @@ class LaggedCheckpointListener(CheckpointExportListener):
     self._lagged_model_dir = None
     if self._gc:
       self._lagged_gc = _DirectoryVersionGC(num_versions)
-    tf.io.gfile.mkdir(self._lagged_export_dir)
+    tf.io.gfile.makedirs(self._lagged_export_dir)
     export_dir_contents = sorted(tf.gfile.ListDirectory(self._export_dir))
     lagged_export_dir_contents = sorted(
         tf.gfile.ListDirectory(self._lagged_export_dir))
