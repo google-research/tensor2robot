@@ -127,7 +127,6 @@ def provide_input_generator_with_model_information(
 @gin.configurable
 def create_tpu_estimator(t2r_model,
                          model_dir,
-                         warm_start_from=None,
                          train_batch_size = 32,
                          eval_batch_size = 1,
                          use_tpu_hardware = True,
@@ -139,7 +138,6 @@ def create_tpu_estimator(t2r_model,
     t2r_model: An instance of the model we will train or evaluate.
     model_dir: An optional location where we want to store or load our model
       from.
-    warm_start_from: A checkpoint path to warm start from.
     train_batch_size: The batch size for training.
     eval_batch_size: The batch size for evaluation.
     use_tpu_hardware: If False, the TPUEstimator is used but executed on CPU.
@@ -160,7 +158,6 @@ def create_tpu_estimator(t2r_model,
       model_dir=model_dir,
       config=t2r_model.get_tpu_run_config(),
       use_tpu=t2r_model.is_device_tpu and use_tpu_hardware,
-      warm_start_from=warm_start_from,
       train_batch_size=train_batch_size,
       eval_batch_size=eval_batch_size,
       params=params)
@@ -169,7 +166,6 @@ def create_tpu_estimator(t2r_model,
 @gin.configurable
 def create_estimator(t2r_model,
                      model_dir,
-                     warm_start_from=None,
                      params = None,
                      **kwargs):
   """Wrapper for Estimator to provide a common interface for instantiation.
@@ -178,7 +174,6 @@ def create_estimator(t2r_model,
     t2r_model: An instance of the model we will train or evaluate.
     model_dir: An optional location where we want to store or load our model
       from.
-    warm_start_from: A checkpoint path to warm start from.
     params: An optional dict of hyper parameters that will be passed into
       input_fn and model_fn. Keys are names of parameters, values are basic
       python types. There are reserved keys for TPUEstimator,
@@ -194,7 +189,6 @@ def create_estimator(t2r_model,
       model_fn=t2r_model.model_fn,
       model_dir=model_dir,
       config=t2r_model.get_run_config(),
-      warm_start_from=warm_start_from,
       params=params)
 
 
