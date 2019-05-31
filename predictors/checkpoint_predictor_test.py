@@ -56,8 +56,7 @@ class CheckpointPredictorTest(tf.test.TestCase):
         t2r_model=mock_model, checkpoint_dir=model_dir, use_gpu=False)
     with self.assertRaises(ValueError):
       predictor.predict({'does_not_matter': np.zeros(1)})
-    with self.assertRaises(ValueError):
-      _ = predictor.model_version
+    self.assertEqual(predictor.model_version, -1)
     self.assertTrue(predictor.restore())
     self.assertGreater(predictor.model_version, 0)
     ref_feature_spec = mock_model.preprocessor.get_in_feature_specification(

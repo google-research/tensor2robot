@@ -191,7 +191,12 @@ class CheckpointPredictor(abstract_predictor.AbstractPredictor):
   @property
   def model_version(self):
     """The version of the model currently in use."""
-    self.assert_is_loaded()
+    try:
+      # If a model has not been loaded the global step of the model
+      # is not valid which is why we return -1.
+      self.assert_is_loaded()
+    except ValueError:
+      return -1
     return self._sess.run(self._tf_global_step)
 
   @property
