@@ -122,7 +122,9 @@ class MAMLRegressionPolicy(MetaLearningPolicy, policies.RegressionPolicy):
   def SelectAction(self, state, context, timestep):
     np_features = self._t2r_model.pack_features(state, self._prev_episode_data,
                                                 timestep)
-    action = self._predictor.predict(np_features)['action']
+    # This key must be 'inference_output' b.c. MAMLModel performs a check for
+    # this key.
+    action = self._predictor.predict(np_features)['inference_output']
 
     # TODO(allanz): Rank 4 actions are due to VRGripperRegressionModel having
     # an additional time dimension. Remove this once we have a better way to
