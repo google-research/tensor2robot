@@ -456,7 +456,8 @@ def grasping_input_fn_tmpl(
   if preprocess_fn is not None:
     # TODO(psanketi): Consider adding num_parallel calls here.
     dataset = dataset.map(preprocess_fn, num_parallel_calls=parallel_shards)
-  dataset = dataset.prefetch(prefetch_buffer_size)
+  if prefetch_buffer_size is not None:
+    dataset = dataset.prefetch(prefetch_buffer_size)
   return dataset
 
 
