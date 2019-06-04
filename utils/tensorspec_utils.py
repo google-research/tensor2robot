@@ -486,14 +486,14 @@ class TensorSpecStruct(collections.OrderedDict):
     # are used within tf.data and have therefore to be supported.
     # This is not mentioned in user facing error messages since it is not
     # encouraged.
-    if not isinstance(
-        item, (tf.Tensor, TSPEC, np.ndarray, TensorSpecStruct,
-               dict, tf.data.experimental.TensorStructure, tf.DType,
-               tf.TensorShape, type, List)):
-      raise ValueError(
-          'Only tensors, TensorSpecs, numpy arrays, NamedTuples '
-          'TensorSpecStruct, and dicts can be assigned. but item '
-          'is {} with type {}.'.format(item, type(item)))
+
+    # if not isinstance(item, (tf.Tensor, TSPEC, np.ndarray, TensorSpecStruct,
+    #                          dict, tf.data.experimental.TensorStructure,
+    #                          tf.DType, tf.TensorShape, type, List)):
+    #   raise ValueError(
+    #       'Only tensors, TensorSpecs, numpy arrays, NamedTuples '
+    #       'TensorSpecStruct, and dicts can be assigned. but item '
+    #       'is {} with type {}.'.format(item, type(item)))
 
     if isinstance(item, TensorSpecStruct):
       if not item:
