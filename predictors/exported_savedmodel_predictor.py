@@ -40,7 +40,10 @@ _BUSY_WAITING_SLEEP_TIME_IN_SECS = 10
 class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
   """A predictor loading from exported saved models."""
 
-  def __init__(self, export_dir, timeout = 600):
+  def __init__(self,
+               export_dir,
+               timeout = 600,
+               tf_config = None):
     """Creates an instance.
 
     Args:
@@ -50,6 +53,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
         model.
       timeout: (defaults to 600 seconds) If no checkpoint has been found after
         timeout seconds restore fails.
+      tf_config: The tf.ConfigProto used to configure the TensorFlow session.
     """
     super(ExportedSavedModelPredictor, self).__init__()
     self._export_dir = export_dir
@@ -58,6 +62,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     self._predict_fn = None  # type: Callable
     self._feature_spec = None  # type: tensorspec_utils.TensorSpecStruct
     self._label_spec = None
+    self._tf_config = tf_config
 
   def predict(self, features):
     """Predicts based on feature input using the loaded model.
@@ -133,7 +138,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     # the checkpoint gets written asynchronously.
     while time.time() - start_time_loading < self._timeout:
       try:
-        self._predict_fn = tf.contrib.predictor.from_saved_model(model_dirs[-1])
+        self._predict_fn = tf.contrib.predictor.from_saved_model(
+            model_dirs[-1], config=self._tf_config)
 
         # Load input specs from file.
         input_spec_filename = os.path.join(model_dirs[-1], 'assets.extra',
