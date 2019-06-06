@@ -136,6 +136,8 @@ class MockT2RModel(abstract_model.AbstractT2RModel):
       # model loading.
       net = tf.layers.dense(net, units=activations, activation=tf.nn.elu,
                             name='MockT2RModel.dense.{}'.format(pos))
+      net = tf.layers.batch_normalization(
+          net, name='MockT2RModel.batch_norm.{}'.format(pos))
     net = tf.layers.dense(net, units=1, name='MockT2RModel.dense.4')
     inference_outputs = {}
     inference_outputs['logit'] = net

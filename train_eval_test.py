@@ -241,7 +241,7 @@ class TrainEvalTest(tf.test.TestCase):
     self.assertLen(
         tf.io.gfile.glob(os.path.join(continue_model_dir, 'model*.meta')), 2)
 
-  def test_init_from_checkpoint_use_avg_model_params(self):
+  def test_init_from_checkpoint_use_avg_model_params_and_weights(self):
     """Tests that a simple model trains and exported models are valid."""
     gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
     gin.bind_parameter('tf.estimator.RunConfig.keep_checkpoint_max', 10)
@@ -262,6 +262,9 @@ class TrainEvalTest(tf.test.TestCase):
         input_generator_train=mock_input_generator_train,
         max_train_steps=_MAX_TRAIN_STEPS,
         model_dir=model_dir)
+
+    init_checkpoint = tf.train.NewCheckpointReader(
+        tf.train.latest_checkpoint(model_dir))
 
     # Verify that the serving estimator does exactly the same as the normal
     # estimator with all the parameters.
@@ -292,7 +295,26 @@ class TrainEvalTest(tf.test.TestCase):
         t2r_model=continue_mock_t2r_model,
         input_generator_train=continue_mock_input_generator_train,
         model_dir=continue_model_dir,
-        max_train_steps=_MAX_TRAIN_STEPS + 1)
+        max_train_steps=_MAX_TRAIN_STEPS)
+
+    continue_checkpoint = tf.train.NewCheckpointReader(
+        tf.train.latest_checkpoint(continue_model_dir))
+
+    for tensor_name, _ in tf.train.list_variables(model_dir):
+      if 'ExponentialMovingAverage' in tensor_name:
+        # These values are replaced by the swapping saver when using the
+        # use_avg_model_params.
+        continue
+      if 'Adam' in tensor_name:
+        # The adam optimizer values are not required.
+        continue
+      if 'global_step' in tensor_name:
+        # The global step will be incremented by 1.
+        continue
+      self.assertAllClose(
+          init_checkpoint.get_tensor(tensor_name),
+          continue_checkpoint.get_tensor(tensor_name),
+          atol=1e-3)
 
     # Verify that the serving estimator does exactly the same as the normal
     # estimator with all the parameters.
@@ -322,7 +344,6 @@ class TrainEvalTest(tf.test.TestCase):
     ]
     self.assertFalse(
         np.allclose(initial_predictions, random_predictions, atol=1e-2))
-
 
 if __name__ == '__main__':
   tf.test.main()
