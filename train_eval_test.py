@@ -83,7 +83,7 @@ class TrainEvalTest(tf.test.TestCase):
       error += np.maximum(0., negative - positive + 1.)
     return error
 
-  def _test_train_eval_model(self):
+  def test_train_eval_model(self):
     """Tests that a simple model trains and exported models are valid."""
     gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
     model_dir = self.create_tempdir().full_path
@@ -240,6 +240,88 @@ class TrainEvalTest(tf.test.TestCase):
     # additional checkpoint to the init one should be created -> len == 2.
     self.assertLen(
         tf.io.gfile.glob(os.path.join(continue_model_dir, 'model*.meta')), 2)
+
+  def test_init_from_checkpoint_use_avg_model_params(self):
+    """Tests that a simple model trains and exported models are valid."""
+    gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
+    gin.bind_parameter('tf.estimator.RunConfig.keep_checkpoint_max', 10)
+    model_dir = self.create_tempdir().full_path
+    mock_t2r_model = mocks.MockT2RModel(
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor,
+        use_avg_model_params=True)
+
+    mock_input_generator_train = mocks.MockInputGenerator(
+        batch_size=_BATCH_SIZE)
+
+    mock_input_generator = mocks.MockInputGenerator(batch_size=1)
+    mock_input_generator.set_specification_from_model(
+        mock_t2r_model, tf.estimator.ModeKeys.TRAIN)
+
+    train_eval.train_eval_model(
+        t2r_model=mock_t2r_model,
+        input_generator_train=mock_input_generator_train,
+        max_train_steps=_MAX_TRAIN_STEPS,
+        model_dir=model_dir)
+
+    # Verify that the serving estimator does exactly the same as the normal
+    # estimator with all the parameters.
+    initial_estimator_predict = tf.estimator.Estimator(
+        model_fn=mock_t2r_model.model_fn,
+        config=tf.estimator.RunConfig(model_dir=model_dir))
+
+    # pylint: disable=g-complex-comprehension
+    initial_predictions = [
+        prediction['logit'] for prediction in list(
+            initial_estimator_predict.predict(
+                input_fn=mock_input_generator.create_dataset_input_fn(
+                    mode=tf.estimator.ModeKeys.EVAL)))
+    ]
+
+    # The continuous training has its own directory.
+    continue_model_dir = self.create_tempdir().full_path
+    init_from_checkpoint_fn = functools.partial(
+        abstract_model.default_init_from_checkpoint_fn, checkpoint=model_dir)
+    continue_mock_t2r_model = mocks.MockT2RModel(
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor,
+        init_from_checkpoint_fn=init_from_checkpoint_fn)
+    continue_mock_input_generator_train = mocks.MockInputGenerator(
+        batch_size=_BATCH_SIZE)
+    # Re-initialize the model and train for one step, basically the same
+    # performance as the original model.
+    train_eval.train_eval_model(
+        t2r_model=continue_mock_t2r_model,
+        input_generator_train=continue_mock_input_generator_train,
+        model_dir=continue_model_dir,
+        max_train_steps=_MAX_TRAIN_STEPS + 1)
+
+    # Verify that the serving estimator does exactly the same as the normal
+    # estimator with all the parameters.
+    continue_estimator_predict = tf.estimator.Estimator(
+        model_fn=mock_t2r_model.model_fn,
+        config=tf.estimator.RunConfig(model_dir=continue_model_dir))
+
+    continue_predictions = [
+        prediction['logit'] for prediction in list(
+            continue_estimator_predict.predict(
+                input_fn=mock_input_generator.create_dataset_input_fn(
+                    mode=tf.estimator.ModeKeys.EVAL)))
+    ]
+
+    self.assertTrue(
+        np.allclose(initial_predictions, continue_predictions, atol=1e-2))
+
+    # A randomly initialized model estimator with all the parameters.
+    random_estimator_predict = tf.estimator.Estimator(
+        model_fn=mock_t2r_model.model_fn)
+
+    random_predictions = [
+        prediction['logit'] for prediction in list(
+            random_estimator_predict.predict(
+                input_fn=mock_input_generator.create_dataset_input_fn(
+                    mode=tf.estimator.ModeKeys.EVAL)))
+    ]
+    self.assertFalse(
+        np.allclose(initial_predictions, random_predictions, atol=1e-2))
 
 
 if __name__ == '__main__':
