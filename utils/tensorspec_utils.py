@@ -1468,17 +1468,34 @@ def tensorspec_to_feature_dict(tensor_spec_struct, decode_images = True):
   return features, tensor_spec_dict
 
 
-def write_to_file(in_feature_spec, in_label_spec, filename):
+def write_input_spec_to_file(in_feature_spec, in_label_spec, filename):
   """Writes feature and label specifications to file."""
   with tf.gfile.GFile(filename, 'w') as f:
     cPickle.dump({
         'in_feature_spec': in_feature_spec, 'in_label_spec': in_label_spec}, f)  # pytype: disable=wrong-arg-types
 
 
-def load_from_file(filename):
+def load_input_spec_from_file(filename):
   """Reads feature and label specifications from file."""
+  if not tf.io.gfile.exists(filename):
+    raise ValueError('The file {} does not exist.'.format(filename))
   with tf.io.gfile.GFile(filename, 'r') as f:
     spec_data = cPickle.load(f)
   feature_spec = spec_data['in_feature_spec']
   label_spec = spec_data['in_label_spec']
   return feature_spec, label_spec
+
+
+def write_global_step_to_file(global_step, filename):
+  """Writes feature and label specifications to file."""
+  with tf.gfile.GFile(filename, 'w') as f:
+    cPickle.dump({'global_step': global_step}, f)  # pytype: disable=wrong-arg-types
+
+
+def load_global_step_from_file(filename):
+  """Reads feature and label specifications from file."""
+  if not tf.io.gfile.exists(filename):
+    raise ValueError('The file {} does not exist.'.format(filename))
+  with tf.io.gfile.GFile(filename, 'r') as f:
+    spec_data = cPickle.load(f)
+  return spec_data['global_step']

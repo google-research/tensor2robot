@@ -70,7 +70,8 @@ class CheckpointExportListener(tf.test.TestCase):
     tf.gfile.DeleteRecursively(self._test_dir)
     super(CheckpointExportListener, self).tearDown()
 
-  def _ExportFn(self, export_dir):
+  def _ExportFn(self, export_dir, global_step):
+    del global_step
     self._export_id += 1
     return _MakeSavedModel(export_dir, self._export_id)
 
@@ -114,7 +115,8 @@ class LaggedCheckpointListenerTest(tf.test.TestCase):
     tf.gfile.DeleteRecursively(self._test_dir)
     super(LaggedCheckpointListenerTest, self).tearDown()
 
-  def _ExportFn(self, export_dir):
+  def _ExportFn(self, export_dir, global_step):
+    del global_step
     self._export_id += 1
     return _MakeSavedModel(export_dir, self._export_id)
 

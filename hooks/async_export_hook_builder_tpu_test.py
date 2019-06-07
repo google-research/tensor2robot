@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import functools
 import os
+import gin
 from tensor2robot import train_eval
 from tensor2robot.hooks import async_export_hook_builder
 from tensor2robot.predictors import exported_savedmodel_predictor
@@ -39,22 +40,21 @@ class AsyncExportHookBuilderTest(tf.test.TestCase):
   def test_with_mock_training(self):
     model_dir = self.create_tempdir().full_path
     mock_t2r_model = mocks.MockT2RModel(
-        preprocessor_cls=noop_preprocessor.NoOpPreprocessor, device_type='cpu')
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor, device_type='tpu')
 
     mock_input_generator = mocks.MockInputGenerator(batch_size=_BATCH_SIZE)
     default_create_export_fn = functools.partial(
         async_export_hook_builder.default_create_export_fn,
         batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
     export_dir = os.path.join(model_dir, _EXPORT_DIR)
-    default_create_export_fn = functools.partial(
-        async_export_hook_builder.default_create_export_fn,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
     hook_builder = async_export_hook_builder.AsyncExportHookBuilder(
         export_dir=export_dir, create_export_fn=default_create_export_fn)
 
     default_create_export_fn = functools.partial(
         async_export_hook_builder.default_create_export_fn,
         batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
+    gin.parse_config('tf.contrib.tpu.TPUConfig.iterations_per_loop=1')
+    gin.parse_config('tf.estimator.RunConfig.save_checkpoints_steps=1')
 
     # We optimize our network.
     train_eval.train_eval_model(

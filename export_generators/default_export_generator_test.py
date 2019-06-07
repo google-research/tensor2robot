@@ -64,6 +64,7 @@ class DefaultExportGeneratorTest(tf.test.TestCase):
     prediction_ref = estimator_predict.predict(
         input_fn=mock_input_generator.create_dataset_input_fn(
             mode=tf.estimator.ModeKeys.EVAL))
+
     return model_dir, mock_t2r_model, prediction_ref
 
   def test_create_serving_input_receiver_numpy(self):

@@ -306,8 +306,8 @@ def create_default_exporters(
   in_label_spec = t2r_model.get_label_specification_for_packing(
       mode=tf.estimator.ModeKeys.PREDICT)
   input_specs_pkl_filename = os.path.join(tmpdir, 'input_specs.pkl')
-  tensorspec_utils.write_to_file(in_feature_spec, in_label_spec,
-                                 input_specs_pkl_filename)
+  tensorspec_utils.write_input_spec_to_file(in_feature_spec, in_label_spec,
+                                            input_specs_pkl_filename)
   assets = {'input_specs.pkl': input_specs_pkl_filename}
   export_generator.set_specification_from_model(t2r_model)
 

@@ -191,6 +191,11 @@ class CheckpointPredictor(abstract_predictor.AbstractPredictor):
   @property
   def model_version(self):
     """The version of the model currently in use."""
+    return self.global_step
+
+  @property
+  def global_step(self):
+    """The global step of the model currently in use."""
     try:
       # If a model has not been loaded the global step of the model
       # is not valid which is why we return -1.

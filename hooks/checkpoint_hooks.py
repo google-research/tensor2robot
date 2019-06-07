@@ -84,7 +84,7 @@ class CheckpointExportListener(tf.train.CheckpointSaverListener):
 
   def after_save(self, session, global_step):
     logging.info('Exporting SavedModel at global_step %d', global_step)
-    exported_path = self._export_fn(self._export_dir)
+    exported_path = self._export_fn(self._export_dir, global_step)
     logging.info('Saved model to %s', exported_path)
     if self._gc:
       self._gc.observe(exported_path)

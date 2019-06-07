@@ -57,7 +57,7 @@ class Td3Test(tf.test.TestCase):
 
     def _checkpoint_init(export_fn, export_dir, **kwargs):
       del kwargs
-      export_fn(export_dir)
+      export_fn(export_dir, global_step=1)
       return None
 
     mock_checkpoint_init.side_effect = _checkpoint_init
@@ -84,7 +84,10 @@ class Td3Test(tf.test.TestCase):
     mock_export_saved_model.assert_called_with(
         serving_input_receiver_fn=mock.ANY,
         export_dir_base=_EXPORT_DIR,
-        assets_extra={"tf_serving_warmup_requests": _NUMPY_WARMUP_REQUESTS})
+        assets_extra={
+            "tf_serving_warmup_requests": _NUMPY_WARMUP_REQUESTS,
+            "global_step.pkl": mock.ANY
+        })
 
     mock_create_serving_input_receiver_numpy_fn.assert_called()
 

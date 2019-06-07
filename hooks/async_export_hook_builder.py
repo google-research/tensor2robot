@@ -37,7 +37,7 @@ CreateExportFnType = Callable[[
     model_interface.ModelInterface,
     tf.estimator.Estimator,
     abstract_export_generator.AbstractExportGenerator,
-], Callable[[Text], Text]]
+], Callable[[Text, int], Text]]
 
 
 @gin.configurable(whitelist=['batch_sizes_for_export'])
@@ -60,21 +60,29 @@ def default_create_export_fn(
   warmup_requests_file = export_generator.create_warmup_requests_numpy(
       batch_sizes=batch_sizes_for_export, export_dir=estimator.model_dir)
 
-  # Create pkl of the input to save alongside the exported models
-  tmpdir = tempfile.mkdtemp()
   in_feature_spec = t2r_model.get_feature_specification_for_packing(
       mode=tf.estimator.ModeKeys.PREDICT)
   in_label_spec = t2r_model.get_label_specification_for_packing(
       mode=tf.estimator.ModeKeys.PREDICT)
-  input_specs_pkl_filename = os.path.join(tmpdir, 'input_specs.pkl')
-  tensorspec_utils.write_to_file(in_feature_spec, in_label_spec,
-                                 input_specs_pkl_filename)
-  assets = {
-      'tf_serving_warmup_requests': warmup_requests_file,
-      'input_specs.pkl': input_specs_pkl_filename
-  }
 
-  def _export_fn(export_dir):
+  def _export_fn(export_dir, global_step):
+    """The actual closure function creating the exported model and assets."""
+    # Create pkl of the input to save alongside the exported models
+    tmpdir = tempfile.mkdtemp()
+    input_specs_pkl_filename = os.path.join(tmpdir, 'input_specs.pkl')
+    tensorspec_utils.write_input_spec_to_file(in_feature_spec, in_label_spec,
+                                              input_specs_pkl_filename)
+
+    tmpdir = tempfile.mkdtemp()
+    global_step_pkl_filename = os.path.join(tmpdir, 'global_step.pkl')
+    tensorspec_utils.write_global_step_to_file(global_step,
+                                               global_step_pkl_filename)
+
+    assets = {
+        'tf_serving_warmup_requests': warmup_requests_file,
+        'input_specs.pkl': input_specs_pkl_filename,
+        'global_step.pkl': global_step_pkl_filename
+    }
     return estimator.export_saved_model(
         export_dir_base=export_dir,
         serving_input_receiver_fn=export_generator

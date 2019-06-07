@@ -57,8 +57,10 @@ class CheckpointPredictorTest(tf.test.TestCase):
     with self.assertRaises(ValueError):
       predictor.predict({'does_not_matter': np.zeros(1)})
     self.assertEqual(predictor.model_version, -1)
+    self.assertEqual(predictor.global_step, -1)
     self.assertTrue(predictor.restore())
     self.assertGreater(predictor.model_version, 0)
+    self.assertEqual(predictor.global_step, 3)
     ref_feature_spec = mock_model.preprocessor.get_in_feature_specification(
         tf.estimator.ModeKeys.PREDICT)
     tensorspec_utils.assert_equal(predictor.get_feature_specification(),
@@ -67,6 +69,7 @@ class CheckpointPredictorTest(tf.test.TestCase):
         ref_feature_spec, batch_size=_BATCH_SIZE)
     predictions = predictor.predict(features)
     self.assertLen(predictions, 1)
+    self.assertCountEqual(sorted(predictions.keys()), ['logit'])
     self.assertEqual(predictions['logit'].shape, (2, 1))
 
   def test_predictor_timeout(self):

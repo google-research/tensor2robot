@@ -78,6 +78,11 @@ class AbstractPredictor(object):
     return 0
 
   @property
+  def global_step(self):
+    """The global step of the model currently in use."""
+    return 0
+
+  @property
   def model_path(self):
     """The path of the model currently in use."""
     return ''

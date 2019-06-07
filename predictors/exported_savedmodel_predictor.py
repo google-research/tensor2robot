@@ -63,6 +63,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     self._feature_spec = None  # type: tensorspec_utils.TensorSpecStruct
     self._label_spec = None
     self._tf_config = tf_config
+    self._global_step = -1
 
   def predict(self, features):
     """Predicts based on feature input using the loaded model.
@@ -145,7 +146,19 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
         input_spec_filename = os.path.join(model_dirs[-1], 'assets.extra',
                                            'input_specs.pkl')
         self._feature_spec, self._label_spec = (
-            tensorspec_utils.load_from_file(input_spec_filename))
+            tensorspec_utils.load_input_spec_from_file(input_spec_filename))
+
+        # Load input specs from file.
+        global_step_filename = os.path.join(model_dirs[-1], 'assets.extra',
+                                            'global_step.pkl')
+        try:
+          global_step = tensorspec_utils.load_global_step_from_file(
+              global_step_filename)
+          self._global_step = global_step
+        except ValueError:
+          logging.warning(
+              'Error loading the global step, therefore using the previously'
+              'set global step %s.', str(self.global_step))
         return True
       except ValueError as err:
         logging.warning(
@@ -178,6 +191,15 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     """
     self.assert_is_loaded()
     return int(os.path.basename(self._latest_export_dir))
+
+  @property
+  def global_step(self):
+    """The global step of the model currently in use.
+
+    Returns:
+      The global step the model was exported at.
+    """
+    return self._global_step
 
   @property
   def model_path(self):

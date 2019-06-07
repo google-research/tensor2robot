@@ -19,12 +19,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 import os
 
 from absl import flags
 import gin
 import numpy as np
 from tensor2robot import train_eval
+from tensor2robot.hooks import async_export_hook_builder
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.predictors import exported_savedmodel_predictor
 from tensor2robot.utils import mocks
@@ -32,6 +34,9 @@ from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
 
 FLAGS = flags.FLAGS
+
+_EXPORT_DIR = 'asyn_export'
+_BATCH_SIZES_FOR_EXPORT = [128]
 
 _BATCH_SIZE = 2
 _MAX_TRAIN_STEPS = 3
@@ -44,7 +49,7 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase):
     gin.clear_config()
     gin.parse_config('tf.estimator.RunConfig.save_checkpoints_steps=1')
 
-  def test_predictor(self):
+  def test_predictor_with_default_exporter(self):
     input_generator = default_input_generator.DefaultRandomInputGenerator(
         batch_size=_BATCH_SIZE)
     model_dir = self.create_tempdir().full_path
@@ -66,8 +71,11 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase):
       predictor.predict({'does_not_matter': np.zeros(1)})
     with self.assertRaises(ValueError):
       _ = predictor.model_version
+    self.assertEqual(predictor.global_step, -1)
     self.assertTrue(predictor.restore())
     self.assertGreater(predictor.model_version, 0)
+    # NOTE: The default exporter does NOT safe the global_step.
+    self.assertEqual(predictor.global_step, -1)
     ref_feature_spec = mock_model.preprocessor.get_in_feature_specification(
         tf.estimator.ModeKeys.PREDICT)
     tensorspec_utils.assert_equal(predictor.get_feature_specification(),
@@ -76,6 +84,49 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase):
         ref_feature_spec, batch_size=_BATCH_SIZE)
     predictions = predictor.predict(features)
     self.assertLen(predictions, 1)
+    self.assertCountEqual(sorted(predictions.keys()), ['logit'])
+    self.assertEqual(predictions['logit'].shape, (2, 1))
+
+  def test_predictor_with_async_hook(self):
+    model_dir = self.create_tempdir().full_path
+    default_create_export_fn = functools.partial(
+        async_export_hook_builder.default_create_export_fn,
+        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
+    export_dir = os.path.join(model_dir, _EXPORT_DIR)
+    hook_builder = async_export_hook_builder.AsyncExportHookBuilder(
+        export_dir=export_dir, create_export_fn=default_create_export_fn)
+    input_generator = default_input_generator.DefaultRandomInputGenerator(
+        batch_size=_BATCH_SIZE)
+    mock_model = mocks.MockT2RModel()
+    train_eval.train_eval_model(
+        t2r_model=mock_model,
+        input_generator_train=input_generator,
+        train_hook_builders=[hook_builder],
+        max_train_steps=_MAX_TRAIN_STEPS,
+        model_dir=model_dir)
+
+    predictor = exported_savedmodel_predictor.ExportedSavedModelPredictor(
+        export_dir=os.path.join(model_dir, _EXPORT_DIR))
+    with self.assertRaises(ValueError):
+      predictor.get_feature_specification()
+    with self.assertRaises(ValueError):
+      predictor.predict({'does_not_matter': np.zeros(1)})
+    with self.assertRaises(ValueError):
+      _ = predictor.model_version
+    self.assertEqual(predictor.global_step, -1)
+    self.assertTrue(predictor.restore())
+    self.assertGreater(predictor.model_version, 0)
+    # NOTE: The async hook builder will export the global step.
+    self.assertEqual(predictor.global_step, 3)
+    ref_feature_spec = mock_model.preprocessor.get_in_feature_specification(
+        tf.estimator.ModeKeys.PREDICT)
+    tensorspec_utils.assert_equal(predictor.get_feature_specification(),
+                                  ref_feature_spec)
+    features = tensorspec_utils.make_random_numpy(
+        ref_feature_spec, batch_size=_BATCH_SIZE)
+    predictions = predictor.predict(features)
+    self.assertLen(predictions, 1)
+    self.assertCountEqual(sorted(predictions.keys()), ['logit'])
     self.assertEqual(predictions['logit'].shape, (2, 1))
 
   def test_predictor_timeout(self):
