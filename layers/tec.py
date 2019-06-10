@@ -111,7 +111,9 @@ def reduce_temporal_embeddings(
 
 
 def compute_embedding_contrastive_loss(
-    inf_embedding, con_embedding):
+    inf_embedding,
+    con_embedding,
+    successes = None):
   """Compute triplet loss between inference and condition_embeddings.
 
   Expects embeddings to be L2-normalized.
@@ -119,6 +121,10 @@ def compute_embedding_contrastive_loss(
   Args:
     inf_embedding: A rank 3 tensor: [num_tasks, num_inf_episodes, K].
     con_embedding: A rank 3 tensor: [num_tasks, num_con_episodes, K].
+    successes: (Optional). A rank 2 tensor: [num_tasks, num_inf_episodes]. If
+      provided, only con_embedding with corresponding successes=1.0 are assigned
+      as positives (all failures are negatives). When not provided,
+      con_embedding is always treated as a positive example.
   Returns:
     The contrastive loss computed using the task zero inf_embedding and
     each of the `num_tasks` con_embeddings.
@@ -133,6 +139,9 @@ def compute_embedding_contrastive_loss(
   avg_con_embedding = tf.reduce_mean(con_embedding, axis=1)
   anchor = avg_inf_embedding[0:1]
   labels = tf.math.equal(tf.range(tf.shape(avg_con_embedding)[0]), 0)
+  if successes is not None:
+    inference_success = tf.math.equal(tf.reduce_mean(successes, axis=1), 1.0)
+    labels = tf.logical_and(labels, inference_success)
   # Unlike TEC paper, use standard contrastive loss.
   embed_loss = tf.contrib.losses.metric_learning.contrastive_loss(
       labels, anchor, avg_con_embedding)
