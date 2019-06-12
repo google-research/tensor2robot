@@ -45,7 +45,7 @@ class MetaLearningPolicy(policies.Policy):
 class MAMLCEMPolicy(MetaLearningPolicy, policies.CEMPolicy):
   """CEM Policy that uses MAML/gradient descent for fast adaptation."""
 
-  # TODO(b/129880397) Replace t2r_model with pack feature function.
+  # TODO(T2R_CONTRIBUTORS) Replace t2r_model with pack feature function.
   def __init__(self,
                t2r_model,
                action_size = 2,
@@ -69,7 +69,7 @@ class MAMLCEMPolicy(MetaLearningPolicy, policies.CEMPolicy):
 
   def SelectAction(self, state, context, timestep):
 
-    # TODO(b/77299790)
+    # TODO(T2R_CONTRIBUTORS)
     if self._prev_episode_data:
       prediction_key = 'val_output'
     else:

@@ -15,7 +15,7 @@
 
 """The minimal T2RModel interface required by T2R infrastructure.
 
-# TODO(b/130370471): Sunset this interface in favor of AbstractT2RModel.
+# TODO(T2R_CONTRIBUTORS): Sunset this interface in favor of AbstractT2RModel.
 This is a proper interface used by T2R infrastructure such as train_eval,
 input_generators, preprocessors, exporters, predictors.
 

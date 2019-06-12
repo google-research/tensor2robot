@@ -24,6 +24,7 @@ from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.hooks import checkpoint_hooks
 from tensor2robot.hooks import td3
 from tensor2robot.utils import mocks
+from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 
 _BATCH_SIZES_FOR_EXPORT = [128]
@@ -86,7 +87,7 @@ class Td3Test(tf.test.TestCase):
         export_dir_base=_EXPORT_DIR,
         assets_extra={
             "tf_serving_warmup_requests": _NUMPY_WARMUP_REQUESTS,
-            "global_step.pkl": mock.ANY
+            tensorspec_utils.T2R_ASSETS_FILENAME: mock.ANY
         })
 
     mock_create_serving_input_receiver_numpy_fn.assert_called()

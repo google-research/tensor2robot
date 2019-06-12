@@ -23,6 +23,7 @@ from __future__ import print_function
 import os
 import tempfile
 import gin
+from tensor2robot import t2r_pb2
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.hooks import checkpoint_hooks
 from tensor2robot.hooks import hook_builder
@@ -84,19 +85,28 @@ class TD3Hooks(hook_builder.HookBuilder):
         batch_sizes=self._batch_sizes_for_export,
         export_dir=estimator.model_dir)
 
+    in_feature_spec = t2r_model.get_feature_specification_for_packing(
+        mode=tf.estimator.ModeKeys.PREDICT)
+    in_label_spec = t2r_model.get_label_specification_for_packing(
+        mode=tf.estimator.ModeKeys.PREDICT)
+    t2r_assets = t2r_pb2.T2RAssets()
+    t2r_assets.feature_spec.CopyFrom(in_feature_spec.to_proto())
+    t2r_assets.label_spec.CopyFrom(in_label_spec.to_proto())
+
     def _export_fn(export_dir, global_step):
       """The actual closure function creating the exported model and assets."""
+      t2r_assets.global_step = global_step
       tmpdir = tempfile.mkdtemp()
-      global_step_pkl_filename = os.path.join(tmpdir, 'global_step.pkl')
-      tensorspec_utils.write_global_step_to_file(global_step,
-                                                 global_step_pkl_filename)
+      t2r_assets_filename = os.path.join(tmpdir,
+                                         tensorspec_utils.T2R_ASSETS_FILENAME)
+      tensorspec_utils.write_t2r_assets_to_file(t2r_assets, t2r_assets_filename)
       res = estimator.export_saved_model(
           export_dir_base=export_dir,
           serving_input_receiver_fn=export_generator
           .create_serving_input_receiver_numpy_fn(),
           assets_extra={
               'tf_serving_warmup_requests': warmup_requests_file,
-              'global_step.pkl': global_step_pkl_filename
+              tensorspec_utils.T2R_ASSETS_FILENAME: t2r_assets_filename
           })
       return res
 

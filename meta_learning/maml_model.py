@@ -46,8 +46,8 @@ MAMLPreprocessorType = TypeVar(
 def pfor_map_fn(fn, elems):
   """Provides a map_fn-like wrapper around pfor.
 
-  TODO(b/123722297): For now, fn's conv filters should be loop invariant.
-  TODO(b/123722711): Using `AssignSubvariableOp` in fn will cause errors.
+  TODO(T2R_CONTRIBUTORS): For now, fn's conv filters should be loop invariant.
+  TODO(T2R_CONTRIBUTORS): Using `AssignSubvariableOp` in fn will cause errors.
 
   Args:
     fn: The callable to be performed. It accepts one argument, which will have

@@ -26,6 +26,7 @@ import tempfile
 from absl import flags
 from absl import logging
 import gin
+from tensor2robot import t2r_pb2
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.export_generators import default_export_generator
 from tensor2robot.hooks import hook_builder
@@ -305,10 +306,13 @@ def create_default_exporters(
       mode=tf.estimator.ModeKeys.PREDICT)
   in_label_spec = t2r_model.get_label_specification_for_packing(
       mode=tf.estimator.ModeKeys.PREDICT)
-  input_specs_pkl_filename = os.path.join(tmpdir, 'input_specs.pkl')
-  tensorspec_utils.write_input_spec_to_file(in_feature_spec, in_label_spec,
-                                            input_specs_pkl_filename)
-  assets = {'input_specs.pkl': input_specs_pkl_filename}
+  t2r_assets = t2r_pb2.T2RAssets()
+  t2r_assets.feature_spec.CopyFrom(in_feature_spec.to_proto())
+  t2r_assets.label_spec.CopyFrom(in_label_spec.to_proto())
+  t2r_assets_filename = os.path.join(tmpdir,
+                                     tensorspec_utils.T2R_ASSETS_FILENAME)
+  tensorspec_utils.write_t2r_assets_to_file(t2r_assets, t2r_assets_filename)
+  assets = {tensorspec_utils.T2R_ASSETS_FILENAME: t2r_assets_filename}
   export_generator.set_specification_from_model(t2r_model)
 
   exporters = []
@@ -421,7 +425,7 @@ def train_eval_model(
     ValueError: If neither a input_generator for train nor eval is available.
   """
 
-  # TODO(b/128860448): Document behavior in T2R README.
+  # TODO(T2R_CONTRIBUTORS): Document behavior in T2R README.
   use_tpu_tf_wrapper = t2r_model.is_device_tpu
 
   if use_tpu_tf_wrapper:

@@ -15,7 +15,7 @@
 
 """TensorFlow impl of Spatial Softmax layers. (spatial soft arg-max).
 
-TODO(b/129505739) - consider replacing with contrib version.
+TODO(T2R_CONTRIBUTORS) - consider replacing with contrib version.
 """
 
 from __future__ import absolute_import

@@ -15,7 +15,7 @@
 
 """Write episode transitions to Recordio-backed replay buffer.
 
-TODO(b/131158172) - re-base class using tf.python_io.TFRecordWriter.
+TODO(T2R_CONTRIBUTORS) - re-base class using tf.python_io.TFRecordWriter.
 """
 
 from __future__ import absolute_import

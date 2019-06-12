@@ -26,11 +26,15 @@ from absl import logging
 
 import numpy as np
 from six.moves import cPickle
+from tensor2robot import t2r_pb2
 import tensorflow as tf
 from typing import Any, Dict, List, Optional, Text, Union
+from google.protobuf import text_format
 
 nest = tf.contrib.framework.nest
 TSPEC = tf.contrib.framework.TensorSpec
+
+T2R_ASSETS_FILENAME = 't2r_assets.pbtxt'
 
 
 class ExtendedTensorSpec(TSPEC):
@@ -139,6 +143,43 @@ class ExtendedTensorSpec(TSPEC):
           tensor.shape, tensor.dtype, name or tensor.op.name, is_extracted=True)
     else:
       raise ValueError('`tensor` should be a tf.Tensor')
+
+  @classmethod
+  def from_proto(cls, extended_tensor_spec_proto):
+    # Fill the required fields.
+    kwargs = {
+        'shape': extended_tensor_spec_proto.shape,
+        'dtype': tf.DType(extended_tensor_spec_proto.dtype),
+    }
+    # Fill the optional fields.
+    for optional_field in [
+        'name', 'is_optional', 'is_extracted', 'data_format', 'dataset_key'
+    ]:
+      if extended_tensor_spec_proto.HasField(optional_field):
+        kwargs[optional_field] = getattr(extended_tensor_spec_proto,
+                                         optional_field)
+    return cls(**kwargs)
+
+  def to_proto(self):
+    extended_tensor_spec_proto = t2r_pb2.ExtendedTensorSpec()
+    extended_tensor_spec_proto.shape.extend(self.shape)
+    extended_tensor_spec_proto.dtype = self.dtype.as_datatype_enum
+    if self.name is not None:
+      extended_tensor_spec_proto.name = self.name
+    if self.is_optional is not None:
+      extended_tensor_spec_proto.is_optional = self.is_optional
+    if self.is_extracted is not None:
+      extended_tensor_spec_proto.is_extracted = self.is_extracted
+    if self.data_format is not None:
+      extended_tensor_spec_proto.data_format = self.data_format
+    return extended_tensor_spec_proto
+
+  @classmethod
+  def from_serialized_proto(cls, serialized_extended_tensor_spec_proto):
+    extended_tensor_spec_proto = t2r_pb2.ExtendedTensorSpec()
+    extended_tensor_spec_proto.ParseFromString(
+        serialized_extended_tensor_spec_proto)  # pytype: disable=wrong-arg-types
+    return cls.from_proto(extended_tensor_spec_proto)
 
   @classmethod
   def to_spec(cls, instance):
@@ -320,6 +361,33 @@ class TensorSpecStruct(collections.OrderedDict):
       A `shallow` dict copy of the current instance.
     """
     return dict(self.items())
+
+  @classmethod
+  def from_proto(cls, tensor_spec_struct_proto):
+    return cls({
+        k: ExtendedTensorSpec.from_proto(v)
+        for k, v in tensor_spec_struct_proto.key_value.items()
+    })
+
+  @classmethod
+  def from_serialized_proto(cls, serialized_tensor_spec_struct_proto):
+    tensor_spec_struct_proto = t2r_pb2.TensorSpecStruct()
+    tensor_spec_struct_proto.ParseFromString(
+        serialized_tensor_spec_struct_proto)  # pytype: disable=wrong-arg-types
+    return cls.from_proto(tensor_spec_struct_proto)
+
+  def to_proto(self):
+    """Converts the TensorSpecStruct to a proto."""
+    t2r_tensor_spec_struct = t2r_pb2.TensorSpecStruct()
+    for key, value in self.items():
+      if not hasattr(value, 'to_proto'):
+        raise ValueError('Only data structures which support to_proto, e.g.'
+                         'ExtendedTensorSpec are allowed within a '
+                         'TensorSpecStruct when convertig to a proto. The type '
+                         'for key {} is however {} with the value {}.'.format(
+                             key, type(value), value))
+      t2r_tensor_spec_struct.key_value[key].CopyFrom(value.to_proto())
+    return t2r_tensor_spec_struct
 
   def __getitem__(self, key):
     if key.startswith('_'):
@@ -1466,6 +1534,20 @@ def tensorspec_to_feature_dict(tensor_spec_struct, decode_images = True):
     features[tensor_spec.name] = _get_feature(tensor_spec, decode_images)
     tensor_spec_dict[tensor_spec.name] = tensor_spec
   return features, tensor_spec_dict
+
+
+def write_t2r_assets_to_file(t2r_assets, filename):
+  """Writes feature and label specifications to file."""
+  with tf.io.gfile.GFile(filename, 'w') as f:
+    f.write(text_format.MessageToString(t2r_assets))
+
+
+def load_t2r_assets_to_file(filename):
+  """Writes feature and label specifications to file."""
+  with tf.io.gfile.GFile(filename, 'r') as f:
+    t2r_assets = t2r_pb2.T2RAssets()
+    text_format.Parse(f.read(), t2r_assets)
+    return t2r_assets
 
 
 def write_input_spec_to_file(in_feature_spec, in_label_spec, filename):

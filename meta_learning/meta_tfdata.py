@@ -260,7 +260,7 @@ def expand_batch_dims(structure, batch_sizes):
   return nest.map_structure(_helper, structure)
 
 
-# TODO(b/127842211): Refactor this code to a separate file.
+# TODO(T2R_CONTRIBUTORS): Refactor this code to a separate file.
 def multi_batch_apply(f, num_batch_dims, *args, **kwargs):
   """Vectorized application of f on tensors with multiple batch dims.
 

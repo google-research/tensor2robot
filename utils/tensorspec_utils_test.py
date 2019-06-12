@@ -132,6 +132,18 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
             'alternative/o4'
         ])
 
+  def test_extended_spec_proto(self):
+    extended_tensorspec_proto = T1.to_proto()
+    t1_from_proto = utils.ExtendedTensorSpec.from_serialized_proto(
+        extended_tensorspec_proto.SerializeToString())
+    utils.assert_equal_spec_or_tensor(T1, t1_from_proto)
+
+  def test_tensorspec_struct_proto(self):
+    tensor_spec_struct = utils.TensorSpecStruct(REFERENCE_FLAT_ORDERED_DICT)
+    tss_from_proto = utils.TensorSpecStruct.from_serialized_proto(
+        tensor_spec_struct.to_proto().SerializeToString())
+    self.assertDictEqual(tensor_spec_struct.to_dict(), tss_from_proto.to_dict())
+
   def test_flatten_spec_structure(self):
     flatten_spec_structure = utils.flatten_spec_structure(
         mock_nested_subset_spec)
@@ -140,7 +152,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
         'train/actions': T2
     })
 
-  def test_flat_ordereddict_with_attribute_access_init(self):
+  def test_tensor_spec_struct_init(self):
     flat_ordered_dict_with_attributes = utils.TensorSpecStruct(
         REFERENCE_FLAT_ORDERED_DICT)
     self.assertDictEqual(flat_ordered_dict_with_attributes,
@@ -151,13 +163,13 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
         list(flat_ordered_dict_with_attributes.train.keys()),
         ['images', 'actions'])
 
-  def test_flat_ordereddict_with_attribute_access_to_dict(self):
+  def test_tensor_spec_struct_to_dict(self):
     ref = utils.TensorSpecStruct(REFERENCE_FLAT_ORDERED_DICT)
     ref_dict = ref.to_dict()
     from_dict = utils.TensorSpecStruct(ref_dict)
     self.assertDictEqual(ref_dict, from_dict.to_dict())
 
-  def test_flat_ordereddict_with_attribute_access_assignment(self):
+  def test_tensor_spec_struct_assignment(self):
     test_flat_ordered_dict = utils.TensorSpecStruct()
 
     # We cannot assign an empty ordered dict.
@@ -166,7 +178,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
           utils.TensorSpecStruct())
 
     # Invalid data types for assignment
-    # TODO(b/134442538): Deterimine which type is not supported by pytype.
+    # TODO(T2R_CONTRIBUTORS): Deterimine which type is not supported by pytype.
     # for should_raise in ['1', 1, 1.0, {}]:
     #   with self.assertRaises(ValueError):
     #     test_flat_ordered_dict.should_raise = should_raise
@@ -177,7 +189,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     # Now we can also extend.
     test_flat_ordered_dict.sub_data.additional = np.zeros(1)
 
-  def test_flat_ordereddict_with_attribute_access_adding_attribute(self):
+  def test_tensor_spec_struct_adding_attribute(self):
     flat_ordered_dict_with_attributes = utils.TensorSpecStruct(
         REFERENCE_FLAT_ORDERED_DICT)
     # Now we check that we can change an attribute and it affects the parent.
@@ -196,7 +208,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     self.assertEqual(flat_ordered_dict_with_attributes['train/addition'],
                      flat_ordered_dict_with_attributes.train.addition)
 
-  def test_flat_ordereddict_with_attribute_access_attribut_errors(self):
+  def test_tensor_spec_struct_attribut_errors(self):
     flat_ordered_dict_with_attributes = utils.TensorSpecStruct(
         REFERENCE_FLAT_ORDERED_DICT)
     # These attributes do not exist.
@@ -208,7 +220,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
         flat_ordered_dict_with_attributes['optional'].to_dict(),
         flat_ordered_dict_with_attributes.optional.to_dict())
 
-  def test_flat_ordereddict_with_attribute_access_deleting_element(self):
+  def test_tensor_spec_struct_deleting_element(self):
     flat_ordered_dict_with_attributes = utils.TensorSpecStruct(
         REFERENCE_FLAT_ORDERED_DICT)
     # Now we show that we can delete items and it will propagate down.
@@ -224,7 +236,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     del test['actions']
     self.assertNotIn('test/actions', flat_ordered_dict_with_attributes)
 
-  def test_flat_ordereddict_with_attribute_access_composing_with_a_dict(self):
+  def test_tensor_spec_struct_composing_with_a_dict(self):
     # We reset our base instance.
     flat_ordered_dict_with_attributes = utils.TensorSpecStruct(
         REFERENCE_FLAT_ORDERED_DICT)
@@ -239,8 +251,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
         list(REFERENCE_FLAT_ORDERED_DICT.keys()) +
         ['new_field/' + key for key in new_field.keys()])
 
-  def test_flat_ordereddict_with_attribute_access_composing_with_namedtuple(
-      self):
+  def test_tensor_spec_struct_composing_with_namedtuple(self):
     # Test that we can combine namedtuple and TensorSpecStruct.
     # This is important since non top level dicts use the dict_view but
     # nest.flatten uses the cpython interface which is why we need to maintain
@@ -259,7 +270,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
       self.assertIn(key, new_flat_spec)
       self.assertEqual(new_flat_spec[key], ref_flat_spec[key])
 
-  def test_flat_ordereddict_with_attribute_access_correct_hierarchy(self):
+  def test_tensor_spec_struct_correct_hierarchy(self):
     # Test that our prefix works in the correct way.
     # This test used to break due to an prefix indexing error.
     test_flat_ordered_dict = utils.TensorSpecStruct()
