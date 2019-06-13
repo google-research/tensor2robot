@@ -27,6 +27,29 @@ from typing import Optional, Text, Tuple
 slim = tf.contrib.slim
 
 
+def embed_fullstate(
+    fullstate, embed_size, scope, reuse=tf.AUTO_REUSE, fc_layers=(100,)):
+  """Embed full state pose (non-image) observations.
+
+  Args:
+    fullstate: A rank 2 tensor: [N, F].
+    embed_size: Integer, the output embedding size.
+    scope: Name of the tf variable scope.
+    reuse: The variable_scope reuse setting.
+    fc_layers: A tuple of ints describing the number of units in each hidden
+      layer.
+  Returns:
+    A rank 2 tensor: [N, embed_size].
+  """
+  with tf.variable_scope(scope, reuse=reuse, use_resource=True):
+    embedding = slim.stack(
+        fullstate, slim.fully_connected, fc_layers,
+        activation_fn=tf.nn.relu, normalizer_fn=slim.layer_norm)
+    embedding = slim.fully_connected(
+        embedding, embed_size, activation_fn=None)
+  return embedding
+
+
 @gin.configurable
 def embed_condition_images(
     condition_image,
