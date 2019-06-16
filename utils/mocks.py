@@ -51,6 +51,10 @@ class MockInputGenerator(abstract_input_generator.AbstractInputGenerator):
   We generate negative and positive data samples with associated binary labels.
   """
 
+  def __init__(self, multi_dataset=False, **kwargs):
+    self._multi_dataset = multi_dataset
+    super(MockInputGenerator, self).__init__(**kwargs)
+
   def create_numpy_data(self):
     """Create a deterministic dataset of linearly separable data.
 
@@ -76,10 +80,15 @@ class MockInputGenerator(abstract_input_generator.AbstractInputGenerator):
     batch_size = tfdata.get_batch_size(params, self._batch_size)
 
     features, labels = self.create_numpy_data()
-
-    tf_features = {
-        'x': tf.constant(features, tf.float32),
-    }
+    if self._multi_dataset:
+      tf_features = {
+          'x1': tf.constant(features, tf.float32),
+          'x2': tf.constant(features, tf.float32),
+      }
+    else:
+      tf_features = {
+          'x': tf.constant(features, tf.float32),
+      }
 
     tf_labels = {'y': tf.constant(labels, dtype=tf.float32)}
     dataset = tf.data.Dataset.from_tensor_slices((tf_features, tf_labels))
@@ -100,13 +109,25 @@ class MockT2RModel(abstract_model.AbstractT2RModel):
   positive from negative input features.
   """
 
+  def __init__(self, multi_dataset=False, **kwargs):
+    self._multi_dataset = multi_dataset
+    super(MockT2RModel, self).__init__(**kwargs)
+
   def get_feature_specification(
       self, mode):
     """See base class documentation."""
     del mode
     spec_structure = tensorspec_utils.TensorSpecStruct()
-    spec_structure.x = tensorspec_utils.ExtendedTensorSpec(
-        shape=(3,), dtype=tf.float32, name='measured_position')
+    if self._multi_dataset:
+      spec_structure.x1 = tensorspec_utils.ExtendedTensorSpec(
+          shape=(3,), dtype=tf.float32, name='measured_position',
+          dataset_key='dataset1')
+      spec_structure.x2 = tensorspec_utils.ExtendedTensorSpec(
+          shape=(3,), dtype=tf.float32, name='measured_position',
+          dataset_key='dataset2')
+    else:
+      spec_structure.x = tensorspec_utils.ExtendedTensorSpec(
+          shape=(3,), dtype=tf.float32, name='measured_position')
     return spec_structure
 
   def get_label_specification(
@@ -115,8 +136,13 @@ class MockT2RModel(abstract_model.AbstractT2RModel):
     """See base class documentation."""
     del mode
     spec_structure = tensorspec_utils.TensorSpecStruct()
-    spec_structure.y = tensorspec_utils.ExtendedTensorSpec(
-        shape=(1,), dtype=tf.float32, name='valid_position')
+    if self._multi_dataset:
+      spec_structure.y = tensorspec_utils.ExtendedTensorSpec(
+          shape=(1,), dtype=tf.float32, name='valid_position',
+          dataset_key='dataset1')
+    else:
+      spec_structure.y = tensorspec_utils.ExtendedTensorSpec(
+          shape=(1,), dtype=tf.float32, name='valid_position')
     return spec_structure
 
   def inference_network_fn(self,
@@ -127,7 +153,10 @@ class MockT2RModel(abstract_model.AbstractT2RModel):
                            params=None):
     """See base class documentation."""
     del mode, config, params
-    net = features.x
+    if self._multi_dataset:
+      net = features.x1 + features.x2
+    else:
+      net = features.x
     for pos, activations in enumerate([32, 16, 8]):
       # tf.keras does not support variable_scope and custom_getter.
       # Therefore, we cannot use this api yet for meta learning models.

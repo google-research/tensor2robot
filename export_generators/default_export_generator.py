@@ -105,28 +105,26 @@ class DefaultExportGenerator(abstract_export_generator.AbstractExportGenerator):
       Returns:
         An instance of ServingInputReceiver.
       """
-      # We only assume one input, a string which containes the serialized proto.
-      receiver_tensors = {
-          'input_example_tensor':
-              tf.placeholder(
-                  dtype=tf.string, shape=[None], name='input_example_tensor')
-      }
+      # We assume one input (a string which containes the serialized proto) per
+      # dataset_key.
       feature_spec = self._get_input_features_for_receiver_fn()
       # We have to filter our specs since only required tensors are
       # used for inference time.
       flat_feature_spec = tensorspec_utils.flatten_spec_structure(feature_spec)
       required_feature_spec = (
           tensorspec_utils.filter_required_flat_tensor_spec(flat_feature_spec))
-
-      tensor_dict, tensor_spec_dict = (
-          tensorspec_utils.tensorspec_to_feature_dict(required_feature_spec))
-
+      dataset_keys = set(
+          [t.dataset_key for t in required_feature_spec.values()])
+      receiver_tensors = {}
+      parse_tensors = {}
+      for dataset_key in dataset_keys:
+        receiver_name = 'input_example_' + (dataset_key or 'tensor')
+        parse_tensors[dataset_key] = tf.placeholder(
+            dtype=tf.string, shape=[None], name=receiver_name)
+        receiver_tensors[receiver_name] = parse_tensors[dataset_key]
       parse_tf_example_fn = tfdata.create_parse_tf_example_fn(
-          tensor_dict=tensor_dict,
-          tensor_spec_dict=tensor_spec_dict,
-          feature_tspec=feature_spec)
-
-      features = parse_tf_example_fn(receiver_tensors['input_example_tensor'])
+          feature_tspec=required_feature_spec)
+      features = parse_tf_example_fn(parse_tensors)
 
       if (not self._export_raw_receivers and self._preprocess_fn is not None):
         features, _ = self._preprocess_fn(features=features, labels=None)

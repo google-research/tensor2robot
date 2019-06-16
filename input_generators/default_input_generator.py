@@ -29,7 +29,7 @@ from tensor2robot.utils import tfdata
 
 import tensorflow as tf
 
-from typing import Optional, Text
+from typing import Dict, Optional, Text
 
 
 
@@ -40,18 +40,27 @@ class DefaultRecordInputGenerator(
 
   def __init__(self,
                file_patterns = None,
+               dataset_map = None,
                label = '',
                **parent_kwargs):
     """Create an instance.
 
     Args:
       file_patterns: Comma-separated string of file patterns [recordio, sstable,
-        tfrecord] we will load the data from.
+        tfrecord] we will load the data from. Only one of `file_patterns` or
+        `dataset_map` should be set.
+      dataset_map: Dictionary of dataset_key and Comma-separated string of file
+        patterns we load data from. Used for loading from multiple datasets.
+        Only one of `file_patterns` or `dataset_map` should be set.
       label: Name of the input generator.
       **parent_kwargs: All parent arguments.
     """
     super(DefaultRecordInputGenerator, self).__init__(**parent_kwargs)
+    if file_patterns and dataset_map:
+      raise ValueError(
+          'Only one of `file_patterns` or `dataset_map` should be set.')
     self._file_patterns = file_patterns
+    self._dataset_map = dataset_map
     self._label = label
 
   def create_dataset_input_fn(self, mode):
@@ -70,7 +79,7 @@ class DefaultRecordInputGenerator(
     logging.info('Creating InputGenerator %s with file patterns:\n%s',
                  self._label, self._file_patterns)
     input_fn = tfdata.get_input_fn(
-        file_patterns=self._file_patterns,
+        file_patterns=self._file_patterns or self._dataset_map,
         batch_size=self.batch_size,
         feature_spec=self._feature_spec,
         label_spec=self._label_spec,

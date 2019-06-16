@@ -218,13 +218,8 @@ class MockMetaExportGenerator(mocks.MockExportGenerator):
       required_feature_spec = (
           tensorspec_utils.filter_required_flat_tensor_spec(flat_feature_spec))
 
-      tensor_dict, tensor_spec_dict = (
-          tensorspec_utils.tensorspec_to_feature_dict(required_feature_spec))
-
       parse_tf_example_fn = tfdata.create_parse_tf_example_fn(
-          tensor_dict=tensor_dict,
-          tensor_spec_dict=tensor_spec_dict,
-          feature_tspec=self._feature_spec)
+          feature_tspec=required_feature_spec)
 
       features = parse_tf_example_fn(receiver_tensors['input_example_tensor'])
 

@@ -58,8 +58,7 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
     input_generator.set_label_specifications(label_spec, label_spec)
 
     np_features, np_labels = input_generator.create_dataset_input_fn(
-        mode=tf.estimator.ModeKeys.TRAIN)().make_one_shot_iterator().get_next(
-        )
+        mode=tf.estimator.ModeKeys.TRAIN)().make_one_shot_iterator().get_next()
 
     np_features = tensorspec_utils.validate_and_pack(
         feature_spec, np_features, ignore_batch=True)
@@ -69,6 +68,37 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
     self.assertAllEqual([2, 2], np_features.action.shape)
     self.assertAllEqual((2,), np_labels.reward.shape)
 
+  def _test_multi_record_input_generator(
+      self, input_generator, is_dataset=False):
+    feature_spec = tensorspec_utils.TensorSpecStruct()
+    feature_spec.state = tensorspec_utils.ExtendedTensorSpec(
+        shape=(64, 64, 3),
+        dtype=tf.uint8,
+        name='state/image',
+        data_format='jpeg',
+        dataset_key='d1')
+    feature_spec.action = tensorspec_utils.ExtendedTensorSpec(
+        shape=(2), dtype=tf.float32, name='pose', dataset_key='d1')
+    label_spec = tensorspec_utils.TensorSpecStruct()
+    label_spec.reward = tensorspec_utils.ExtendedTensorSpec(
+        shape=(), dtype=tf.float32, name='reward', dataset_key='d1')
+    label_spec.reward_2 = tensorspec_utils.ExtendedTensorSpec(
+        shape=(), dtype=tf.float32, name='reward', dataset_key='d2')
+    input_generator.set_feature_specifications(feature_spec, feature_spec)
+    input_generator.set_label_specifications(label_spec, label_spec)
+
+    np_features, np_labels = input_generator.create_dataset_input_fn(
+        mode=tf.estimator.ModeKeys.TRAIN)().make_one_shot_iterator().get_next()
+
+    np_features = tensorspec_utils.validate_and_pack(
+        feature_spec, np_features, ignore_batch=True)
+    np_labels = tensorspec_utils.validate_and_pack(
+        label_spec, np_labels, ignore_batch=True)
+    self.assertAllEqual([2, 64, 64, 3], np_features.state.shape)
+    self.assertAllEqual([2, 2], np_features.action.shape)
+    self.assertAllEqual((2,), np_labels.reward.shape)
+    self.assertAllEqual((2,), np_labels.reward_2.shape)
+
   def test_record_input_generator(self):
     base_dir = 'tensor2robot'
     file_pattern = os.path.join(
@@ -76,6 +106,15 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
     input_generator = default_input_generator.DefaultRecordInputGenerator(
         file_patterns=file_pattern, batch_size=BATCH_SIZE)
     self._test_input_generator(input_generator)
+
+  def test_multi_record_input_generator(self):
+    base_dir = 'tensor2robot'
+    file_pattern = os.path.join(
+        FLAGS.test_srcdir, base_dir, 'test_data/pose_env_test_data.tfrecord')
+    dataset_map = {'d1': file_pattern, 'd2': file_pattern}
+    input_generator = default_input_generator.DefaultRecordInputGenerator(
+        dataset_map=dataset_map, batch_size=BATCH_SIZE)
+    self._test_multi_record_input_generator(input_generator)
 
   def test_random_dataset(self):
     input_generator = default_input_generator.DefaultRandomInputGenerator(

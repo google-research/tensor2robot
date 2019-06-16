@@ -38,7 +38,7 @@ PoseEnvFeature = collections.namedtuple(
 PoseEnvLabel = collections.namedtuple(
     'PoseEnvLabel', ['reward'])
 
-TSPEC = tf.contrib.framework.TensorSpec
+TSPEC = tensorspec_utils.ExtendedTensorSpec
 
 NUM_FAKE_FILES = 3
 TEST_IMAGE_SHAPE = [28, 28, 3]
@@ -72,7 +72,8 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
     file_pattern = os.path.join(
         FLAGS.test_srcdir, base_dir, 'test_data/pose_env_test_data.tfrecord')
     dataset = tfdata.parallel_read(file_patterns=file_pattern)
-    state_spec = TSPEC(shape=(64, 64, 3), dtype=tf.uint8, name='state/image')
+    state_spec = TSPEC(shape=(64, 64, 3), dtype=tf.uint8, name='state/image',
+                       data_format='jpeg')
     action_spec = TSPEC(shape=(2), dtype=tf.bfloat16, name='pose')
     reward_spec = TSPEC(shape=(), dtype=tf.float32, name='reward')
     feature_tspec = PoseEnvFeature(state=state_spec, action=action_spec)

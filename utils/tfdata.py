@@ -28,7 +28,7 @@ import six
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
 
-from typing import Any, Dict, List, Optional, Text, Tuple
+from typing import Dict, List, Optional, Text, Tuple, Union
 
 
 
@@ -206,7 +206,8 @@ def serialized_to_parsed(dataset,
   when we are pulling batches from Replay Buffer).
 
   Args:
-    dataset: tf.data.Dataset whose outputs are serialized tf.Examples.
+    dataset: tf.data.Dataset whose outputs are
+      Dict[dataset_key, serialized tf.Examples].
     feature_tspec: Collection of TensorSpec designating how to extract features.
     label_tspec: Collection of TensorSpec designating how to extract labels.
     num_parallel_calls: (Optional.) A tf.int32 scalar tf.Tensor, representing
@@ -216,20 +217,7 @@ def serialized_to_parsed(dataset,
   Returns:
     tf.data.Dataset whose output is single (features, labels) tuple.
   """
-  tensor_dict = {}
-  tensor_spec_dict = {}
-  feature_dict, feature_tspec_dict = (
-      tensorspec_utils.tensorspec_to_feature_dict(feature_tspec))
-  tensor_dict.update(feature_dict)
-  tensor_spec_dict.update(feature_tspec_dict)
-  label_dict, label_tspec_dict = (
-      tensorspec_utils.tensorspec_to_feature_dict(label_tspec))
-  tensor_dict.update(label_dict)
-  tensor_spec_dict.update(label_tspec_dict)
-
   parse_tf_example_fn = create_parse_tf_example_fn(
-      tensor_dict=tensor_dict,
-      tensor_spec_dict=tensor_spec_dict,
       feature_tspec=feature_tspec,
       label_tspec=label_tspec)
   dataset = dataset.map(
@@ -237,17 +225,11 @@ def serialized_to_parsed(dataset,
   return dataset
 
 
-def create_parse_tf_example_fn(tensor_dict,
-                               tensor_spec_dict,
-                               feature_tspec,
+def create_parse_tf_example_fn(feature_tspec,
                                label_tspec=None):
   """Create a parse function for serialized tf.Example protos.
 
   Args:
-    tensor_dict: The {tensor_spec.name: tf.FixedLenFeature} mapping resulting
-      from feature_tspec and the optional label_tspec.
-    tensor_spec_dict: The {tensor_spec.name: tensor_spec} mapping resulting from
-      feature_tspec and the optional label_tspec.
     feature_tspec: A valid tensor_spec structure for features.
     label_tspec: Optional a valid tensor_spec structure for labels.
 
@@ -256,16 +238,18 @@ def create_parse_tf_example_fn(tensor_dict,
       tf.Example protos and returns decoded features, according to the
       feature_tspec (label_tspec). If more than one argument is passed in
       (e.g., a (key, value)-tuple from an SSTableDataset), the serialized
-      sample is expected to be the last one.
+      sample is expected to be the last one. If a dictionary of {key:
+      serialized output} is passed, it will parse each dataset separately.
   """
 
   def parse_tf_example_fn(*input_values):
-    """Maps string tensor to a parsed TFExample.
+    """Maps string tensors (serialized TFExamples) to parsed tensors.
 
     Args:
-      *input_values: A string tensor if mapping from a RecordIODataset or
-        TFRecordDataset, or a (key, string tensor) tuple if mapping from a
-        SSTableDataset.
+      *input_values: A (string tensor,) tuple if mapping from a
+        RecordIODataset or TFRecordDataset, or a (key, string tensor) tuple if
+        mapping from a SSTableDataset, or (Dict[dataset_key, values],) if
+        mapping from multiple datasets.
 
     Returns:
       features: Collection of tensors conforming to feature_tspec.
@@ -273,11 +257,19 @@ def create_parse_tf_example_fn(tensor_dict,
     Raises:
         ValueError: If dtype other than uint8 is supplied for image specs.
     """
-    if len(input_values) == 2:
-      # Assume an SSTable key, value pair.
-      _, example_proto = input_values
+    dict_extracted = {}
+    if isinstance(input_values[0], dict):
+      for key, serialized_proto in input_values[0].items():
+        if isinstance(serialized_proto, tuple):
+          # Assume an SSTable key, value pair.
+          _, dict_extracted[key] = serialized_proto
+        else:
+          dict_extracted[key] = serialized_proto
     else:
-      example_proto, = input_values
+      if len(input_values) == 2:
+        _, dict_extracted[''] = input_values
+      else:
+        dict_extracted[''], = input_values
 
     def parse_wrapper(example, spec_dict):
       """Wrap tf.parse_example to support bfloat16 dtypes.
@@ -345,8 +337,32 @@ def create_parse_tf_example_fn(tensor_dict,
 
       return result
 
-    parsed_tensors = parse_wrapper(example_proto, tensor_dict)
+    prepend_keys = lambda d, pre: {pre + k: v for k, v in list(d.items())}
+    # Parse each dataset's tensors. Parsed results from parse_wrapper get
+    # dataset_key prepended to ensure uniqueness of keys among datasets.
+    parsed_tensors = {}
+    # {Prepended parsed key : TensorSpecs} for all datasets.
+    tensor_spec_dict = {}
+    for dataset_key, example_proto in dict_extracted.items():
+      # Parsed key to Feature Specs (retained only for this dataset).
+      tensor_dict = {}
+      sub_feature_tspec = tensorspec_utils.filter_spec_structure_by_dataset(
+          feature_tspec, dataset_key)
+      feature_dict, feature_tspec_dict = (
+          tensorspec_utils.tensorspec_to_feature_dict(sub_feature_tspec))
+      tensor_dict.update(feature_dict)
+      tensor_spec_dict.update(prepend_keys(feature_tspec_dict, dataset_key))
+      if label_tspec is not None:
+        sub_label_tspec = tensorspec_utils.filter_spec_structure_by_dataset(
+            label_tspec, dataset_key)
+        label_dict, label_tspec_dict = (
+            tensorspec_utils.tensorspec_to_feature_dict(sub_label_tspec))
+        tensor_dict.update(label_dict)
+        tensor_spec_dict.update(prepend_keys(label_tspec_dict, dataset_key))
+      for key, parsed in parse_wrapper(example_proto, tensor_dict).items():
+        parsed_tensors[dataset_key + key] = parsed
 
+    # At this point, all tensors have been parsed into a single flat map.
     # Interpret encoded images.
     def decode_image(key, raw_bytes):
       """Decodes single or batches of JPEG- or PNG-encoded string tensors.
@@ -393,7 +409,7 @@ def create_parse_tf_example_fn(tensor_dict,
     # to multiple features or labels. Note, the spec structure ensures that
     # the corresponding tensorspecs are iddentical in such cases.
     features = tensorspec_utils.TensorSpecStruct(
-        [(key, parsed_tensors[value.name])
+        [(key, parsed_tensors[value.dataset_key + value.name])
          for key, value in flat_feature_tspec.items()])
 
     features = tensorspec_utils.validate_and_pack(
@@ -404,7 +420,7 @@ def create_parse_tf_example_fn(tensor_dict,
       flat_label_tspec = tensorspec_utils.TensorSpecStruct(
           sorted(tensorspec_utils.flatten_spec_structure(label_tspec).items()))
       labels = tensorspec_utils.TensorSpecStruct(
-          [(key, parsed_tensors[value.name])
+          [(key, parsed_tensors[value.dataset_key + value.name])
            for key, value in flat_label_tspec.items()])
       labels = tensorspec_utils.validate_and_pack(
           flat_label_tspec, labels, ignore_batch=True)
@@ -427,32 +443,42 @@ def grasping_input_fn_tmpl(
     prefetch_buffer_size = (tf.data.experimental.AUTOTUNE),
     parallel_shards = 10):
   """Near-compatibility with grasping_data.py input pipeline."""
-  data_format, filenames = get_data_format_and_filenames(file_patterns)
-
-  filenames_dataset = tf.data.Dataset.list_files(filenames, shuffle=is_training)
-  if is_training:
-    cycle_length = min(parallel_shards, len(filenames))
+  if isinstance(file_patterns, dict):
+    file_patterns_map = file_patterns
   else:
-    cycle_length = 1
-  dataset = filenames_dataset.apply(
-      tf.contrib.data.parallel_interleave(
-          DATA_FORMAT[data_format],
-          cycle_length=cycle_length,
-          sloppy=is_training))
+    file_patterns_map = {'': file_patterns}
+  datasets = {}
+  # Read Each Dataset
+  for dataset_key, file_patterns in file_patterns_map.items():
+    data_format, filenames = get_data_format_and_filenames(file_patterns)
+    filenames_dataset = tf.data.Dataset.list_files(
+        filenames, shuffle=is_training)
+    if is_training:
+      cycle_length = min(parallel_shards, len(filenames))
+    else:
+      cycle_length = 1
+    dataset = filenames_dataset.apply(
+        tf.contrib.data.parallel_interleave(
+            DATA_FORMAT[data_format],
+            cycle_length=cycle_length,
+            sloppy=is_training))
 
-  if is_training:
-    dataset = dataset.apply(
-        tf.data.experimental.shuffle_and_repeat(shuffle_buffer_size))
-  else:
-    dataset = dataset.repeat()
-  dataset = dataset.batch(batch_size, drop_remainder=True)
-
+    if is_training:
+      dataset = dataset.apply(
+          tf.data.experimental.shuffle_and_repeat(shuffle_buffer_size))
+    else:
+      dataset = dataset.repeat()
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    datasets[dataset_key] = dataset
+  # Merge dict of datasets of batched serialized examples into a single dataset
+  # of dicts of batched serialized examples.
+  dataset = tf.data.Dataset.zip(datasets)
+  # Parse all datasets together.
   dataset = serialized_to_parsed(
       dataset,
       feature_spec,
       label_spec,
       num_parallel_calls=num_parallel_calls)
-
   if preprocess_fn is not None:
     # TODO(psanketi): Consider adding num_parallel calls here.
     dataset = dataset.map(preprocess_fn, num_parallel_calls=parallel_shards)

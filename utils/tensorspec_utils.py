@@ -46,7 +46,8 @@ class ExtendedTensorSpec(TSPEC):
   adds the additional fields is_optional and data_format.
   """
 
-  __slots__ = ['_is_optional', '_is_sequence', '_is_extracted', '_data_format']
+  __slots__ = ['_is_optional', '_is_sequence', '_is_extracted', '_data_format',
+               '_dataset_key']
 
   def __init__(self,
                shape,
@@ -55,7 +56,8 @@ class ExtendedTensorSpec(TSPEC):
                is_optional = None,
                is_sequence = False,
                is_extracted = False,
-               data_format = None):
+               data_format = None,
+               dataset_key = None):
     """Creates a TensorSpec.
 
     Args:
@@ -68,6 +70,7 @@ class ExtendedTensorSpec(TSPEC):
       is_extracted: If True, implies this spec was inferred from a Tensor or
         np.array.
       data_format: Optional name of the data_format, e.g. jpeg, png.
+      dataset_key: Optional key name of which dataset to pull this tensor from.
 
     Raises:
       TypeError: If shape is not convertible to a `tf.TensorShape`, or dtype is
@@ -81,6 +84,9 @@ class ExtendedTensorSpec(TSPEC):
     self._is_sequence = is_sequence
     self._is_extracted = is_extracted
     self._data_format = data_format
+    if dataset_key is None:
+      dataset_key = ''
+    self._dataset_key = dataset_key
 
   @classmethod
   def from_spec(cls,
@@ -92,6 +98,7 @@ class ExtendedTensorSpec(TSPEC):
                 is_sequence = None,
                 is_extracted = None,
                 data_format = None,
+                dataset_key = None,
                 batch_size = None):
     if not (isinstance(spec, TSPEC) or isinstance(spec, ExtendedTensorSpec)):
       raise ValueError('from_spec requires TensorSpec or ExtendedTensorSpec.')
@@ -113,6 +120,9 @@ class ExtendedTensorSpec(TSPEC):
       if hasattr(spec, 'data_format'):
         data_format = spec.data_format
 
+    if dataset_key is None:
+      dataset_key = getattr(spec, 'dataset_key', '')
+
     if shape is None:
       shape = spec.shape
 
@@ -127,7 +137,7 @@ class ExtendedTensorSpec(TSPEC):
       else:
         shape = tf.TensorShape([batch_size] + shape.as_list())
     return cls(shape, dtype or spec.dtype, name or spec.name, is_optional,
-               is_sequence, is_extracted, data_format)
+               is_sequence, is_extracted, data_format, dataset_key)
 
   @classmethod
   def from_tensor(cls,
@@ -215,6 +225,11 @@ class ExtendedTensorSpec(TSPEC):
     """Returns the `data_format` of the tensor."""
     return self._data_format
 
+  @property
+  def dataset_key(self):
+    """Returns the `dataset_key` of the tensor."""
+    return self._dataset_key
+
   def __eq__(self, other):
     return (self._shape_tuple == other._shape_tuple  # pylint: disable=protected-access
             and self.dtype == other.dtype)
@@ -222,15 +237,18 @@ class ExtendedTensorSpec(TSPEC):
   def __repr__(self):
     return (
         'ExtendedTensorSpec(shape={}, dtype={}, name={}, is_optional={}, '
-        'is_sequence={}, is_extracted={}, data_format={})').format(
+        'is_sequence={}, is_extracted={}, data_format={}, '
+        'dataset_key={})').format(
             self.shape, repr(self.dtype), repr(self.name),
             repr(self.is_optional), repr(self.is_sequence),
-            repr(self.is_extracted), repr(self.data_format))
+            repr(self.is_extracted), repr(self.data_format),
+            repr(self.dataset_key))
 
   def __reduce__(self):
     return ExtendedTensorSpec, (self._shape, self._dtype, self._name,
                                 self._is_optional, self._is_sequence,
-                                self._is_extracted, self._data_format)
+                                self._is_extracted, self._data_format,
+                                self._dataset_key)
 
 
 class _OrderedDictKeysView(collections.KeysView):
@@ -1221,6 +1239,18 @@ def validate_and_pack(expected_spec,
     raise e
   return pack_flat_sequence_to_spec_structure(expected_spec,
                                               actual_tensors_or_spec)
+
+
+def filter_spec_structure_by_dataset(
+    spec_structure,
+    dataset_key,
+    filter_none = True):
+  """Subset of flattened spec structure whose dataset matches dataset_key."""
+  flattened_spec_structure = flatten_spec_structure(spec_structure, filter_none)
+  return TensorSpecStruct([
+      key_value for key_value in flattened_spec_structure.items()
+      if (key_value[1].dataset_key == dataset_key or not dataset_key)
+  ])
 
 
 def flatten_spec_structure(

@@ -20,6 +20,7 @@ from __future__ import division
 
 from __future__ import print_function
 
+from absl.testing import parameterized
 import numpy as np
 from tensor2robot.export_generators import default_export_generator
 from tensor2robot.preprocessors import noop_preprocessor
@@ -30,12 +31,13 @@ MAX_STEPS = 4000
 BATCH_SIZE = 32
 
 
-class DefaultExportGeneratorTest(tf.test.TestCase):
+class DefaultExportGeneratorTest(tf.test.TestCase, parameterized.TestCase):
 
-  def _train_and_eval_reference_model(self, path):
+  def _train_and_eval_reference_model(self, path, multi_dataset=False):
     model_dir = self.create_tempdir().full_path
     mock_t2r_model = mocks.MockT2RModel(
-        preprocessor_cls=noop_preprocessor.NoOpPreprocessor)
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor,
+        multi_dataset=multi_dataset)
 
     # We create a tpu estimator for potential training.
     estimator = tf.contrib.tpu.TPUEstimator(
@@ -45,7 +47,8 @@ class DefaultExportGeneratorTest(tf.test.TestCase):
         train_batch_size=BATCH_SIZE,
         eval_batch_size=BATCH_SIZE)
 
-    mock_input_generator = mocks.MockInputGenerator(batch_size=BATCH_SIZE)
+    mock_input_generator = mocks.MockInputGenerator(batch_size=BATCH_SIZE,
+                                                    multi_dataset=multi_dataset)
     mock_input_generator.set_specification_from_model(
         mock_t2r_model, tf.estimator.ModeKeys.TRAIN)
 
@@ -102,9 +105,11 @@ class DefaultExportGeneratorTest(tf.test.TestCase):
       else:
         self.assertLess(predicted[0], 0)
 
-  def test_create_serving_input_receiver_tf_example(self):
+  @parameterized.parameters((True,), (False,))
+  def test_create_serving_input_receiver_tf_example(self, multi_dataset):
     (model_dir, mock_t2r_model,
-     prediction_ref) = self._train_and_eval_reference_model('tf_example')
+     prediction_ref) = self._train_and_eval_reference_model(
+         'tf_example', multi_dataset=multi_dataset)
 
     # Now we can actually export our serving estimator.
     estimator_exporter = tf.estimator.Estimator(
@@ -131,10 +136,16 @@ class DefaultExportGeneratorTest(tf.test.TestCase):
       example = tf.train.Example()
       example.features.feature['measured_position'].float_list.value.extend(
           features[pos])
-      feed_dict = {
-          'input_example_tensor':
-              np.array(example.SerializeToString()).reshape(1,)
-      }
+      serialized_example = np.array(example.SerializeToString()).reshape(1,)
+      if multi_dataset:
+        feed_dict = {
+            'input_example_dataset1': serialized_example,
+            'input_example_dataset2': serialized_example
+        }
+      else:
+        feed_dict = {
+            'input_example_tensor': serialized_example
+        }
       actual = feed_predictor_fn(feed_dict)['logit'].flatten()
       predicted = value['logit'].flatten()
       np.testing.assert_almost_equal(

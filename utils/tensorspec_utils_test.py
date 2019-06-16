@@ -42,7 +42,8 @@ O4 = TSPEC((224, 224, 3), tf.float32, 'debug_images', is_optional=True)
 T5 = TSPEC((224, 224, 3), tf.float32, 'jpeg_images', data_format='jpeg')
 O6 = TSPEC((6), tf.float32, 'debug_actions', is_optional=True)
 S7 = TSPEC((6), tf.float32, 'sequence_actions', is_sequence=True)
-
+D1 = TSPEC((224, 224, 3), tf.float32, 'debug_images', dataset_key='d1')
+D2 = TSPEC((224, 224, 3), tf.float32, 'debug_images', dataset_key='d2')
 PARAMS = ['dict', 'namedtuple', 'list', 'tuple']
 
 # Mocks for testing optional spec structures.
@@ -451,6 +452,14 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     utils.assert_required(
         mock_nested_subset_spec, output_features, ignore_batch=True)
 
+  def test_filter_spec_structure_by_dataset(self):
+    test_spec = utils.TensorSpecStruct(image1=D1, image2=D2)
+    for dataset_key, name, spec in zip(
+        ['d1', 'd2'], ['image1', 'image2'], [D1, D2]):
+      filtered_spec = utils.filter_spec_structure_by_dataset(
+          test_spec, dataset_key)
+      self.assertDictEqual(filtered_spec, {name: spec})
+
   @parameterized.named_parameters(*INVALID_SPEC_STRUCTURES)
   def test_flatten_spec_structure_raises(self, spec):
     self.skipTest(
@@ -533,13 +542,13 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
         repr(desc1),
         "ExtendedTensorSpec(shape=(1,), dtype=tf.float32, name='beep', "
         "is_optional=True, is_sequence=False, is_extracted=False, "
-        "data_format='jpeg')")
+        "data_format='jpeg', dataset_key='')")
     desc2 = utils.ExtendedTensorSpec([1, None], tf.int32, is_sequence=True)
     self.assertEqual(
         repr(desc2),
-        'ExtendedTensorSpec(shape=(1, ?), dtype=tf.int32, name=None, '
-        'is_optional=False, is_sequence=True, is_extracted=False, '
-        'data_format=None)')
+        "ExtendedTensorSpec(shape=(1, ?), dtype=tf.int32, name=None, "
+        "is_optional=False, is_sequence=True, is_extracted=False, "
+        "data_format=None, dataset_key='')")
 
   def test_from_spec(self):
     spec_1 = utils.ExtendedTensorSpec((1, 2), tf.int32)
