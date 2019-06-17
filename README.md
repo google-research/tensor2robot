@@ -12,6 +12,7 @@ computer vision communities.
 
 -   [QT-Opt](https://arxiv.org/abs/1806.10293)
 -   [Grasp2Vec](research/grasp2vec)
+-   [Watch, Try, Learn](research/vrgripper)
 -   More coming soon.
 
 ## Features
