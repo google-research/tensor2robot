@@ -74,6 +74,10 @@ gin_configurable_tpu_run_config_cls = gin.external_configurable(
 gin_configurable_tpu_config_cls = gin.external_configurable(
     tf.contrib.tpu.TPUConfig, name='tf.contrib.tpu.TPUConfig')
 
+# Expose the tf.train.Saver to gin.
+gin_configurable_saver = gin.external_configurable(
+    tf.train.Saver, name='tf.train.Saver', whitelist=['save_relative_paths'])
+
 
 @gin.configurable
 def default_init_from_checkpoint_fn(checkpoint,
@@ -612,7 +616,6 @@ class AbstractT2RModel(model_interface.ModelInterface):
     Returns:
       An EstimatorSpec.
     """
-
     features = tensorspec_utils.validate_and_pack(
         expected_spec=self.get_feature_specification(mode),
         actual_tensors_or_spec=features,
@@ -695,12 +698,32 @@ class AbstractT2RModel(model_interface.ModelInterface):
             self._sync_replicas_optimizer.make_session_run_hook(
                 config.is_chief))  # pytype: disable=attribute-error
 
+      # Return the value of the property first since it might be changed.
+      scaffold_fn = self.scaffold_fn
+      scaffold = scaffold_fn()
+
+      # In order to export asynchronously the saver has to be registered
+      # in the graph collection. The scaffold function might register a
+      # saver already which is why it is checked here and a saver only
+      # added it has none has been added.
+      if not tf.get_collection(tf.GraphKeys.SAVERS):
+        # TODO(T2R_CONTRIBUTORS): Switch to using gin config for all saver params.
+        keep_checkpoint_every_n_hours = None
+        max_to_keep = None
+        if config is not None:
+          keep_checkpoint_every_n_hours = config.keep_checkpoint_every_n_hours
+          max_to_keep = config.keep_checkpoint_max
+        saver = gin_configurable_saver(
+            keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
+            max_to_keep=max_to_keep,
+        )
+        tf.add_to_collection(tf.GraphKeys.SAVERS, saver)
       return tf.estimator.EstimatorSpec(
           mode=mode,
           loss=train_loss,
           train_op=train_op,
           training_hooks=training_hooks,
-          scaffold=self._scaffold_fn())
+          scaffold=scaffold)
 
     if mode == tf.estimator.ModeKeys.EVAL:
       self.add_summaries(features, labels, inference_outputs, train_loss,
@@ -737,7 +760,8 @@ class AbstractT2RModel(model_interface.ModelInterface):
     optimizer = self._create_optimizer_fn()
     if self._use_avg_model_params:
       optimizer = optimizers.create_moving_average_optimizer(optimizer)
-      def create_swapping_saver_scaffold():
+
+      def create_swapping_saver_scaffold(saver=None):
         saver = optimizers.create_swapping_saver(optimizer)
         tf.add_to_collection(tf.GraphKeys.SAVERS, saver)
         return tf.train.Scaffold(saver=saver)

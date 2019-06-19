@@ -40,7 +40,9 @@ class AsyncExportHookBuilderTest(tf.test.TestCase):
   def test_with_mock_training(self):
     model_dir = self.create_tempdir().full_path
     mock_t2r_model = mocks.MockT2RModel(
-        preprocessor_cls=noop_preprocessor.NoOpPreprocessor, device_type='tpu')
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor,
+        device_type='tpu',
+        use_avg_model_params=True)
 
     mock_input_generator = mocks.MockInputGenerator(batch_size=_BATCH_SIZE)
     default_create_export_fn = functools.partial(

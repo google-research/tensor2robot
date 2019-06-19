@@ -235,9 +235,30 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
       # (partially) from a different model. As soon as this checkpoint is
       # written all other modes will use the local checkpoint within
       # model_dir.
+
       def create_scaffold_fn():
+        """Creates a scaffold instance."""
         self._t2r_model.maybe_init_from_checkpoint()
-        return self._t2r_model.scaffold_fn()
+        # Return the value of the property first since it might be changed.
+        scaffold_fn = self._t2r_model.scaffold_fn
+        scaffold = scaffold_fn()
+        # In order to export asynchronously the saver has to be registered
+        # in the graph collection. The scaffold function might register a
+        # saver already which is why it is checked here and a saver only
+        # added it has none has been added.
+        if not tf.get_collection(tf.GraphKeys.SAVERS):
+          # TODO(T2R_CONTRIBUTORS): Switch to using gin config for all saver params.
+          keep_checkpoint_every_n_hours = None
+          max_to_keep = None
+          if config is not None:
+            keep_checkpoint_every_n_hours = config.keep_checkpoint_every_n_hours
+            max_to_keep = config.keep_checkpoint_max
+          saver = abstract_model.gin_configurable_saver(
+              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
+              max_to_keep=max_to_keep,
+          )
+          tf.add_to_collection(tf.GraphKeys.SAVERS, saver)
+        return scaffold
 
       training_hooks = []
 

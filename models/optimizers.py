@@ -153,9 +153,13 @@ def create_moving_average_optimizer(optimizer,
       optimizer, average_decay=average_decay)
 
 
-@gin.configurable
-def create_swapping_saver(optimizer,
-                          keep_checkpoint_every_n_hours = 1.0
-                         ):
+@gin.configurable(blacklist=['optimizer'])
+def create_swapping_saver(
+    optimizer,
+    keep_checkpoint_every_n_hours = 1.0,
+    save_relative_paths = False,
+):
+  # TODO(T2R_CONTRIBUTORS): Switch to using gin config for all saver params.
   return optimizer.swapping_saver(
-      keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours)
+      keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours,
+      save_relative_paths=save_relative_paths)
