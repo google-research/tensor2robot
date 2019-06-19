@@ -37,6 +37,16 @@ _BUSY_WAITING_SLEEP_TIME_IN_SECS = 10
 
 
 @gin.configurable
+def create_tf_config(per_process_gpu_memory_fraction):
+  tf_config = tf.ConfigProto()
+  if per_process_gpu_memory_fraction is not None:
+    tf_config.gpu_options.CopyFrom(
+        tf.GPUOptions(
+            per_process_gpu_memory_fraction=per_process_gpu_memory_fraction))
+  return tf_config
+
+
+@gin.configurable
 class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
   """A predictor loading from exported saved models."""
 
