@@ -132,6 +132,8 @@ def create_tpu_estimator(t2r_model,
                          eval_batch_size = 1,
                          use_tpu_hardware = True,
                          params = None,
+                         export_to_cpu = True,
+                         export_to_tpu = True,
                          **kwargs):
   """Wrapper for TPUEstimator to provide a common interface for instantiation.
 
@@ -147,6 +149,8 @@ def create_tpu_estimator(t2r_model,
       input_fn and model_fn. Keys are names of parameters, values are basic
       python types. There are reserved keys for TPUEstimator, including
       'batch_size'.
+    export_to_cpu: If True, export a savedmodel to cpu.
+    export_to_tpu: If True, export a savedmodel to tpu.
     **kwargs: Keyword arguments are only used to enable the same interface for
       tpu estimator and estimator.
 
@@ -161,6 +165,8 @@ def create_tpu_estimator(t2r_model,
       use_tpu=t2r_model.is_device_tpu and use_tpu_hardware,
       train_batch_size=train_batch_size,
       eval_batch_size=eval_batch_size,
+      export_to_cpu=export_to_cpu,
+      export_to_tpu=export_to_tpu,
       params=params)
 
 
