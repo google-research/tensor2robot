@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import colorsys
+import gin
 import numpy as np
 import tensorflow as tf
 
@@ -144,6 +145,7 @@ def np_render_keypoints(image, locations, num_images=3, dot_radius=3):
   return np.stack(images, 0)
 
 
+@gin.configurable
 def add_spatial_soft_argmax_viz(image,
                                 softmax,
                                 locations,
