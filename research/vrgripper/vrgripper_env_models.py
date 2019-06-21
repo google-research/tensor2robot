@@ -59,57 +59,58 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
     self._src_img_res = src_img_res
     self._crop_size = crop_size
 
-  def get_in_feature_specification(
-      self, mode):
+  def get_in_feature_specification(self, mode
+                                  ):
     """See base class."""
     feature_spec = tensorspec_utils.copy_tensorspec(
         self._model_feature_specification_fn(mode))
-    true_img_shape = feature_spec.image.shape.as_list()
-    true_img_shape[-3:-1] = self._src_img_res  # Overwrite the H, W dimensions.
-    feature_spec.image = TensorSpec.from_spec(
-        feature_spec.image,
-        shape=true_img_shape,
-        dtype=tf.uint8)
+    if 'image' in feature_spec:
+      true_img_shape = feature_spec.image.shape.as_list()
+      # Overwrite the H, W dimensions.
+      true_img_shape[-3:-1] = self._src_img_res
+      feature_spec.image = TensorSpec.from_spec(
+          feature_spec.image, shape=true_img_shape, dtype=tf.uint8)
     return tensorspec_utils.flatten_spec_structure(feature_spec)
 
-  def get_in_label_specification(
-      self, mode):
+  def get_in_label_specification(self, mode
+                                ):
     """See base class."""
     return tensorspec_utils.flatten_spec_structure(
         self._model_label_specification_fn(mode))
 
-  def get_out_feature_specification(
-      self, mode):
+  def get_out_feature_specification(self, mode
+                                   ):
     """See base class."""
     return tensorspec_utils.flatten_spec_structure(
         self._model_feature_specification_fn(mode))
 
-  def get_out_label_specification(
-      self, mode):
+  def get_out_label_specification(self, mode
+                                 ):
     """See base class."""
     return tensorspec_utils.flatten_spec_structure(
         self._model_label_specification_fn(mode))
 
   def _preprocess_fn(
-      self,
-      features,
+      self, features,
       labels,
       mode
   ):
     """Resize images and convert them from uint8 -> float32."""
-    ndim = len(features.image.shape)
-    is_sequence = (ndim > 4)
-    input_size = self._src_img_res
-    target_size = self._crop_size
-    features.image = distortion.preprocess_image(
-        features.image, mode, is_sequence, input_size, target_size)
+    if 'image' in features:
+      ndim = len(features.image.shape)
+      is_sequence = (ndim > 4)
+      input_size = self._src_img_res
+      target_size = self._crop_size
+      features.image = distortion.preprocess_image(features.image, mode,
+                                                   is_sequence, input_size,
+                                                   target_size)
 
-    out_feature_spec = self.get_out_feature_specification(mode)
-    if out_feature_spec.image.shape != features.image.shape:
-      features.image = meta_tfdata.multi_batch_apply(
-          tf.image.resize_images, 2,
-          tf.image.convert_image_dtype(features.image, tf.float32),
-          out_feature_spec.image.shape.as_list()[-3:-1])
+      features.image = tf.image.convert_image_dtype(features.image, tf.float32)
+      out_feature_spec = self.get_out_feature_specification(mode)
+      if out_feature_spec.image.shape != features.image.shape:
+        features.image = meta_tfdata.multi_batch_apply(
+            tf.image.resize_images, 2, features.image,
+            out_feature_spec.image.shape.as_list()[-3:-1])
     return features, labels
 
 
@@ -117,18 +118,17 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
 class VRGripperRegressionModel(regression_model.RegressionModel):
   """Continuous regression output model for VRGripper Env."""
 
-  def __init__(
-      self,
-      use_gripper_input = True,
-      normalize_outputs = False,
-      output_mean = None,
-      output_stddev = None,
-      outer_loss_multiplier = 1.,
-      num_mixture_components = 1,
-      output_mixture_sample = False,
-      condition_mixture_stddev = False,
-      episode_length = 40,
-      **kwargs):
+  def __init__(self,
+               use_gripper_input = True,
+               normalize_outputs = False,
+               output_mean = None,
+               output_stddev = None,
+               outer_loss_multiplier = 1.,
+               num_mixture_components = 1,
+               output_mixture_sample = False,
+               condition_mixture_stddev = False,
+               episode_length = 40,
+               **kwargs):
     """Initialize the VRGripperRegressionModel.
 
     Args:
@@ -142,8 +142,8 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
       num_mixture_components:  The number of gaussian mixture components. Use 1
         for standard mean squared error regression.
       output_mixture_sample: If True (and num_mixture_components > 1), output
-        actions by sampling from a gaussian mixture. Otherwise, we use the
-        mean of the most likely component.
+        actions by sampling from a gaussian mixture. Otherwise, we use the mean
+        of the most likely component.
       condition_mixture_stddev: If True, the mixture standard deviations will be
         output from a neural net and thus conditioned on image/state. Otherwise,
         they will simply be learned variables (unconditioned on image/state).
@@ -178,7 +178,9 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
   def get_feature_specification(self, mode):
     del mode
     image_spec = TensorSpec(
-        shape=(100, 100, 3), dtype=tf.float32, name='image0',
+        shape=(100, 100, 3),
+        dtype=tf.float32,
+        name='image0',
         data_format='jpeg')
     gripper_pose_spec = TensorSpec(
         shape=(14,), dtype=tf.float32, name='world_pose_gripper')
@@ -199,8 +201,12 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
   def action_size(self):
     return self._action_size
 
-  def _single_batch_a_func(
-      self, features, scope, mode, context_fn=None, reuse=tf.AUTO_REUSE):
+  def _single_batch_a_func(self,
+                           features,
+                           scope,
+                           mode,
+                           context_fn=None,
+                           reuse=tf.AUTO_REUSE):
     """A state -> action regression function that expects a single batch dim."""
     gripper_pose = features.gripper_pose if self._use_gripper_input else None
     with tf.variable_scope(scope, reuse=reuse, use_resource=True):
@@ -222,9 +228,7 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
             self._action_size,
             condition_sigmas=self._condition_mixture_stddev)
         gm = mdn.get_mixture_distribution(
-            dist_params,
-            self._num_mixture_components,
-            self._action_size,
+            dist_params, self._num_mixture_components, self._action_size,
             self._output_mean if self._normalize_outputs else None)
         if self._output_mixture_sample:
           # Output a mixture sample as action.
@@ -244,15 +248,14 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
     })
     return outputs
 
-  def a_func(
-      self,
-      features,
-      scope,
-      mode,
-      context_fn=None,
-      reuse=tf.AUTO_REUSE,
-      config=None,
-      params=None):
+  def a_func(self,
+             features,
+             scope,
+             mode,
+             context_fn=None,
+             reuse=tf.AUTO_REUSE,
+             config=None,
+             params=None):
     """A (state) regression function.
 
     This function can return a stochastic or a deterministic tensor.
@@ -279,8 +282,8 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
       outputs: A {key: Tensor} mapping. The key 'action' is required.
     """
     del config, params
-    return meta_tfdata.multi_batch_apply(
-        self._single_batch_a_func, 2, features, scope, mode, context_fn, reuse)
+    return meta_tfdata.multi_batch_apply(self._single_batch_a_func, 2, features,
+                                         scope, mode, context_fn, reuse)
 
   def loss_fn(self, labels, inference_outputs, mode, params=None):
     """This implements outer loss and configurable inner losses."""
@@ -288,15 +291,13 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
       pass
     if self._num_mixture_components > 1:
       gm = mdn.get_mixture_distribution(
-          inference_outputs['dist_params'],
-          self._num_mixture_components,
+          inference_outputs['dist_params'], self._num_mixture_components,
           self._action_size,
           self._output_mean if self._normalize_outputs else None)
       return -tf.reduce_mean(gm.log_prob(labels.action))
     else:
       return self._outer_loss_multiplier * tf.losses.mean_squared_error(
-          labels=labels.action,
-          predictions=inference_outputs['action'])
+          labels=labels.action, predictions=inference_outputs['action'])
 
 
 @gin.configurable
@@ -306,11 +307,11 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
   The model conditions on video only (no actions or gripper pose).
   """
 
-  def __init__(
-      self,
-      predict_con_gripper_pose = False,
-      learned_loss_conv1d_layers = (10, 10, 6),
-      **kwargs):
+  def __init__(self,
+               predict_con_gripper_pose = False,
+               learned_loss_conv1d_layers = (10, 10,
+                                                                        6),
+               **kwargs):
     """Initialize the model.
 
     Args:
@@ -333,12 +334,9 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
     return out
 
   def single_batch_a_func(
-      self,
-      features,
-      scope,
+      self, features, scope,
       mode,
-      context_fn,
-      reuse,
+      context_fn, reuse,
       config,
       params):
     """Single step action predictor when there is a single batch dim."""
@@ -362,9 +360,7 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
         gripper_pose = features.gripper_pose
 
       action, _ = vision_layers.BuildImageFeaturesToPoseModel(
-          feature_points,
-          aux_input=gripper_pose,
-          num_outputs=self._action_size)
+          feature_points, aux_input=gripper_pose, num_outputs=self._action_size)
       action = self._output_mean + self._output_stddev * action
     return {
         'action': action,
@@ -373,29 +369,28 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
         'softmax': end_points['softmax'],
     }
 
-  def a_func(
-      self,
-      features,
-      scope,
-      mode,
-      context_fn = None,
-      reuse=tf.AUTO_REUSE,
-      config = None,
-      params = None
-  ):
+  def a_func(self,
+             features,
+             scope,
+             mode,
+             context_fn = None,
+             reuse=tf.AUTO_REUSE,
+             config = None,
+             params = None
+            ):
     """Single step action predictor. See parent class."""
-    return meta_tfdata.multi_batch_apply(
-        self.single_batch_a_func, 2,
-        features, scope, mode, context_fn, reuse, config, params)
+    return meta_tfdata.multi_batch_apply(self.single_batch_a_func, 2, features,
+                                         scope, mode, context_fn, reuse, config,
+                                         params)
 
-  def model_train_fn(
-      self,
-      features,
-      labels,
-      inference_outputs,
-      mode,
-      config = None,
-      params = None):
+  def model_train_fn(self,
+                     features,
+                     labels,
+                     inference_outputs,
+                     mode,
+                     config = None,
+                     params = None
+                    ):
     """Output learned loss if inner loop, or behavior clone if outer loop."""
     if params and params.get('is_outer_loss', False):
       # Outer loss case: use standard RegressionModel loss.
@@ -404,21 +399,22 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
     with tf.variable_scope(
         'learned_loss', reuse=tf.AUTO_REUSE, use_resource=True):
       predicted_action, _ = meta_tfdata.multi_batch_apply(
-          vision_layers.BuildImageFeaturesToPoseModel, 2,
+          vision_layers.BuildImageFeaturesToPoseModel,
+          2,
           inference_outputs['feature_points'],
           num_outputs=self._action_size)
       if self._learned_loss_conv1d_layers is None:
-        return tf.losses.mean_squared_error(
-            predicted_action, inference_outputs['action'])
+        return tf.losses.mean_squared_error(predicted_action,
+                                            inference_outputs['action'])
       ll_input = tf.concat([
-          predicted_action,
-          inference_outputs['feature_points'],
-          inference_outputs['action']], -1)
+          predicted_action, inference_outputs['feature_points'],
+          inference_outputs['action']
+      ], -1)
       net = ll_input
       for num_filters in self._learned_loss_conv1d_layers[:-1]:
         net = tf.layers.conv1d(
             net, num_filters, 10, activation=tf.nn.relu, use_bias=False)
         net = tf.contrib.layers.layer_norm(net)
-      net = tf.layers.conv1d(
-          net, self._learned_loss_conv1d_layers[-1], 1)  # 1x1 convolution.
+      net = tf.layers.conv1d(net, self._learned_loss_conv1d_layers[-1],
+                             1)  # 1x1 convolution.
       return tf.reduce_mean(tf.reduce_sum(tf.square(net), axis=(1, 2)))
