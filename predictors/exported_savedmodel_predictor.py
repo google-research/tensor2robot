@@ -120,7 +120,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       # the latest exported model. Lexicographical sorting will maintain this
       # order.
       model_dirs = sorted(tf.io.gfile.glob(os.path.join(self._export_dir, '*')))
-      model_dirs = self._remove_invalid_model_dirnames(model_dirs)
+      model_dirs = self._remove_invalid_model_dirs(model_dirs)
 
       if len(model_dirs) >= 1:
         logging.info('Found latest model at %s. ', model_dirs[-1])
@@ -237,9 +237,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     self.assert_is_loaded()
     return self._latest_export_dir
 
-  def _remove_invalid_model_dirnames(self,
-                                     model_dirs):
-    """Removes invalid exported saved model directory names.
+  def _remove_invalid_model_dirs(self, model_dirs):
+    """Removes invalid exported saved model directories.
 
     The exported saved models directory names are numbers (timestamp) which
     monotonically increase, meaning the largest directory name will contain
@@ -254,10 +253,15 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
         model dirs.
 
     Returns:
-      model_dirs: All discovered model dirs which are infact numbers.
+      model_dirs: All discovered model dirs which are infact numbers and are
+        populated with the model.
     """
 
     def _isvalid(model_dir):
-      return os.path.basename(model_dir).isdigit()
+      model_dir_is_numeric = os.path.basename(model_dir).isdigit()
+      model_exists = tf.io.gfile.exists(
+          os.path.join(model_dir,
+                       tf.saved_model.constants.SAVED_MODEL_FILENAME_PB))
+      return model_dir_is_numeric and model_exists
 
     return filter(_isvalid, model_dirs)
