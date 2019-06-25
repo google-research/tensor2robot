@@ -259,6 +259,9 @@ class VRGripperEnvSimpleTrialModel(abstract_model.AbstractT2RModel):
     outputs = {}
     with tf.variable_scope('a_func', reuse=tf.AUTO_REUSE, use_resource=True):
       if self._num_mixture_components > 1:
+        fc_inputs, _ = meta_tfdata.multi_batch_apply(
+            vision_layers.BuildImageFeaturesToPoseModel, 3, fc_inputs,
+            num_outputs=None)
         dist_params = meta_tfdata.multi_batch_apply(
             mdn.predict_mdn_params, 3,
             fc_inputs, self._num_mixture_components,
