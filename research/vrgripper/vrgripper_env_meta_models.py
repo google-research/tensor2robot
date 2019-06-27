@@ -150,6 +150,7 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
       ignore_embedding = False,
       action_decoder_cls=mdn.MDNDecoder,
       predict_end_weight = 0.,
+      use_film = False,
       **kwargs):
     """Initialize the model.
 
@@ -165,6 +166,8 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
       action_decoder_cls: Decoder class used to transform actions into a
         distribution.
       predict_end_weight: Weight of end-token prediction loss.
+      use_film: If True, applies FILM (https://arxiv.org/abs/1709.07871). FILM
+        params come from a linear layer on the TEC embedding.
       **kwargs: Passed to parent.
     """
     super(VRGripperEnvTecModel, self).__init__(**kwargs)
@@ -176,6 +179,7 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
     self._ignore_embedding = ignore_embedding
     self._action_decoder = action_decoder_cls()
     self._predict_end_weight = predict_end_weight
+    self._use_film = use_film
 
   def _episode_feature_specification(
       self, mode):
@@ -247,6 +251,19 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
       params = None):
     """See base class."""
     condition_embedding = self._embed_episode(features.condition)
+    film_output_params = None
+    if self._use_film:
+      # condition_embedding = [batch, task, embedding]
+      film_output_params = meta_tfdata.multi_batch_apply(
+          vision_layers.BuildFILMParams, 2,
+          condition_embedding)
+      # Need to stretch to [batch, task, T, film_size] since later call expects
+      # 3 batch dimensions. FILM params are identical across time but change for
+      # different conditioning episodes.
+      film_output_params = tf.expand_dims(film_output_params, axis=-2)
+      film_output_params = tf.tile(
+          film_output_params, [1, 1, self._episode_length, 1])
+
     gripper_pose = features.inference.features.gripper_pose
     fc_embedding = tf.tile(
         condition_embedding[Ellipsis, :self._fc_embed_size][:, :, None, :],
@@ -255,7 +272,8 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
         'state_features', reuse=tf.AUTO_REUSE, use_resource=True):
       state_features, _ = meta_tfdata.multi_batch_apply(
           vision_layers.BuildImagesToFeaturesModel, 3,
-          features.inference.features.image)
+          features.inference.features.image,
+          film_output_params=film_output_params)
     if self._ignore_embedding:
       fc_inputs = tf.concat([state_features, gripper_pose], -1)
     else:
@@ -275,15 +293,15 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
           output_size=self._num_waypoints*self._action_size)
 
     outputs.update({
-        'action': action,  # used for policy.
+        'inference_output': action,  # used for policy.
         'condition_embedding': condition_embedding,
     })
 
     if self._predict_end_weight > 0:
       outputs['end_token_logits'] = end_token
       outputs['end_token'] = tf.nn.sigmoid(end_token)
-      outputs['action'] = tf.concat(
-          [outputs['action'], outputs['end_token']], -1)
+      outputs['inference_output'] = tf.concat(
+          [outputs['inference_output'], outputs['end_token']], -1)
 
     if mode != PREDICT:
       # During training we embed the inference episodes to compute the triplet
@@ -363,7 +381,7 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
       if self._predict_end_weight > 0:
         tf.summary.scalar('end_loss', train_outputs['end_loss'])
     # Marginal distribution (over batch, timesteps) over each action dim.
-    pose = inference_outputs['action']
+    pose = inference_outputs['inference_output']
     for i, key in enumerate(
         ['x', 'y', 'z', 'rx', 'ry', 'rz', 'gripper_close']):
       tf.summary.histogram('estimated_pose/%s' % key, pose[Ellipsis, i])
