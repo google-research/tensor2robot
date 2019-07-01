@@ -394,6 +394,7 @@ def train_eval_model(
     export_generator = None,
     use_continuous_eval = True,
     train_hook_builders = None,
+    chief_train_hook_builders = None,
     eval_hook_builders = None,
 ):
   """Train and evaluate a T2RModel.
@@ -424,6 +425,8 @@ def train_eval_model(
       input generator for training is provided.
     train_hook_builders: A optional list of HookBuilders to build trainer hooks
       to pass to the estimator.
+    chief_train_hook_builders: A optional list of HookBuilders to build trainer
+      hooks to pass to the estimator, only on the chief.
     eval_hook_builders: A optional list of HookBuilders to build eval hooks to
       pass to the estimator.
 
@@ -485,6 +488,8 @@ def train_eval_model(
   # TrainSpec and Hooks.
   if input_generator_train is not None:
     train_hooks = _build_hooks(train_hook_builders)
+    if t2r_model.get_run_config().is_chief:
+      train_hooks.extend(_build_hooks(chief_train_hook_builders))
     train_spec = tf.estimator.TrainSpec(
         input_fn=input_generator_train.create_dataset_input_fn(
             mode=tf.estimator.ModeKeys.TRAIN),
