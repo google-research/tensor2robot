@@ -41,7 +41,7 @@ def Embedding(image, mode, params, reuse=tf.AUTO_REUSE, scope='scene'):
   del params
   is_training = mode == tf.estimator.ModeKeys.TRAIN
   with tf.variable_scope(scope, reuse=reuse):
-    scene = resnet.get_resnet_model(image, is_training)
+    scene = resnet.get_resnet50_spatial(image, is_training)
     scene = tf.nn.relu(scene)
     summed_scene = tf.reduce_mean(scene, axis=[1, 2])
   return summed_scene, scene

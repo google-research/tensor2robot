@@ -15,22 +15,18 @@
 
 """Modified ResNet for Grasp2Vec.
 
-Residual networks ('v1' ResNets) were originally proposed in:
-[1] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
-    Deep Residual Learning for Image Recognition. arXiv:1512.03385
-The full preactivation 'v2' ResNet variant was introduced by:
-[2] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
-    Identity Mappings in Deep Residual Networks. arXiv: 1603.05027
-The key difference of the full preactivation 'v2' variant compared to the
-'v1' variant in [1] is the use of batch normalization before every weight layer
-rather than after.
+Note: for future uses of Grasp2Vec, please use `get_resnet50_spatial` instead
+of `get_resnet_model`, which has been kept around for backwards compatibility
+with old checkpoints.
 """
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from tensor2robot.layers import resnet
 import tensorflow as tf
+from tensorflow_models.official.resnet import resnet_model as resnet_lib
 
 
 _BATCH_NORM_DECAY = 0.997
@@ -538,3 +534,27 @@ def get_resnet_model(image, training):
   )
   output = model(image, training)
   return output
+
+
+def get_resnet50_spatial(images, is_training):
+  """ResNet50, but cut off last block and return before global pooling."""
+  num_classes = 1001  # Dummy value, unused.
+  model = resnet_lib.Model(
+      resnet_size=50,
+      bottleneck=True,
+      num_classes=num_classes,
+      num_filters=64,
+      kernel_size=7,
+      conv_stride=2,
+      first_pool_size=3,
+      first_pool_stride=2,
+      block_sizes=[3, 4, 6],
+      block_strides=[1, 2, 2],
+      resnet_version=resnet_lib.DEFAULT_VERSION,
+      data_format='channels_last',
+      dtype=resnet_lib.DEFAULT_DTYPE
+  )
+  # Build the graph.
+  _ = model(images, is_training)
+  # Return pre-pooled dense spatial features.
+  return resnet.resnet_endpoints(model)['block_layer3']
