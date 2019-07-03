@@ -161,12 +161,21 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
               t2r_assets.feature_spec)  # pytype: disable=wrong-arg-types
           self._label_spec = tensorspec_utils.TensorSpecStruct.from_proto(
               t2r_assets.label_spec)  # pytype: disable=wrong-arg-types
+
           if t2r_assets.HasField('global_step'):
             self._global_step = t2r_assets.global_step
           else:
             logging.warning(
                 'Error loading the global step, therefore using the previously'
                 'set global step %s.', str(self.global_step))
+          model_global_step = self._predict_fn.session.run(
+              tf.GraphKeys.GLOBAL_STEP)
+          if model_global_step is not None:
+            logging.warning(
+                'Using the global step loaded from the model %s and not the '
+                'one from the assets file %s.', str(model_global_step),
+                str(self._global_step))
+            self._global_step = model_global_step
         else:
           input_spec_filename = os.path.join(model_dirs[-1], 'assets.extra',
                                              'input_specs.pkl')
