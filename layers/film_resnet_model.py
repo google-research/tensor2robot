@@ -13,21 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Modified ResNet for Grasp2Vec.
+"""Contains definitions for Residual Networks with/without FiLM conditioning.
 
-Note: for future uses of Grasp2Vec, please use `get_resnet50_spatial` instead
-of `get_resnet_model`, which has been kept around for backwards compatibility
-with old checkpoints.
+Residual networks ('v1' ResNets) were originally proposed in:
+[1] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
+    Deep Residual Learning for Image Recognition. arXiv:1512.03385
+
+The full preactivation 'v2' ResNet variant was introduced by:
+[2] Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun
+    Identity Mappings in Deep Residual Networks. arXiv: 1603.05027
+
+FiLM conditioning was introduced by:
+[3] Ethan Perez, Florian Strub, Harm de Vries, Vincent Dumoulin, Aaron Courville
+    FiLM: Visual Reasoning with a General Conditioning Layer. arXiv: 1709.07871
+
+The key difference of the full preactivation 'v2' variant compared to the
+'v1' variant in [1] is the use of batch normalization before every weight layer
+rather than after.
 """
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensor2robot.layers import film_resnet_model as resnet_lib
-from tensor2robot.layers import resnet
 import tensorflow as tf
-
 
 _BATCH_NORM_DECAY = 0.997
 _BATCH_NORM_EPSILON = 1e-5
@@ -44,7 +53,7 @@ def batch_norm(inputs, training, data_format):
   """Performs a batch normalization using a standard set of parameters."""
   # We set fused=True for a significant performance boost. See
   # https://www.tensorflow.org/performance/performance_guide#common_fused_ops
-  return tf.layers.batch_normalization(
+  return tf.compat.v1.layers.batch_normalization(
       inputs=inputs, axis=1 if data_format == 'channels_first' else 3,
       momentum=_BATCH_NORM_DECAY, epsilon=_BATCH_NORM_EPSILON, center=True,
       scale=True, training=training, fused=True)
@@ -59,6 +68,7 @@ def fixed_padding(inputs, kernel_size, data_format):
     kernel_size: The kernel to be used in the conv2d or max_pool2d operation.
                  Should be a positive integer.
     data_format: The input format ('channels_last' or 'channels_first').
+
   Returns:
     A tensor with the same format as the input with the data either intact
     (if kernel_size == 1) or padded (if kernel_size > 1).
@@ -68,11 +78,13 @@ def fixed_padding(inputs, kernel_size, data_format):
   pad_end = pad_total - pad_beg
 
   if data_format == 'channels_first':
-    padded_inputs = tf.pad(inputs, [[0, 0], [0, 0],
-                                    [pad_beg, pad_end], [pad_beg, pad_end]])
+    padded_inputs = tf.pad(tensor=inputs,
+                           paddings=[[0, 0], [0, 0], [pad_beg, pad_end],
+                                     [pad_beg, pad_end]])
   else:
-    padded_inputs = tf.pad(inputs, [[0, 0], [pad_beg, pad_end],
-                                    [pad_beg, pad_end], [0, 0]])
+    padded_inputs = tf.pad(tensor=inputs,
+                           paddings=[[0, 0], [pad_beg, pad_end],
+                                     [pad_beg, pad_end], [0, 0]])
   return padded_inputs
 
 
@@ -83,24 +95,35 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides, data_format):
   if strides > 1:
     inputs = fixed_padding(inputs, kernel_size, data_format)
 
-  return tf.layers.conv2d(
+  return tf.compat.v1.layers.conv2d(
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
-      kernel_initializer=tf.variance_scaling_initializer(),
+      kernel_initializer=tf.compat.v1.variance_scaling_initializer(),
       data_format=data_format)
+
+
+def _apply_film(inputs, film_gamma_beta):
+  if film_gamma_beta is not None:
+    # [batch, 2*filters] -> [batch, 1, 1, 2*filters] for broadcasting
+    film_gamma_beta = tf.expand_dims(film_gamma_beta, axis=-2)
+    film_gamma_beta = tf.expand_dims(film_gamma_beta, axis=-2)
+    gamma, beta = tf.split(film_gamma_beta, 2, axis=-1)
+    inputs = (1+gamma) * inputs + beta
+  return inputs
 
 
 ################################################################################
 # ResNet block definitions.
 ################################################################################
 def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
-                       data_format):
+                       data_format, film_gamma_beta=None):
   """A single block for ResNet v1, without a bottleneck.
 
   Convolution then batch normalization then ReLU as described by:
     Deep Residual Learning for Image Recognition
     https://arxiv.org/pdf/1512.03385.pdf
     by Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun, Dec 2015.
+
   Args:
     inputs: A tensor of size [batch, channels, height_in, width_in] or
       [batch, height_in, width_in, channels] depending on data_format.
@@ -112,6 +135,8 @@ def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
+
   Returns:
     The output tensor of the block; shape should match inputs.
   """
@@ -132,6 +157,7 @@ def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
       inputs=inputs, filters=filters, kernel_size=3, strides=1,
       data_format=data_format)
   inputs = batch_norm(inputs, training, data_format)
+  inputs = _apply_film(inputs, film_gamma_beta)
   inputs += shortcut
   inputs = tf.nn.relu(inputs)
 
@@ -139,13 +165,14 @@ def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
 
 
 def _building_block_v2(inputs, filters, training, projection_shortcut, strides,
-                       data_format):
+                       data_format, film_gamma_beta=None):
   """A single block for ResNet v2, without a bottleneck.
 
   Batch normalization then ReLu then convolution as described by:
     Identity Mappings in Deep Residual Networks
     https://arxiv.org/pdf/1603.05027.pdf
     by Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun, Jul 2016.
+
   Args:
     inputs: A tensor of size [batch, channels, height_in, width_in] or
       [batch, height_in, width_in, channels] depending on data_format.
@@ -157,6 +184,8 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
+
   Returns:
     The output tensor of the block; shape should match inputs.
   """
@@ -174,6 +203,7 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides,
       data_format=data_format)
 
   inputs = batch_norm(inputs, training, data_format)
+  inputs = _apply_film(inputs, film_gamma_beta)
   inputs = tf.nn.relu(inputs)
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=1,
@@ -183,7 +213,7 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides,
 
 
 def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
-                         strides, data_format):
+                         strides, data_format, film_gamma_beta=None):
   """A single block for ResNet v1, with a bottleneck.
 
   Similar to _building_block_v1(), except using the "bottleneck" blocks
@@ -192,6 +222,7 @@ def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
       Deep Residual Learning for Image Recognition
       https://arxiv.org/pdf/1512.03385.pdf
       by Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun, Dec 2015.
+
   Args:
     inputs: A tensor of size [batch, channels, height_in, width_in] or
       [batch, height_in, width_in, channels] depending on data_format.
@@ -203,6 +234,8 @@ def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
+
   Returns:
     The output tensor of the block; shape should match inputs.
   """
@@ -229,6 +262,7 @@ def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
       inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
       data_format=data_format)
   inputs = batch_norm(inputs, training, data_format)
+  inputs = _apply_film(inputs, film_gamma_beta)
   inputs += shortcut
   inputs = tf.nn.relu(inputs)
 
@@ -236,8 +270,8 @@ def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
 
 
 def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
-                         strides, data_format):
-  """A single block for ResNet v2, without a bottleneck.
+                         strides, data_format, film_gamma_beta=None):
+  """A single block for ResNet v2, with a bottleneck.
 
   Similar to _building_block_v2(), except using the "bottleneck" blocks
   described in:
@@ -245,11 +279,13 @@ def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
       Deep Residual Learning for Image Recognition
       https://arxiv.org/pdf/1512.03385.pdf
       by Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun, Dec 2015.
+
   Adapted to the ordering conventions of:
     Batch normalization then ReLu then convolution as described by:
       Identity Mappings in Deep Residual Networks
       https://arxiv.org/pdf/1603.05027.pdf
       by Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun, Jul 2016.
+
   Args:
     inputs: A tensor of size [batch, channels, height_in, width_in] or
       [batch, height_in, width_in, channels] depending on data_format.
@@ -261,6 +297,8 @@ def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
+
   Returns:
     The output tensor of the block; shape should match inputs.
   """
@@ -284,6 +322,7 @@ def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
       data_format=data_format)
 
   inputs = batch_norm(inputs, training, data_format)
+  inputs = _apply_film(inputs, film_gamma_beta)
   inputs = tf.nn.relu(inputs)
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
@@ -293,7 +332,7 @@ def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
 
 
 def block_layer(inputs, filters, bottleneck, block_fn, blocks, strides,
-                training, name, data_format):
+                training, name, data_format, film_gamma_betas):
   """Creates one layer of blocks for the ResNet model.
 
   Args:
@@ -310,9 +349,15 @@ def block_layer(inputs, filters, bottleneck, block_fn, blocks, strides,
       model. Needed for batch norm.
     name: A string name for the tensor output of the block layer.
     data_format: The input format ('channels_last' or 'channels_first').
+    film_gamma_betas: List of FiLM parameters for each ResNet block in this
+      block layer. Parameters can be None or a tf.Tensor.
+
   Returns:
     The output tensor of the block layer.
   """
+  if blocks != len(film_gamma_betas):
+    raise ValueError('film_gamma_betas has length {}, expected {}'.format(
+        len(film_gamma_betas), blocks))
 
   # Bottleneck blocks end with 4x the number of filters as they start with
   filters_out = filters * 4 if bottleneck else filters
@@ -324,10 +369,11 @@ def block_layer(inputs, filters, bottleneck, block_fn, blocks, strides,
 
   # Only the first block per block_layer uses projection_shortcut and strides
   inputs = block_fn(inputs, filters, training, projection_shortcut, strides,
-                    data_format)
+                    data_format, film_gamma_betas[0])
 
-  for _ in range(1, blocks):
-    inputs = block_fn(inputs, filters, training, None, 1, data_format)
+  for i in range(1, blocks):
+    inputs = block_fn(inputs, filters, training, None, 1, data_format,
+                      film_gamma_betas[i])
 
   return tf.identity(inputs, name)
 
@@ -338,8 +384,8 @@ class Model(object):
   def __init__(self, resnet_size, bottleneck, num_classes, num_filters,
                kernel_size,
                conv_stride, first_pool_size, first_pool_stride,
-               second_pool_size, second_pool_stride, block_sizes, block_strides,
-               final_size, version=DEFAULT_VERSION, data_format=None,
+               block_sizes, block_strides,
+               resnet_version=DEFAULT_VERSION, data_format=None,
                dtype=DEFAULT_DTYPE):
     """Creates a model for classifying an image.
 
@@ -356,20 +402,18 @@ class Model(object):
         If none, the first pooling layer is skipped.
       first_pool_stride: stride size for the first pooling layer. Not used
         if first_pool_size is None.
-      second_pool_size: Pool size to be used for the second pooling layer.
-      second_pool_stride: stride size for the final pooling layer
       block_sizes: A list containing n values, where n is the number of sets of
         block layers desired. Each value should be the number of blocks in the
         i-th set.
       block_strides: List of integers representing the desired stride size for
         each of the sets of block layers. Should be same length as block_sizes.
-      final_size: The expected size of the model after the second pooling.
-      version: Integer representing which version of the ResNet network to use.
-        See README for details. Valid values: [1, 2]
+      resnet_version: Integer representing which version of the ResNet network
+        to use. See README for details. Valid values: [1, 2]
       data_format: Input format ('channels_last', 'channels_first', or None).
         If set to None, the format is dependent on whether a GPU is available.
       dtype: The TensorFlow dtype to use for calculations. If not specified
         tf.float32 is used.
+
     Raises:
       ValueError: if invalid version is selected.
     """
@@ -379,19 +423,19 @@ class Model(object):
       data_format = (
           'channels_first' if tf.test.is_built_with_cuda() else 'channels_last')
 
-    self.resnet_version = version
-    if version not in (1, 2):
+    self.resnet_version = resnet_version
+    if resnet_version not in (1, 2):
       raise ValueError(
           'Resnet version should be 1 or 2. See README for citations.')
 
     self.bottleneck = bottleneck
     if bottleneck:
-      if version == 1:
+      if resnet_version == 1:
         self.block_fn = _bottleneck_block_v1
       else:
         self.block_fn = _bottleneck_block_v2
     else:
-      if version == 1:
+      if resnet_version == 1:
         self.block_fn = _building_block_v1
       else:
         self.block_fn = _building_block_v2
@@ -406,12 +450,10 @@ class Model(object):
     self.conv_stride = conv_stride
     self.first_pool_size = first_pool_size
     self.first_pool_stride = first_pool_stride
-    self.second_pool_size = second_pool_size
-    self.second_pool_stride = second_pool_stride
     self.block_sizes = block_sizes
     self.block_strides = block_strides
-    self.final_size = final_size
     self.dtype = dtype
+    self.pre_activation = resnet_version == 2
 
   def _custom_dtype_getter(self, getter, name, shape=None, dtype=DEFAULT_DTYPE,  # pylint: disable=keyword-arg-before-vararg
                            *args, **kwargs):
@@ -426,11 +468,13 @@ class Model(object):
     The `getter` parameter is the underlying variable getter, that would have
     been called if no custom getter was used. Custom getters typically get a
     variable with `getter`, then modify it in some way.
+
     This custom getter will create an fp32 variable. If a low precision
     (e.g. float16) variable was requested it will then cast the variable to the
     requested dtype. The reason we do not directly create variables in low
     precision dtypes is that applying small gradients to such variables may
     cause the variable not to change.
+
     Args:
       getter: The underlying variable getter, that has the same signature as
         tf.get_variable and returns a variable.
@@ -441,6 +485,7 @@ class Model(object):
         then cast to the appropriate dtype
       *args: Additional arguments to pass unmodified to getter.
       **kwargs: Additional keyword arguments to pass unmodified to getter.
+
     Returns:
       A variable which is cast to fp16 if necessary.
     """
@@ -456,38 +501,65 @@ class Model(object):
 
     If self.dtype is a castable type, model variable will be created in fp32
     then cast to self.dtype before being used.
+
     Returns:
       A variable scope for the model.
     """
 
-    return tf.variable_scope('resnet_model',
-                             custom_getter=self._custom_dtype_getter)
+    return tf.compat.v1.variable_scope('resnet_model',
+                                       custom_getter=self._custom_dtype_getter)
 
-  def __call__(self, inputs, training):
+  def __call__(self,
+               inputs,
+               training,
+               film_generator_fn=None,
+               film_generator_input=None):
     """Add operations to classify a batch of input images.
 
     Args:
       inputs: A Tensor representing a batch of input images.
       training: A boolean. Set to True to add operations required only when
         training the classifier.
+      film_generator_fn: Callable that takes in a list of lists.
+      film_generator_input: Tensor to be passed into film_generator_fn.
     Returns:
       A logits Tensor with shape [<batch_size>, self.num_classes].
     """
+    # Generate FiLM conditioning.
+    if film_generator_input is not None and film_generator_fn is None:
+      raise ValueError(
+          'film_generator_input is provided but film_generator_fn is not '
+          'specified.')
+    if film_generator_fn:
+      filter_sizes = [
+          self.num_filters * (2**i) for i in range(len(self.block_sizes))]
+      film_gamma_betas = film_generator_fn(
+          film_generator_input, self.block_sizes, filter_sizes)
+    else:
+      film_gamma_betas = [[None]*num_blocks for num_blocks in self.block_sizes]
 
     with self._model_variable_scope():
       if self.data_format == 'channels_first':
         # Convert the inputs from channels_last (NHWC) to channels_first (NCHW).
         # This provides a large performance boost on GPU. See
         # https://www.tensorflow.org/performance/performance_guide#data_formats
-        inputs = tf.transpose(inputs, [0, 3, 1, 2])
+        inputs = tf.transpose(a=inputs, perm=[0, 3, 1, 2])
 
       inputs = conv2d_fixed_padding(
           inputs=inputs, filters=self.num_filters, kernel_size=self.kernel_size,
           strides=self.conv_stride, data_format=self.data_format)
       inputs = tf.identity(inputs, 'initial_conv')
 
+      # We do not include batch normalization or activation functions in V2
+      # for the initial conv1 because the first ResNet unit will perform these
+      # for both the shortcut and non-shortcut paths as part of the first
+      # block's projection. Cf. Appendix of [2].
+      if self.resnet_version == 1:
+        inputs = batch_norm(inputs, training, self.data_format)
+        inputs = tf.nn.relu(inputs)
+
       if self.first_pool_size:
-        inputs = tf.layers.max_pooling2d(
+        inputs = tf.compat.v1.layers.max_pooling2d(
             inputs=inputs, pool_size=self.first_pool_size,
             strides=self.first_pool_stride, padding='SAME',
             data_format=self.data_format)
@@ -495,66 +567,48 @@ class Model(object):
 
       for i, num_blocks in enumerate(self.block_sizes):
         num_filters = self.num_filters * (2**i)
+
+        # Validate FiLM inputs.
+        if film_gamma_betas[i] is None:
+          continue
+        if len(film_gamma_betas[i]) != num_blocks:
+          raise ValueError(
+              'Got {} FiLM vectors for block {}, expected {}'.format(
+                  len(film_gamma_betas[i]), i, num_blocks))
+        for film_gamma_beta in film_gamma_betas[i]:
+          if film_gamma_beta is None:
+            continue
+          film_shape = film_gamma_beta.get_shape().as_list()
+          if len(film_shape) != 2:
+            raise ValueError('FILM shape is %s but is expected to be 2-D' %
+                             str(film_shape))
+          if film_shape[-1] != 2*num_filters:
+            raise ValueError(
+                'FILM shape is %s but final dimension should be %d' %
+                (str(film_shape), 2*num_filters))
         inputs = block_layer(
             inputs=inputs, filters=num_filters, bottleneck=self.bottleneck,
             block_fn=self.block_fn, blocks=num_blocks,
             strides=self.block_strides[i], training=training,
-            name='block_layer{}'.format(i + 1), data_format=self.data_format)
+            name='block_layer{}'.format(i + 1), data_format=self.data_format,
+            film_gamma_betas=film_gamma_betas[i])
 
+      # Only apply the BN and ReLU for model that does pre_activation in each
+      # building/bottleneck block, eg resnet V2.
+      if self.pre_activation:
+        inputs = batch_norm(inputs, training, self.data_format)
+        inputs = tf.nn.relu(inputs)
+      inputs = tf.identity(inputs, 'pre_final_pool')
+      # The current top layer has shape
+      # `batch_size x pool_size x pool_size x final_size`.
+      # ResNet does an Average Pooling layer over pool_size,
+      # but that is the same as doing a reduce_mean. We do a reduce_mean
+      # here because it performs better than AveragePooling2D.
+      axes = [2, 3] if self.data_format == 'channels_first' else [1, 2]
+      inputs = tf.reduce_mean(input_tensor=inputs, axis=axes, keepdims=True)
+      inputs = tf.identity(inputs, 'final_reduce_mean')
+
+      inputs = tf.squeeze(inputs, axes)
+      inputs = tf.compat.v1.layers.dense(inputs=inputs, units=self.num_classes)
+      inputs = tf.identity(inputs, 'final_dense')
       return inputs
-
-
-def get_resnet_model(image, training):
-  """Creates a Resnet model with specific parameters."""
-  resnet_size = 50
-  if resnet_size < 50:
-    bottleneck = False
-    final_size = 512
-  else:
-    bottleneck = True
-    final_size = 2048
-
-  model = Model(
-      resnet_size=resnet_size,
-      bottleneck=bottleneck,
-      num_classes=1001,
-      num_filters=64,
-      kernel_size=7,
-      conv_stride=2,
-      first_pool_size=3,
-      first_pool_stride=2,
-      second_pool_size=7,
-      second_pool_stride=1,
-      block_sizes=[3, 4, 6],    # Cutting off the last block
-      block_strides=[1, 2, 2],  # Cutting off the last block
-      final_size=final_size,
-      version=2,
-      data_format='channels_last',
-      dtype=DEFAULT_DTYPE,
-  )
-  output = model(image, training)
-  return output
-
-
-def get_resnet50_spatial(images, is_training):
-  """ResNet50, but cut off last block and return before global pooling."""
-  num_classes = 1001  # Dummy value, unused.
-  model = resnet_lib.Model(
-      resnet_size=50,
-      bottleneck=True,
-      num_classes=num_classes,
-      num_filters=64,
-      kernel_size=7,
-      conv_stride=2,
-      first_pool_size=3,
-      first_pool_stride=2,
-      block_sizes=[3, 4, 6],
-      block_strides=[1, 2, 2],
-      resnet_version=resnet_lib.DEFAULT_VERSION,
-      data_format='channels_last',
-      dtype=resnet_lib.DEFAULT_DTYPE
-  )
-  # Build the graph.
-  _ = model(images, is_training)
-  # Return pre-pooled dense spatial features.
-  return resnet.resnet_endpoints(model)['block_layer3']

@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
 from absl.testing import parameterized
 from tensor2robot.layers import resnet
 import tensorflow as tf
@@ -40,6 +41,35 @@ class ResnetTest(tf.test.TestCase, parameterized.TestCase):
         'block_layer{}'.format(i + 1) for i in range(4)]
     self.assertEqual(set(tensors), set(end_points.keys()))
 
+  @parameterized.parameters(
+      (18, [True, True, True, True]),
+      (50, [True, False, True, False]))
+  def test_film(self, resnet_size, enabled_blocks):
+    image = tf.zeros((2, 224, 224, 3), dtype=tf.float32)
+    embedding = tf.zeros((2, 100), dtype=tf.float32)
+    film_generator_fn = functools.partial(
+        resnet.linear_film_generator, enabled_block_layers=enabled_blocks)
+    _ = resnet.resnet_model(image,
+                            is_training=True,
+                            num_classes=1001,
+                            resnet_size=resnet_size,
+                            return_intermediate_values=True,
+                            film_generator_fn=film_generator_fn,
+                            film_generator_input=embedding)
+
+  def test_malformed_film_raises(self):
+    image = tf.zeros((2, 224, 224, 3), dtype=tf.float32)
+    embedding = tf.zeros((2, 100), dtype=tf.float32)
+    film_generator_fn = functools.partial(
+        resnet.linear_film_generator, enabled_block_layers=[True]*5)
+    with self.assertRaises(ValueError):
+      _ = resnet.resnet_model(image,
+                              is_training=True,
+                              num_classes=1001,
+                              resnet_size=18,
+                              return_intermediate_values=True,
+                              film_generator_fn=film_generator_fn,
+                              film_generator_input=embedding)
 
 if __name__ == '__main__':
   tf.test.main()

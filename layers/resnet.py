@@ -22,8 +22,10 @@ from __future__ import division
 from __future__ import print_function
 
 import gin
+from tensor2robot.layers import film_resnet_model as resnet_lib
 import tensorflow as tf
-from tensorflow_models.official.resnet import resnet_model as resnet_lib
+from typing import Optional, List
+slim = tf.contrib.slim
 
 
 def _get_block_sizes(resnet_size):
@@ -90,11 +92,62 @@ def resnet_endpoints(model):
 
 
 @gin.configurable
+def linear_film_generator(embedding,
+                          block_sizes,
+                          filter_sizes,
+                          enabled_block_layers = None):
+  """FiLM generator for all blocks in a ResNet.
+
+  Args:
+    embedding: Conditioning embedding. Passed in by ResNet model builder.
+    block_sizes: Passed in by ResNet model builder. Number of blocks in each
+      block layer.
+    filter_sizes: Filter sizes for each block layer. Passed in by ResNet model
+      builder.
+    enabled_block_layers: Optional list specifying which block layers have
+      conditioning. This can be gin-configured by the user.
+
+  Returns:
+    film_gamma_betas: List of lists of FiLM vectors for each block layer.
+      film_gamma_betas[i][j] is the jth block of the ith block layer, and is
+      either None or a [batch, 2*C] tensor,where C is the channel dimension of
+      the ResNet activations it is modulating. As recommended by the paper,
+      instead of doing gamma * x + beta, this does
+      (1 + gamma) * x + beta, to better handle the initial zero-centered
+      gamma.
+  """
+  if enabled_block_layers:
+    if len(enabled_block_layers) != len(block_sizes):
+      raise ValueError(
+          'Got {} bools for enabled_block_layers, expected {}'.format(
+              len(enabled_block_layers), len(block_sizes)))
+  # FiLM generator - just a linear projection of embedding.
+  film_gamma_betas = []
+  for i, num_blocks in enumerate(block_sizes):
+    if enabled_block_layers and not enabled_block_layers[i]:
+      # Do not generate FiLM vectors for this block layer.
+      film_gamma_betas.append([None]*num_blocks)
+    else:
+      num_filters = filter_sizes[i]
+      film_output_size = num_blocks * num_filters * 2
+      film_gamma_beta = slim.fully_connected(
+          embedding,
+          film_output_size,
+          scope='film{}'.format(i),
+          normalizer_fn=None,
+          activation_fn=None)
+      film_gamma_betas.append(tf.split(film_gamma_beta, num_blocks, axis=-1))
+  return film_gamma_betas
+
+
+@gin.configurable
 def resnet_model(images,
                  is_training,
                  num_classes,
                  resnet_size=50,
-                 return_intermediate_values=False):
+                 return_intermediate_values=False,
+                 film_generator_fn=None,
+                 film_generator_input=None):
   """Returns resnet model, optionally returning intermediate endpoint tensors.
 
   Args:
@@ -105,6 +158,9 @@ def resnet_model(images,
     resnet_size: Size of resnet. One of [18, 34, 50, 101, 152, 200].
     return_intermediate_values: If True, returns a dictionary of output and
       intermediate activation values.
+    film_generator_fn: Callable that returns a List (for each block layer) of
+      Lists (per ResNet block) of FiLM conditioning vectors.
+    film_generator_input: Embedding tensor to be passed to film_generator_fn.
   """
   # For bigger models, we want to use "bottleneck" layers
   if resnet_size < 50:
@@ -127,7 +183,8 @@ def resnet_model(images,
       data_format='channels_last',
       dtype=resnet_lib.DEFAULT_DTYPE
   )
-  final_dense = model(images, is_training)
+  final_dense = model(images, is_training,
+                      film_generator_fn, film_generator_input)
   if return_intermediate_values:
     return resnet_endpoints(model)
   else:
