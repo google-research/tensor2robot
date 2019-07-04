@@ -169,8 +169,10 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
                 'Error loading the global step, therefore using the previously'
                 'set global step %s.', str(self.global_step))
           model_global_step = self._predict_fn.session.run(
-              tf.GraphKeys.GLOBAL_STEP)
-          if model_global_step is not None:
+              self._predict_fn.graph.get_collection(
+                  tf.GraphKeys.GLOBAL_STEP))[0]
+          if (model_global_step is not None and
+              model_global_step != self._global_step):
             logging.warning(
                 'Using the global step loaded from the model %s and not the '
                 'one from the assets file %s.', str(model_global_step),

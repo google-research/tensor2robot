@@ -74,8 +74,7 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase):
     self.assertEqual(predictor.global_step, -1)
     self.assertTrue(predictor.restore())
     self.assertGreater(predictor.model_version, 0)
-    # NOTE: The default exporter does NOT safe the global_step.
-    self.assertEqual(predictor.global_step, -1)
+    self.assertEqual(predictor.global_step, 3)
     ref_feature_spec = mock_model.preprocessor.get_in_feature_specification(
         tf.estimator.ModeKeys.PREDICT)
     tensorspec_utils.assert_equal(predictor.get_feature_specification(),
