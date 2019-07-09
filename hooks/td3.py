@@ -25,13 +25,14 @@ import tempfile
 import gin
 from tensor2robot import t2r_pb2
 from tensor2robot.export_generators import abstract_export_generator
+from tensor2robot.export_generators import default_export_generator
 from tensor2robot.hooks import checkpoint_hooks
 from tensor2robot.hooks import hook_builder
 from tensor2robot.models import model_interface
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 
-from typing import Text, List
+from typing import Text, List, Optional
 
 
 @gin.configurable
@@ -57,6 +58,8 @@ class TD3Hooks(hook_builder.HookBuilder):
     use_preprocessed_features: Whether to export SavedModels which do *not*
       incldue preprocessing. This is useful for offloading the preprocessing
       graph to the client.
+    export_generator: The export generator used to generate the
+      serving_input_receiver_fn.
   """
 
   def __init__(
@@ -67,21 +70,26 @@ class TD3Hooks(hook_builder.HookBuilder):
       save_secs = 90,
       num_versions = 3,
       use_preprocessed_features=False,
+      export_generator = None,
   ):
     super(TD3Hooks, self).__init__()
     self._save_secs = save_secs
     self._num_versions = num_versions
     self._export_dir = export_dir
     self._lagged_export_dir = lagged_export_dir
-    self._use_preprocessed_features = use_preprocessed_features
     self._batch_sizes_for_export = batch_sizes_for_export
+    if export_generator is None:
+      self._export_generator = default_export_generator.DefaultExportGenerator()
+    else:
+      self._export_generator = export_generator
 
   def create_hooks(
-      self, t2r_model, estimator,
-      export_generator
+      self,
+      t2r_model,
+      estimator,
   ):
-    export_generator.set_specification_from_model(t2r_model)
-    warmup_requests_file = export_generator.create_warmup_requests_numpy(
+    self._export_generator.set_specification_from_model(t2r_model)
+    warmup_requests_file = self._export_generator.create_warmup_requests_numpy(
         batch_sizes=self._batch_sizes_for_export,
         export_dir=estimator.model_dir)
 
@@ -102,7 +110,7 @@ class TD3Hooks(hook_builder.HookBuilder):
       tensorspec_utils.write_t2r_assets_to_file(t2r_assets, t2r_assets_filename)
       res = estimator.export_saved_model(
           export_dir_base=export_dir,
-          serving_input_receiver_fn=export_generator
+          serving_input_receiver_fn=self._export_generator
           .create_serving_input_receiver_numpy_fn(),
           assets_extra={
               'tf_serving_warmup_requests': warmup_requests_file,

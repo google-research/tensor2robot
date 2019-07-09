@@ -26,13 +26,14 @@ import tempfile
 import gin
 from tensor2robot import t2r_pb2
 from tensor2robot.export_generators import abstract_export_generator
+from tensor2robot.export_generators import default_export_generator
 from tensor2robot.hooks import checkpoint_hooks
 from tensor2robot.hooks import hook_builder
 from tensor2robot.models import model_interface
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 
-from typing import Text, List, Callable
+from typing import Text, List, Callable, Optional
 
 CreateExportFnType = Callable[[
     model_interface.ModelInterface,
@@ -99,6 +100,8 @@ class AsyncExportHookBuilder(hook_builder.HookBuilder):
     save_secs: Interval to save models, and copy the latest model from
       `export_dir` to `lagged_export_dir`.
     num_versions: Number of model versions to save in each directory
+    export_generator: The export generator used to generate the
+      serving_input_receiver_fn.
   """
 
   def __init__(
@@ -107,18 +110,24 @@ class AsyncExportHookBuilder(hook_builder.HookBuilder):
       save_secs = 90,
       num_versions = 3,
       create_export_fn = default_create_export_fn,
+      export_generator = None,
   ):
     super(AsyncExportHookBuilder, self).__init__()
     self._save_secs = save_secs
     self._num_versions = num_versions
     self._export_dir = export_dir
     self._create_export_fn = create_export_fn
+    if export_generator is None:
+      self._export_generator = default_export_generator.DefaultExportGenerator()
+    else:
+      self._export_generator = export_generator
 
   def create_hooks(
-      self, t2r_model, estimator,
-      export_generator
+      self,
+      t2r_model,
+      estimator,
   ):
-    export_generator.set_specification_from_model(t2r_model)
+    self._export_generator.set_specification_from_model(t2r_model)
     return [
         tf.contrib.tpu.AsyncCheckpointSaverHook(
             save_secs=self._save_secs,
@@ -126,7 +135,7 @@ class AsyncExportHookBuilder(hook_builder.HookBuilder):
             listeners=[
                 checkpoint_hooks.CheckpointExportListener(
                     export_fn=self._create_export_fn(t2r_model, estimator,
-                                                     export_generator),
+                                                     self._export_generator),
                     num_versions=self._num_versions,
                     export_dir=self._export_dir)
             ])

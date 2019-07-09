@@ -63,19 +63,20 @@ class Td3Test(tf.test.TestCase):
 
     mock_checkpoint_init.side_effect = _checkpoint_init
 
+    export_generator = mocks.MockExportGenerator()
+
     hook_builder = td3.TD3Hooks(
         export_dir=_EXPORT_DIR,
         lagged_export_dir=_LAGGED_EXPORT_DIR,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
+        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT,
+        export_generator=export_generator)
 
     model = mocks.MockT2RModel()
     estimator = MockEstimator()
-    export_generator = mocks.MockExportGenerator()
 
     mock_create_warmup_requests_numpy.return_value = _NUMPY_WARMUP_REQUESTS
 
-    hooks = hook_builder.create_hooks(
-        t2r_model=model, estimator=estimator, export_generator=export_generator)
+    hooks = hook_builder.create_hooks(t2r_model=model, estimator=estimator)
     self.assertLen(hooks, 1)
 
     mock_create_warmup_requests_numpy.assert_called_with(

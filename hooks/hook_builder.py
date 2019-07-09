@@ -22,7 +22,6 @@ from __future__ import print_function
 
 import abc
 
-from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.models import model_interface
 import tensorflow as tf  # tf
 from typing import List
@@ -35,7 +34,6 @@ class HookBuilder(object):
   def create_hooks(
       self, t2r_model,
       estimator,
-      export_generator
   ):
     """Create hooks for the trainer.
 
@@ -44,7 +42,6 @@ class HookBuilder(object):
     Arguments:
       t2r_model: Provided model
       estimator: Provided estimator instance
-      export_generator: An instance of an export_generator.
     Returns:
       A list of tf.train.SessionRunHooks to add to the trainer.
     """

@@ -473,16 +473,13 @@ def train_eval_model(
       eval_batch_size=eval_batch_size,
       params=params)
 
-  if export_generator is None:
-    export_generator = default_export_generator.DefaultExportGenerator()
-
   # Inline helper function for building hooks.
   def _build_hooks(hook_builders):
     hooks = []
     if hook_builders:
       for builder in hook_builders:
         hooks.extend(
-            builder.create_hooks(t2r_model, estimator, export_generator))
+            builder.create_hooks(t2r_model, estimator))
     return hooks
 
   # TrainSpec and Hooks.
