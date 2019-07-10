@@ -124,7 +124,7 @@ class MAMLRegressionPolicy(MetaLearningPolicy, policies.RegressionPolicy):
                                                 timestep)
     # This key must be 'inference_output' b.c. MAMLModel performs a check for
     # this key.
-    action = self._predictor.predict(np_features)['action']
+    action = self._predictor.predict(np_features)['inference_output']
 
     # TODO(allanz): Rank 4 actions are due to VRGripperRegressionModel having
     # an additional time dimension. Remove this once we have a better way to
