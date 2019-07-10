@@ -19,7 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import functools
 import os
 
 from absl import flags
@@ -36,7 +35,6 @@ import tensorflow as tf
 FLAGS = flags.FLAGS
 
 _EXPORT_DIR = 'asyn_export'
-_BATCH_SIZES_FOR_EXPORT = [128]
 
 _BATCH_SIZE = 2
 _MAX_TRAIN_STEPS = 3
@@ -88,12 +86,10 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase):
 
   def test_predictor_with_async_hook(self):
     model_dir = self.create_tempdir().full_path
-    default_create_export_fn = functools.partial(
-        async_export_hook_builder.default_create_export_fn,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
     export_dir = os.path.join(model_dir, _EXPORT_DIR)
     hook_builder = async_export_hook_builder.AsyncExportHookBuilder(
-        export_dir=export_dir, create_export_fn=default_create_export_fn)
+        export_dir=export_dir,
+        create_export_fn=async_export_hook_builder.default_create_export_fn)
     input_generator = default_input_generator.DefaultRandomInputGenerator(
         batch_size=_BATCH_SIZE)
     mock_model = mocks.MockT2RModel()
@@ -130,8 +126,7 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase):
 
   def test_predictor_timeout(self):
     predictor = exported_savedmodel_predictor.ExportedSavedModelPredictor(
-        export_dir='/random/path/which/does/not/exist',
-        timeout=1)
+        export_dir='/random/path/which/does/not/exist', timeout=1)
     self.assertFalse(predictor.restore())
 
 

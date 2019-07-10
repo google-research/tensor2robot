@@ -19,7 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import functools
 import os
 import gin
 from tensor2robot import train_eval
@@ -45,16 +44,11 @@ class AsyncExportHookBuilderTest(tf.test.TestCase):
         use_avg_model_params=True)
 
     mock_input_generator = mocks.MockInputGenerator(batch_size=_BATCH_SIZE)
-    default_create_export_fn = functools.partial(
-        async_export_hook_builder.default_create_export_fn,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
     export_dir = os.path.join(model_dir, _EXPORT_DIR)
     hook_builder = async_export_hook_builder.AsyncExportHookBuilder(
-        export_dir=export_dir, create_export_fn=default_create_export_fn)
+        export_dir=export_dir,
+        create_export_fn=async_export_hook_builder.default_create_export_fn)
 
-    default_create_export_fn = functools.partial(
-        async_export_hook_builder.default_create_export_fn,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
     gin.parse_config('tf.contrib.tpu.TPUConfig.iterations_per_loop=1')
     gin.parse_config('tf.estimator.RunConfig.save_checkpoints_steps=1')
 

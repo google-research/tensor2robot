@@ -42,25 +42,21 @@ CreateExportFnType = Callable[[
 ], Callable[[Text, int], Text]]
 
 
-@gin.configurable(whitelist=['batch_sizes_for_export'])
 def default_create_export_fn(
     t2r_model,
     estimator,
-    export_generator,
-    batch_sizes_for_export):
+    export_generator
+):
   """Create an export function for a device type.
 
   Args:
     t2r_model: A T2RModel instance.
     estimator: The estimator used for training.
     export_generator: An export generator.
-    batch_sizes_for_export: A list of batch sizes for warming up serving.
 
   Returns:
     A callable function which exports a saved model and returns the path.
   """
-  warmup_requests_file = export_generator.create_warmup_requests_numpy(
-      batch_sizes=batch_sizes_for_export, export_dir=estimator.model_dir)
 
   in_feature_spec = t2r_model.get_feature_specification_for_packing(
       mode=tf.estimator.ModeKeys.PREDICT)
@@ -79,7 +75,6 @@ def default_create_export_fn(
                                        tensorspec_utils.T2R_ASSETS_FILENAME)
     tensorspec_utils.write_t2r_assets_to_file(t2r_assets, t2r_assets_filename)
     assets = {
-        'tf_serving_warmup_requests': warmup_requests_file,
         tensorspec_utils.T2R_ASSETS_FILENAME: t2r_assets_filename,
     }
     return estimator.export_saved_model(

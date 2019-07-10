@@ -19,7 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import functools
 import os
 from tensor2robot import train_eval
 from tensor2robot.hooks import async_export_hook_builder
@@ -29,7 +28,6 @@ from tensor2robot.utils import mocks
 import tensorflow as tf  # tf
 
 _EXPORT_DIR = 'export_dir'
-_BATCH_SIZES_FOR_EXPORT = [128]
 _MAX_STEPS = 4
 _BATCH_SIZE = 4
 
@@ -42,19 +40,11 @@ class AsyncExportHookBuilderTest(tf.test.TestCase):
         preprocessor_cls=noop_preprocessor.NoOpPreprocessor, device_type='cpu')
 
     mock_input_generator = mocks.MockInputGenerator(batch_size=_BATCH_SIZE)
-    default_create_export_fn = functools.partial(
-        async_export_hook_builder.default_create_export_fn,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
     export_dir = os.path.join(model_dir, _EXPORT_DIR)
-    default_create_export_fn = functools.partial(
-        async_export_hook_builder.default_create_export_fn,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
-    hook_builder = async_export_hook_builder.AsyncExportHookBuilder(
-        export_dir=export_dir, create_export_fn=default_create_export_fn)
 
-    default_create_export_fn = functools.partial(
-        async_export_hook_builder.default_create_export_fn,
-        batch_sizes_for_export=_BATCH_SIZES_FOR_EXPORT)
+    hook_builder = async_export_hook_builder.AsyncExportHookBuilder(
+        export_dir=export_dir,
+        create_export_fn=async_export_hook_builder.default_create_export_fn)
 
     # We optimize our network.
     train_eval.train_eval_model(
