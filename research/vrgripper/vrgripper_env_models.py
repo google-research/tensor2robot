@@ -35,6 +35,7 @@ from typing import Callable, Dict, List, Optional, Text, Tuple
 
 TensorSpec = tensorspec_utils.ExtendedTensorSpec
 TRAIN = tf.estimator.ModeKeys.TRAIN
+PREDICT = tf.estimator.ModeKeys.PREDICT
 
 
 @gin.configurable
@@ -64,6 +65,12 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
     """See base class."""
     feature_spec = tensorspec_utils.copy_tensorspec(
         self._model_feature_specification_fn(mode))
+    # Don't want to parse the original_image, since we don't want to parse it
+    # and we are adding this feature in preprocess_fn to satisfy the model's
+    # inputs.
+    if mode != PREDICT and 'original_image' in feature_spec:
+      del feature_spec['original_image']
+
     if 'image' in feature_spec:
       true_img_shape = feature_spec.image.shape.as_list()
       # Overwrite the H, W dimensions.
@@ -101,6 +108,7 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
       is_sequence = (ndim > 4)
       input_size = self._src_img_res
       target_size = self._crop_size
+      features.original_image = features.image
       features.image = distortion.preprocess_image(features.image, mode,
                                                    is_sequence, input_size,
                                                    target_size)

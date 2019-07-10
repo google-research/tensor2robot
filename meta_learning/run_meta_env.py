@@ -162,17 +162,13 @@ def run_meta_env(env,
               episode_to_transitions_fn(episode_data, is_demo=True))
 
       policy.adapt(copy.copy(condition_data))
-    # Unlike VRGripperEnv, MetaReacherEnv directly retrieves demonstration data
+    # Unlike VRGripperEnv, HVGripperEnv directly retrieves demonstration data
     # from a record-backed dataset and does not need a demo policy.
     elif hasattr(env, 'task_data') and hasattr(policy, 'adapt'):
       env_task_data = env.task_data
       for episode_name, episode_data in env_task_data.items():
         if episode_name.startswith('condition_ep'):
           condition_data.append(episode_data)
-        if replay_writer and episode_data[0][-1]['is_demo']:
-          # Keep the demo episodes around for the new MetaExamples. This way,
-          # the demo data is never lost from the replay buffer.
-          replay_writer.write(episode_to_transitions_fn(episode_data))
       policy.adapt(copy.copy(condition_data))
 
     for step_num in range(num_adaptations_per_task):
