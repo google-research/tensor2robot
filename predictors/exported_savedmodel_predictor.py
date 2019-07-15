@@ -32,7 +32,6 @@ import tensorflow as tf  # tf
 from typing import Dict, Callable, List, Text, Optional
 
 
-
 _BUSY_WAITING_SLEEP_TIME_IN_SECS = 10
 
 
@@ -80,10 +79,25 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
 
     Args:
       features: A dict containing the features used for predictions.
+
     Returns:
       The result of the queried model predictions.
     """
+
     self.assert_is_loaded()
+    # If using an action-tiled model, the action tiling must align with the spec
+    # structure. If the supplied inputs align with the batch-tiled action,
+    # expand the input to feed the tiled batch elements.
+    flattened_feature_spec = tensorspec_utils.flatten_spec_structure(
+        self.get_feature_specification())
+
+    def _maybe_expand_dim(path, val):
+      model_spec = flattened_feature_spec[path]
+      if model_spec.shape.as_list() == list(val.shape):
+        return np.expand_dims(val, 0)
+      return val
+
+    features = {k: _maybe_expand_dim(k, val) for k, val in features.items()}
     return self._predict_fn(features)
 
   def get_feature_specification(self):
