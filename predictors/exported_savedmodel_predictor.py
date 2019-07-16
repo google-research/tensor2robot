@@ -92,8 +92,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
         self.get_feature_specification())
 
     def _maybe_expand_dim(path, val):
-      model_spec = flattened_feature_spec[path]
-      if model_spec.shape.as_list() == list(val.shape):
+      model_spec = flattened_feature_spec.get(path)
+      if model_spec and model_spec.shape.as_list() == list(val.shape):
         return np.expand_dims(val, 0)
       return val
 
