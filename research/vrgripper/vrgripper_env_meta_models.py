@@ -345,7 +345,7 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
     train_outputs = {'bc_loss': bc_loss, 'embed_loss': embed_loss,
                      'end_loss': end_loss}
     return (bc_loss + self._embed_loss_weight * embed_loss +
-            self._predict_end_weight * end_loss, train_outputs)
+            self._predict_end_weight * end_loss, train_outputs)  # pytype: disable=bad-return-type
 
   def model_eval_fn(
       self,
