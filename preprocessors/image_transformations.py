@@ -81,6 +81,9 @@ def CenterCropImages(images, input_shape,
   if len(target_shape) != 2:
     raise ValueError('The target shape has to be of the form (height, width) '
                      'but has len {}'.format(len(target_shape)))
+  if input_shape[0] == target_shape[0] and input_shape[1] == target_shape[1]:
+    return [image for image in images]
+
   # Assert all images have the same shape.
   assert_ops = []
   for image in images:
