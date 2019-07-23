@@ -237,7 +237,7 @@ class RegressionPolicy(Policy):
   def SelectAction(self, state, context, timestep):  # pylint: disable=invalid-name
     # pytype: disable=attribute-error
     np_inputs = self._t2r_model.pack_features(state, context, timestep)
-    action = self._predictor.predict(np_inputs)['action']
+    action = self._predictor.predict(np_inputs)['inference_output']
     # pytype: enable=attribute-error
     return action[0]
 
@@ -255,7 +255,7 @@ class SequentialRegressionPolicy(RegressionPolicy):
     np_inputs = self._pack_features_fn(
         state=state, context=self._sequence_context, timestep=timestep)
     self._sequence_context = np_inputs
-    action = self._predict_fn(np_inputs)['action']
+    action = self._predict_fn(np_inputs)['inference_output']
     # pylint: enable=attribute-error
     return action[0]
 
@@ -291,7 +291,7 @@ class OUExploreRegressionPolicy(Policy):
   def SelectAction(self, state, context, timestep):  # pylint: disable=invalid-name
     # pytype: disable=attribute-error
     np_inputs = self._t2r_model.pack_features(state, context, timestep)
-    action = self._predictor.predict(np_inputs)['action']
+    action = self._predictor.predict(np_inputs)['inference_output']
     # pytype: enable=attribute-error
     noise = self.ou_step() if self._use_noise else 0
     return action[0] + noise
@@ -321,7 +321,7 @@ class ScheduledExplorationRegressionPolicy(Policy):
   def SelectAction(self, state, context, timestep):  # pylint: disable=invalid-name
     # pytype: disable=attribute-error
     np_inputs = self._t2r_model.pack_features(state, context, timestep)
-    action = self._predictor.predict(np_inputs)['action']
+    action = self._predictor.predict(np_inputs)['inference_output']
     # pytype: enable=attribute-error
     return action[0] + self.get_noise()
 

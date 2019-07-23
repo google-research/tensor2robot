@@ -21,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import warnings
 from absl import flags
 import gin
 import six
@@ -41,6 +42,7 @@ ParamsType = abstract_model.ParamsType
 DictOrSpec = abstract_model.DictOrSpec
 ModelTrainOutputType = abstract_model.ModelTrainOutputType
 ExportOutputType = abstract_model.ExportOutputType
+warnings.simplefilter('always', DeprecationWarning)
 
 
 @gin.configurable
@@ -49,6 +51,10 @@ class RegressionModel(abstract_model.AbstractT2RModel):
   """Continuous-valued output using mean-squared error on target values."""
 
   def __init__(self, action_size=2, **kwargs):
+    warnings.warn(
+        'RegressionModel is deprecated. Subclass AbstractT2RModel instead',
+        DeprecationWarning, stacklevel=2)
+
     super(RegressionModel, self).__init__(**kwargs)
     self._action_size = action_size
 
@@ -84,7 +90,7 @@ class RegressionModel(abstract_model.AbstractT2RModel):
       reuse: Whether or not to reuse variables under variable scope 'scope'.
 
     Returns:
-      outputs: A {key: Tensor} mapping. The key 'action' is required.
+      outputs: A {key: Tensor} mapping. The key 'inference_output' is required.
     """
 
   def loss_fn(self,
@@ -114,7 +120,7 @@ class RegressionModel(abstract_model.AbstractT2RModel):
     """
     del mode, params
     return tf.losses.mean_squared_error(
-        labels=labels.target, predictions=inference_outputs['action'])
+        labels=labels.target, predictions=inference_outputs['inference_output'])
 
   def inference_network_fn(self,
                            features,
@@ -135,11 +141,12 @@ class RegressionModel(abstract_model.AbstractT2RModel):
     if not isinstance(outputs, dict):
       raise ValueError('The output of a_func is expected to be a dict.')
 
-    if 'action' not in outputs:
-      raise ValueError('For regression models action is a required key in '
-                       'outputs but is not in {}.'.format(outputs.keys()))
+    if 'inference_output' not in outputs:
+      raise ValueError('For regression models inference_output is a required '
+                       'key in outputs but is not in {}.'.format(
+                           outputs.keys()))
     if self.use_summaries(params):
-      tf.summary.histogram('action', outputs['action'])
+      tf.summary.histogram('inference_output', outputs['inference_output'])
     return outputs
 
   def model_train_fn(self,
@@ -162,4 +169,4 @@ class RegressionModel(abstract_model.AbstractT2RModel):
                                params = None):
     """See base class."""
     del features, mode, config, params
-    return {'action': inference_outputs['action']}
+    return {'inference_output': inference_outputs['inference_output']}

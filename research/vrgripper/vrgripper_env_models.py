@@ -249,7 +249,7 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
             fc_input, num_outputs=self._action_size)
         action = self._output_mean + self._output_stddev * action
     outputs.update({
-        'action': action,
+        'inference_output': action,
         'image': features.image,
         'feature_points': feature_points,
         'softmax': end_points['softmax']
@@ -305,7 +305,8 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
       return -tf.reduce_mean(gm.log_prob(labels.action))
     else:
       return self._outer_loss_multiplier * tf.losses.mean_squared_error(
-          labels=labels.action, predictions=inference_outputs['action'])
+          labels=labels.action,
+          predictions=inference_outputs['inference_output'])
 
 
 @gin.configurable
@@ -371,7 +372,7 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
           feature_points, aux_input=gripper_pose, num_outputs=self._action_size)
       action = self._output_mean + self._output_stddev * action
     return {
-        'action': action,
+        'inference_output': action,
         'image': features.image,
         'feature_points': feature_points,
         'softmax': end_points['softmax'],
@@ -416,7 +417,7 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
                                             inference_outputs['action'])
       ll_input = tf.concat([
           predicted_action, inference_outputs['feature_points'],
-          inference_outputs['action']
+          inference_outputs['inference_output']
       ], -1)
       net = ll_input
       for num_filters in self._learned_loss_conv1d_layers[:-1]:

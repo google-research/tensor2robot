@@ -160,7 +160,7 @@ class FixedLengthSequentialRegressionPolicy(
                                                 self._current_episode_data,
                                                 self._t)
     # Action is [batch, inference_episode, T, action_dim].
-    action = self._predictor.predict(np_features)['action']
+    action = self._predictor.predict(np_features)['inference_output']
     self._current_episode_data = np_features
     assert len(action.shape) == 4
     a = action[0, 0, self._t]
