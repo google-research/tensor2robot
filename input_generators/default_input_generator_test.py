@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import json
 import os
 from absl.testing import absltest
 from tensor2robot.input_generators import default_input_generator
@@ -115,6 +116,29 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
     input_generator = default_input_generator.DefaultRecordInputGenerator(
         dataset_map=dataset_map, batch_size=BATCH_SIZE)
     self._test_multi_record_input_generator(input_generator)
+
+  def test_multi_eval_record_input_generator(self):
+    base_dir = 'tensor2robot'
+    file_pattern = os.path.join(
+        FLAGS.test_srcdir, base_dir, 'test_data/pose_env_test_data.tfrecord')
+    eval_map = {'d1': file_pattern, 'd2': 'fubar'}
+    os.environ['TF_CONFIG'] = json.dumps({'multi_eval_name': 'd2'})
+    input_generator = default_input_generator.MultiEvalRecordInputGenerator(
+        eval_map=eval_map, batch_size=2)
+    self.assertEqual(input_generator._file_patterns, 'fubar')
+
+  def test_fractional_record_input_generator(self):
+    base_dir = 'tensor2robot'
+    file_pattern = os.path.join(
+        FLAGS.test_srcdir, base_dir, 'test_data/pose_env_test_data.tfrecord')
+    num_files = 10
+    fraction = 0.3
+    file_patterns = ','.join([file_pattern]*10)
+    input_generator = default_input_generator.FractionalRecordInputGenerator(
+        file_fraction=fraction, file_patterns=file_patterns,
+        batch_size=BATCH_SIZE)
+    self.assertEqual(len(input_generator._file_patterns.split(',')),
+                     int(fraction * num_files))
 
   def test_random_dataset(self):
     input_generator = default_input_generator.DefaultRandomInputGenerator(

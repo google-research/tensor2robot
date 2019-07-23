@@ -21,6 +21,8 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import json
+import os
 from absl import logging
 import gin
 from tensor2robot.input_generators import abstract_input_generator
@@ -31,6 +33,20 @@ import tensorflow as tf
 
 from typing import Dict, Optional, Text
 
+
+_TF_CONFIG_ENV = 'TF_CONFIG'
+_MULTI_EVAL_NAME = 'multi_eval_name'
+
+
+def _get_tf_config_env():
+  """Returns the TF_CONFIG environment variable as dict."""
+  return json.loads(os.environ.get(_TF_CONFIG_ENV, '{}'))
+
+
+def get_multi_eval_name(tf_config_env=None):
+  """Returns the multi eval index set in the TF_CONFIG."""
+  tf_config_env = tf_config_env or _get_tf_config_env()
+  return tf_config_env.get(_MULTI_EVAL_NAME)
 
 
 @gin.configurable
@@ -95,6 +111,45 @@ class DefaultRecordInputGenerator(
     Since we directly create the input_fn from default implementations we do not
     need to implement this method.
     """
+
+
+@gin.configurable
+class FractionalRecordInputGenerator(DefaultRecordInputGenerator):
+  """Fraction of files in dataset (e.g. data ablation experiments)."""
+
+  def __init__(self,
+               file_fraction = 1.0,
+               **parent_kwargs):
+    """Create an instance.
+
+    Args:
+      file_fraction: If file_fraction < 1.0, choose first file_fraction percent
+        of files, (rounded down to the nearest integer number of files).
+      **parent_kwargs: All parent arguments.
+    """
+    super(FractionalRecordInputGenerator, self).__init__(**parent_kwargs)
+    if file_fraction < 1.0:
+      data_format, filenames = tfdata.get_data_format_and_filenames(
+          self._file_patterns)
+      n = int(file_fraction * len(filenames))
+      filenames = filenames[:n]
+      self._file_patterns = '{}:{}'.format(data_format, ','.join(filenames))
+
+
+@gin.configurable
+class MultiEvalRecordInputGenerator(DefaultRecordInputGenerator):
+  """Evaluating on multiple datasets."""
+
+  def __init__(self,
+               eval_map = None,
+               **parent_kwargs):
+    super(MultiEvalRecordInputGenerator, self).__init__(**parent_kwargs)
+    # If multi_eval_name is set via TF_CONFIG_ENV variable, override dataset.
+    multi_eval_name = get_multi_eval_name()
+    if multi_eval_name:
+      self._file_patterns = eval_map[multi_eval_name]
+    else:
+      raise ValueError('multi_eval_name not set in TF_CONFIG env variable')
 
 
 class GeneratorInputGenerator(abstract_input_generator.AbstractInputGenerator):

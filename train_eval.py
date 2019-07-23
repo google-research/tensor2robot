@@ -31,6 +31,7 @@ from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.export_generators import default_export_generator
 from tensor2robot.hooks import hook_builder
 from tensor2robot.input_generators import abstract_input_generator
+from tensor2robot.input_generators import default_input_generator
 from tensor2robot.models import model_interface
 from tensor2robot.models import tpu_model_wrapper
 from tensor2robot.utils import tensorspec_utils
@@ -499,6 +500,14 @@ def train_eval_model(
     if create_exporters_fn is not None:
       exporters = create_exporters_fn(t2r_model, export_generator)
     eval_hooks = _build_hooks(eval_hook_builders)
+
+    # If multi_eval_name is set in TF_CONFIG, we override the 'name' attribute
+    # of EvalSpec.
+    multi_eval_name = default_input_generator.get_multi_eval_name()
+    if multi_eval_name is not None:
+      with gin.unlock_config():
+        gin.bind_parameter('tf.estimator.EvalSpec.name', multi_eval_name)
+
     eval_spec = gin_configurable_eval_spec(
         input_fn=input_generator_eval.create_dataset_input_fn(
             mode=tf.estimator.ModeKeys.EVAL),
