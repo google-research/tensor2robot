@@ -125,10 +125,12 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
     state_spec_2 = tensorspec_utils.ExtendedTensorSpec(
         shape=(2), dtype=tf.float32, is_sequence=True, name='sequence_feature')
     feature_tspec = PoseEnvFeature(state=state_spec_1, action=state_spec_2)
+    feature_tspec = tensorspec_utils.add_sequence_length_specs(feature_tspec)
     # Labels
     reward_spec = tensorspec_utils.ExtendedTensorSpec(
         shape=(), dtype=tf.int64, is_sequence=False, name='context_feature')
     label_tspec = PoseEnvLabel(reward=reward_spec)
+    label_tspec = tensorspec_utils.add_sequence_length_specs(label_tspec)
     dataset = dataset.batch(batch_size, drop_remainder=True)
     dataset = tfdata.serialized_to_parsed(dataset, feature_tspec, label_tspec)
     features, labels = dataset.make_one_shot_iterator().get_next()
@@ -137,6 +139,8 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
         [batch_size, None] + TEST_IMAGE_SHAPE, features.state.shape.as_list())
     self.assertAllEqual(
         [batch_size, None, 2], features.action.shape.as_list())
+    self.assertAllEqual([batch_size], features.state_length.shape.as_list())
+    self.assertAllEqual([batch_size], features.action_length.shape.as_list())
     self.assertAllEqual([batch_size], labels.reward.shape.as_list())
     with self.session() as session:
       features_, labels_ = session.run([features, labels])
@@ -148,6 +152,7 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
       self.assertAllEqual(
           [batch_size, sequence_length] + TEST_IMAGE_SHAPE,
           features_.state.shape)
+      self.assertAllEqual([sequence_length]*batch_size, features_.state_length)
       self.assertAllEqual(
           [batch_size, sequence_length, 2], features_.action.shape)
       self.assertAllEqual([batch_size], labels_.reward.shape)

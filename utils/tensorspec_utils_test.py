@@ -452,6 +452,13 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     utils.assert_required(
         mock_nested_subset_spec, output_features, ignore_batch=True)
 
+  def test_add_sequence_length_specs(self):
+    input_spec = utils.TensorSpecStruct(image1=D1, actions=S7)
+    modified_spec = utils.add_sequence_length_specs(input_spec)
+    expected_length_spec = utils.ExtendedTensorSpec(
+        shape=(), dtype=tf.int64, name='sequence_actions_length')
+    self.assertEqual(modified_spec.actions_length, expected_length_spec)
+
   def test_filter_spec_structure_by_dataset(self):
     test_spec = utils.TensorSpecStruct(image1=D1, image2=D2)
     for dataset_key, name, spec in zip(

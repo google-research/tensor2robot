@@ -1241,6 +1241,17 @@ def validate_and_pack(expected_spec,
                                               actual_tensors_or_spec)
 
 
+def add_sequence_length_specs(
+    spec_structure):
+  """Augments a TensorSpecStruct with key + '_length' specs."""
+  flat_spec_structure = flatten_spec_structure(spec_structure)
+  for key, value in flat_spec_structure.items():
+    if value.is_sequence:
+      flat_spec_structure[key + '_length'] = ExtendedTensorSpec(
+          shape=(), dtype=tf.int64, name=value.name + '_length')
+  return flat_spec_structure
+
+
 def filter_spec_structure_by_dataset(
     spec_structure,
     dataset_key,
@@ -1560,7 +1571,13 @@ def tensorspec_to_feature_dict(tensor_spec_struct, decode_images = True):
   # assert_valid_spec_structure will ensure that non unique tensor_spec names
   # have the identical properties.
   flat_tensor_spec_struct = flatten_spec_structure(tensor_spec_struct)
-  for tensor_spec in flat_tensor_spec_struct.values():
+  for key, tensor_spec in flat_tensor_spec_struct.items():
+    if tensor_spec.name is None:
+      # Do not attempt to parse TensorSpecs whose name attribute is not set.
+      logging.info(
+          'TensorSpec name attribute for %s is not set; will not parse this '
+          'Tensor from TFExamples.', key)
+      continue
     features[tensor_spec.name] = _get_feature(tensor_spec, decode_images)
     tensor_spec_dict[tensor_spec.name] = tensor_spec
   return features, tensor_spec_dict

@@ -225,6 +225,37 @@ def serialized_to_parsed(dataset,
   return dataset
 
 
+def _get_sstable_proto_dict(*input_values):
+  """Returns table key -> serialized proto map.
+
+  This function exists because the create_parse_tf_example_fn operates on
+    dequeued batches which could be 1-tuples or 2-tuples or dictionaries.
+
+  Args:
+    *input_values: A (string tensor,) tuple if mapping from a
+      RecordIODataset or TFRecordDataset, or a (key, string tensor) tuple if
+      mapping from a SSTableDataset, or (Dict[dataset_key, values],) if
+      mapping from multiple datasets.
+  Returns:
+    dict_extracted: dictionary mapping each sstable (or '' for singular) to the
+      batch of string tensors for the corresponding serialized protos.
+  """
+  dict_extracted = {}
+  if isinstance(input_values[0], dict):
+    for key, serialized_proto in input_values[0].items():
+      if isinstance(serialized_proto, tuple):
+        # Assume an SSTable key, value pair.
+        _, dict_extracted[key] = serialized_proto
+      else:
+        dict_extracted[key] = serialized_proto
+  else:
+    if len(input_values) == 2:
+      _, dict_extracted[''] = input_values
+    else:
+      dict_extracted[''], = input_values
+  return dict_extracted
+
+
 def create_parse_tf_example_fn(feature_tspec,
                                label_tspec=None):
   """Create a parse function for serialized tf.Example protos.
@@ -241,7 +272,6 @@ def create_parse_tf_example_fn(feature_tspec,
       sample is expected to be the last one. If a dictionary of {key:
       serialized output} is passed, it will parse each dataset separately.
   """
-
   def parse_tf_example_fn(*input_values):
     """Maps string tensors (serialized TFExamples) to parsed tensors.
 
@@ -257,19 +287,7 @@ def create_parse_tf_example_fn(feature_tspec,
     Raises:
         ValueError: If dtype other than uint8 is supplied for image specs.
     """
-    dict_extracted = {}
-    if isinstance(input_values[0], dict):
-      for key, serialized_proto in input_values[0].items():
-        if isinstance(serialized_proto, tuple):
-          # Assume an SSTable key, value pair.
-          _, dict_extracted[key] = serialized_proto
-        else:
-          dict_extracted[key] = serialized_proto
-    else:
-      if len(input_values) == 2:
-        _, dict_extracted[''] = input_values
-      else:
-        dict_extracted[''], = input_values
+    dict_extracted = _get_sstable_proto_dict(*input_values)
 
     def parse_wrapper(example, spec_dict):
       """Wrap tf.parse_example to support bfloat16 dtypes.
@@ -322,11 +340,16 @@ def create_parse_tf_example_fn(feature_tspec,
 
       # If there are any sequence features, we use parse_sequence_example.
       if sequence_features:
+        # Filter out '_length' context features; don't parse them from records.
+        for parse_name in sequence_features:
+          del context_features[parse_name + '_length']
         result, sequence_result, feature_lengths = tf.io.parse_sequence_example(
             example, context_features=context_features,
             sequence_features=sequence_features)
-        del feature_lengths
         result.update(sequence_result)
+        # Augment the parsed tensors with feature length tensors.
+        for parse_name, length_tensor in feature_lengths.items():
+          result[parse_name + '_length'] = length_tensor
       else:
         result = tf.parse_example(example, context_features)
       to_convert = [
@@ -341,7 +364,9 @@ def create_parse_tf_example_fn(feature_tspec,
     # Parse each dataset's tensors. Parsed results from parse_wrapper get
     # dataset_key prepended to ensure uniqueness of keys among datasets.
     parsed_tensors = {}
-    # {Prepended parsed key : TensorSpecs} for all datasets.
+    # {Prepended parsed key : TensorSpecs} for all datasets. Will contain
+    # '_length' TensorSpecs that won't actually get parsed. We filter those out
+    # before passing to the parse_sequence_example call.
     tensor_spec_dict = {}
     for dataset_key, example_proto in dict_extracted.items():
       # Parsed key to Feature Specs (retained only for this dataset).
@@ -392,7 +417,6 @@ def create_parse_tf_example_fn(feature_tspec,
       img = tf.reshape(img, tf.concat([img_batch_dims, single_img_dims], 0))
 
       return img
-
     for key, val in parsed_tensors.items():
       tensor_spec = tensor_spec_dict[key]
       if tensorspec_utils.is_encoded_image_spec(tensor_spec):
@@ -400,7 +424,6 @@ def create_parse_tf_example_fn(feature_tspec,
         if tensor_spec.dtype != tf.uint8:
           raise ValueError('Encoded images with key {} must be '
                            'specified with uint8 dtype.'.format(key))
-
     # Ensure that we have a consistent ordered mapping despite the underlying
     # spec structure.
     flat_feature_tspec = tensorspec_utils.TensorSpecStruct(
