@@ -31,11 +31,14 @@ from tensor2robot.models import regression_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
+import tensorflow_probability as tfp
 from typing import Callable, Dict, List, Optional, Text, Tuple
+
 
 TensorSpec = tensorspec_utils.ExtendedTensorSpec
 TRAIN = tf.estimator.ModeKeys.TRAIN
 PREDICT = tf.estimator.ModeKeys.PREDICT
+FLOAT_DTYPES = [tf.bfloat16, tf.float32, tf.float64]
 
 
 @gin.configurable
@@ -45,6 +48,7 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
   def __init__(self,
                src_img_res = (220, 300),
                crop_size = (200, 280),
+               mixup_alpha = 0.0,
                **kwargs):
     """Construct the preprocessor.
 
@@ -54,11 +58,14 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
       crop_size: Before resizing the image, take a crop of the image to this
         height and width. Is a no-op if equal to src_img_res. Crop is done
         randomly at train time, and is take from the center otherwise.
+      mixup_alpha: If > 0., turns on Mixup data augmentation for features and
+        labels.
       **kwargs: Keyword args passed to parent class.
     """
     super(DefaultVRGripperPreprocessor, self).__init__(**kwargs)
     self._src_img_res = src_img_res
     self._crop_size = crop_size
+    self._mixup_alpha = mixup_alpha
 
   def get_in_feature_specification(self, mode
                                   ):
@@ -119,6 +126,16 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
         features.image = meta_tfdata.multi_batch_apply(
             tf.image.resize_images, 2, features.image,
             out_feature_spec.image.shape.as_list()[-3:-1])
+
+    if self._mixup_alpha > 0. and labels and mode == TRAIN:
+      lmbda = tfp.distributions.Beta(
+          self._mixup_alpha, self._mixup_alpha).sample()
+      for key, x in features.items():
+        if x.dtype in FLOAT_DTYPES:
+          features[key] = lmbda * x + (1-lmbda)*tf.reverse(x, axis=[0])
+      for key, x in labels.items():
+        if x.dtype in FLOAT_DTYPES:
+          labels[key] = lmbda * x + (1-lmbda)*tf.reverse(x, axis=[0])
     return features, labels
 
 
