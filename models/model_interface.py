@@ -99,6 +99,10 @@ class ModelInterface(object):
   def get_tpu_run_config(self):
     """Get the TPU RunConfig for Estimator model."""
 
+  @abc.abstractmethod
+  def get_session_config(self):
+    """Get the Session tf.ConfigProto for Estimator model."""
+
   @abc.abstractproperty
   def is_device_tpu(self):
     """Returns True if the device is TPU otherwise False."""

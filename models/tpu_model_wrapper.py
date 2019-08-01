@@ -86,6 +86,9 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
     """Get the TPU RunConfig for Estimator model."""
     return self._t2r_model.get_tpu_run_config()
 
+  def get_session_config(self):
+    return self._t2r_model.get_session_config()
+
   def is_device_tpu(self):
     """Returns True if the device is TPU otherwise False."""
     return self._t2r_model.is_device_tpu

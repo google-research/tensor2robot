@@ -803,7 +803,8 @@ class AbstractT2RModel(model_interface.ModelInterface):
     Returns:
       tf.estimator.RunConfig() for this model.
     """
-    return gin_configurable_run_config_cls()
+    return gin_configurable_run_config_cls(
+        session_config=self.get_session_config())
 
   def get_tpu_run_config(self):
     """Get the TPU RunConfig for Estimator model.
@@ -813,6 +814,17 @@ class AbstractT2RModel(model_interface.ModelInterface):
     """
     return gin_configurable_tpu_run_config_cls(
         master=FLAGS.master, tpu_config=gin_configurable_tpu_config_cls())
+
+  def get_session_config(self):
+    """Get the session config for Estimator model.
+
+    Defaults to None which tells tf.Estimator to use its default session config.
+    Not used in TPU jobs at the moment.
+
+    Returns:
+      None, or the desired session config.
+    """
+    return None
 
   @property
   def is_device_tpu(self):
