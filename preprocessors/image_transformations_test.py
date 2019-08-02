@@ -74,10 +74,11 @@ class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):
       batch_size = 4
       images = self._CreateRampTestImages(batch_size, input_shape[0],
                                           input_shape[1])
-      cropped = image_transformations.RandomCropImages([images], input_shape,
-                                                       output_shape)[0]
       with tf.Session() as sess:
         with self.assertRaises(tf.errors.InvalidArgumentError):
+          cropped = image_transformations.RandomCropImages([images],
+                                                           input_shape,
+                                                           output_shape)[0]
           sess.run(cropped)
 
   def testWrongRandomCropImages(self):
