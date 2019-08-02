@@ -70,21 +70,24 @@ def _model_output(inputs, data_format):
     return inputs
 
 
-def resnet_endpoints(model):
-  """Extract intermediate values from ResNet model."""
-  graph = tf.get_default_graph()
+def _get_resnet_scope():
   scope = tf.get_variable_scope().name
   if scope:
     scope += '/'
-  prefix = 'resnet_model'
+  return scope + 'resnet_model/'
+
+
+def resnet_endpoints(model):
+  """Extract intermediate values from ResNet model."""
+  graph = tf.get_default_graph()
+  scope = _get_resnet_scope()
   end_points = {}
   tensors = ['initial_conv', 'initial_max_pool', 'pre_final_pool',
              'final_reduce_mean', 'final_dense']
   tensors += [
       'block_layer{}'.format(i + 1) for i in range(len(model.block_sizes))]
   for name in tensors:
-    tensor = graph.get_tensor_by_name(
-        '{}{}/{}:0'.format(scope, prefix, name))
+    tensor = graph.get_tensor_by_name('{}{}:0'.format(scope, name))
     if len(tensor.shape) == 4:
       tensor = _model_output(tensor, model.data_format)
     end_points[name] = tensor
@@ -147,7 +150,8 @@ def resnet_model(images,
                  resnet_size=50,
                  return_intermediate_values=False,
                  film_generator_fn=None,
-                 film_generator_input=None):
+                 film_generator_input=None,
+                 pretrain_checkpoint=None):
   """Returns resnet model, optionally returning intermediate endpoint tensors.
 
   Args:
@@ -161,6 +165,9 @@ def resnet_model(images,
     film_generator_fn: Callable that returns a List (for each block layer) of
       Lists (per ResNet block) of FiLM conditioning vectors.
     film_generator_input: Embedding tensor to be passed to film_generator_fn.
+    pretrain_checkpoint: String to initialize model weights from. Does *NOT*
+      initialize final logits layer. ResNet checkpoints can be found here:
+      https://github.com/tensorflow/models/tree/master/official/r1/resnet.
   """
   # For bigger models, we want to use "bottleneck" layers
   if resnet_size < 50:
@@ -185,6 +192,18 @@ def resnet_model(images,
   )
   final_dense = model(images, is_training,
                       film_generator_fn, film_generator_input)
+  if pretrain_checkpoint:
+    # Initialize variables in ResNet, excluding the final dense layer and any
+    # optimization-specific variables (e.g. Momentum, Adam Beta).
+    assignment_map = {}
+    resnet_scope = _get_resnet_scope()
+    for var in tf.contrib.framework.get_variables(
+        scope=resnet_scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
+      if 'dense' not in var.op.name:
+        # Remove the parent scope prefix.
+        name_in_ckpt = var.op.name.replace(resnet_scope, 'resnet_model/')
+        assignment_map[name_in_ckpt] = var
+    tf.train.init_from_checkpoint(pretrain_checkpoint, assignment_map)
   if return_intermediate_values:
     return resnet_endpoints(model)
   else:
