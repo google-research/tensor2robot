@@ -37,8 +37,8 @@ import tensorflow as tf
 
 FLAGS = flags.FLAGS
 
-_MAX_TRAIN_STEPS = 2000
-_EVAL_STEPS = 400
+_MAX_TRAIN_STEPS = 400
+_EVAL_STEPS = 40
 _BATCH_SIZE = 4
 _EVAL_THROTTLE_SECS = 0.0
 
@@ -162,7 +162,7 @@ class TrainEvalTest(tf.test.TestCase):
       predicted = numpy_predictor_fn({'x': feature.reshape(
           1, -1)})['logit'].flatten()
       numpy_predictions.append(predicted)
-      # This ensures that we actually achieve perfect classification.
+      # This ensures that we actually achieve near-perfect classification.
       if label > 0:
         self.assertGreater(predicted[0], 0)
       else:
@@ -203,7 +203,7 @@ class TrainEvalTest(tf.test.TestCase):
   def test_init_from_checkpoint_global_step(self):
     """Tests that a simple model trains and exported models are valid."""
     gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
-    gin.bind_parameter('tf.estimator.RunConfig.keep_checkpoint_max', 10)
+    gin.bind_parameter('tf.estimator.RunConfig.keep_checkpoint_max', 3)
     model_dir = self.create_tempdir().full_path
     mock_t2r_model = mocks.MockT2RModel(
         preprocessor_cls=noop_preprocessor.NoOpPreprocessor)
@@ -219,9 +219,9 @@ class TrainEvalTest(tf.test.TestCase):
         eval_steps=_EVAL_STEPS,
         eval_throttle_secs=_EVAL_THROTTLE_SECS,
         create_exporters_fn=train_eval.create_default_exporters)
-    # The model trains for 1000 steps and saves a checkpoint each 100 steps and
-    # keeps 10 -> len == 10.
-    self.assertLen(tf.io.gfile.glob(os.path.join(model_dir, 'model*.meta')), 10)
+    # The model trains for 200 steps and saves a checkpoint each 100 steps and
+    # keeps 3 -> len == 3.
+    self.assertLen(tf.io.gfile.glob(os.path.join(model_dir, 'model*.meta')), 3)
 
     # The continuous training has its own directory.
     continue_model_dir = self.create_tempdir().full_path
@@ -248,7 +248,7 @@ class TrainEvalTest(tf.test.TestCase):
   def test_init_from_checkpoint_use_avg_model_params_and_weights(self):
     """Tests that a simple model trains and exported models are valid."""
     gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
-    gin.bind_parameter('tf.estimator.RunConfig.keep_checkpoint_max', 10)
+    gin.bind_parameter('tf.estimator.RunConfig.keep_checkpoint_max', 3)
     model_dir = self.create_tempdir().full_path
     mock_t2r_model = mocks.MockT2RModel(
         preprocessor_cls=noop_preprocessor.NoOpPreprocessor,
