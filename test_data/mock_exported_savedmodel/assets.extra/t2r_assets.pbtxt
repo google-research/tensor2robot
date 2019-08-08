@@ -1,0 +1,24 @@
+feature_spec {
+  key_value {
+    key: "x"
+    value {
+      shape: 3
+      dtype: 1
+      name: "measured_position"
+      is_optional: false
+      is_extracted: false
+    }
+  }
+}
+label_spec {
+  key_value {
+    key: "y"
+    value {
+      shape: 1
+      dtype: 1
+      name: "valid_position"
+      is_optional: false
+      is_extracted: false
+    }
+  }
+}
