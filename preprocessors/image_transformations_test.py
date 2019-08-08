@@ -49,6 +49,22 @@ class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):
     images = tf.tile(image, [batch_size, 1, 1, 1])
     return images
 
+  def _CreateTestDepthImages(self, batch_size, height, width):
+    """Creates a batch of test depth images of given size.
+
+    Args:
+      batch_size: Number of depth images to stack into a batch.
+      height: Height of the depth image.
+      width: Width of the depth image.
+
+    Returns:
+      depth_images: Tensor of shape [batch_size, height, width, 1]. In each
+        depth image, depth value are uniformly sampled from 0.25 ~ 0.5.
+    """
+    tensor_shape = [batch_size, height, width, 1]
+    depth_images = tf.random.uniform(tensor_shape, 0.25, 2.5)
+    return depth_images
+
   @parameterized.parameters(([20, 20],), ([32, 32],))
   def testRandomCrop(self, output_shape):
     with tf.Graph().as_default():
@@ -165,6 +181,42 @@ class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):
         self.assertEqual(cropped_image[0, 0, -1, 0],
                          (input_shape[1] - output_shape[1]) // 2 +
                          output_shape[1] - 1)
+
+  @parameterized.parameters(([20, 20],), ([32, 32],))
+  def testPhotometricImageDistortions(self, input_shape):
+    input_shape = input_shape + [3]
+    with tf.Graph().as_default():
+      batch_size = 4
+      images = self._CreateRampTestImages(batch_size, input_shape[0],
+                                          input_shape[1])
+      tensor_list = []
+      for i in range(batch_size):
+        tensor_list.append(images[i])
+      distorted = image_transformations.ApplyPhotometricImageDistortions(
+          tensor_list, random_noise_apply_probability=1.0)
+      delta = tf.reduce_sum(tf.square(images - distorted))
+      with tf.Session() as sess:
+        images_delta = sess.run(delta)
+        # Check if any distortion applied.
+        self.assertGreater(images_delta, 0)
+
+  @parameterized.parameters(([20, 20],), ([32, 32],))
+  def testDepthImageDistortions(self, input_shape):
+    input_shape = input_shape + [1]
+    with tf.Graph().as_default():
+      batch_size = 4
+      depth_images = self._CreateTestDepthImages(batch_size, input_shape[0],
+                                                 input_shape[1])
+      tensor_list = []
+      for i in range(batch_size):
+        tensor_list.append(depth_images[i])
+      distorted = image_transformations.ApplyDepthImageDistortions(
+          tensor_list, random_noise_apply_probability=1.0)
+      depth_delta = tf.reduce_sum(tf.square(depth_images - distorted))
+      with tf.Session() as sess:
+        depth_images_delta = sess.run(depth_delta)
+        # Check if any distortion applied.
+        self.assertGreater(depth_images_delta, 0)
 
 
 if __name__ == '__main__':

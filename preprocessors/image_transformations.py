@@ -22,7 +22,7 @@ from __future__ import print_function
 
 import gin
 import tensorflow as tf
-from typing import Sequence
+from typing import Sequence, List
 
 
 def RandomCropImages(images, input_shape,
@@ -105,36 +105,37 @@ def CenterCropImages(images, input_shape,
 
 
 @gin.configurable
-def ApplyPhotometricImageDistortions(images,
-                                     random_brightness=False,
-                                     max_delta_brightness=0.125,
-                                     random_saturation=False,
-                                     lower_saturation=0.5,
-                                     upper_saturation=1.5,
-                                     random_hue=False,
-                                     max_delta_hue=0.2,
-                                     random_contrast=False,
-                                     lower_contrast=0.5,
-                                     upper_contrast=1.5,
-                                     random_noise_level=0.0,
-                                     random_noise_apply_probability=0.5):
+def ApplyPhotometricImageDistortions(
+    images,
+    random_brightness = False,
+    max_delta_brightness = 0.125,
+    random_saturation = False,
+    lower_saturation = 0.5,
+    upper_saturation = 1.5,
+    random_hue = False,
+    max_delta_hue = 0.2,
+    random_contrast = False,
+    lower_contrast = 0.5,
+    upper_contrast = 1.5,
+    random_noise_level = 0.0,
+    random_noise_apply_probability = 0.5):
   """Apply photometric distortions to the input images.
 
   Args:
     images: Tensor of shape [batch_size, h, w, 3] containing a batch of images
       to apply the random photometric distortions to.
-    random_brightness: Boolean; whether to randomly adjust the brightness.
+    random_brightness: If True; randomly adjust the brightness.
     max_delta_brightness: Float; maximum delta for the random value by which to
       adjust the brightness.
-    random_saturation: Boolean; whether to randomly adjust the saturation.
+    random_saturation: If True; randomly adjust the saturation.
     lower_saturation: Float; lower bound of the range from which to chose a
       random value for the saturation.
     upper_saturation: Float; upper bound of the range from which to chose a
       random value for the saturation.
-    random_hue: Boolean; whether to randomly adjust the hue.
+    random_hue: If True; randomly adjust the hue.
     max_delta_hue: Float; maximum delta for the random value by which to adjust
       the hue.
-    random_contrast: Boolean; whether to randomly adjust the contrast.
+    random_contrast: If True; randomly adjust the contrast.
     lower_contrast: Float; lower bound of the range from which to chose a random
       value for the contrast.
     upper_contrast: Float; upper bound of the range from which to chose a random
@@ -195,3 +196,63 @@ def ApplyPhotometricImageDistortions(images,
     for i, image in enumerate(images):
       images[i] = tf.clip_by_value(image, 0.0, 1.0)
   return images
+
+
+@gin.configurable
+def ApplyDepthImageDistortions(depth_images,
+                               random_noise_level = 0.05,
+                               random_noise_apply_probability = 0.5,
+                               scaling_noise = True,
+                               gamma_shape = 1000.0,
+                               gamma_scale_inverse = 1000.0,
+                               min_depth_allowed = 0.25,
+                               max_depth_allowed = 2.5):
+  """Apply photometric distortions to the input depth images.
+
+  Args:
+    depth_images: Tensor of shape [batch_size, h, w, 1] containing a batch of
+      depth images to apply the random photometric distortions to.
+    random_noise_level: The standard deviation of the Gaussian distribution for
+      the noise that is applied to the depth image. When 0.0, then no noise is
+      applied.
+    random_noise_apply_probability: Probability of applying additive random
+      noise to the images.
+    scaling_noise: If True; sample a random variable from a Gamma distribution
+      to scale the depth image.
+    gamma_shape: Float; shape parameter of a Gamma distribution.
+    gamma_scale_inverse: Float; inverse of scale parameter of a Gamma
+      distribution.
+    min_depth_allowed: Float; minimum clip value for depth.
+    max_depth_allowed: Float; max clip value for depth.
+
+  Returns:
+    depth_images: Tensor of shape [batch_size, h, w, 1] containing a
+      batch of images resulting from applying random photometric distortions to
+      the inputs.
+  """
+  assert depth_images[0].get_shape().as_list()[-1] == 1
+  with tf.variable_scope('distortions_depth_images'):
+    # Add random Gaussian noise.
+    if random_noise_level:
+      for i, image in enumerate(depth_images):
+        img_shape = tf.shape(image)
+        rnd_noise = tf.random_normal(img_shape, stddev=random_noise_level)
+
+        def ReturnImageTensor(value):
+          return lambda: value
+
+        if scaling_noise:
+          alpha = tf.random_gamma([], gamma_shape, gamma_scale_inverse)
+        image = tf.cond(
+            tf.reduce_all(
+                tf.greater(
+                    tf.random.uniform([1]), random_noise_apply_probability)),
+            ReturnImageTensor(image),
+            ReturnImageTensor(alpha * image + rnd_noise))
+        depth_images[i] = tf.reshape(image, img_shape)
+
+    # Clip to valid range.
+    for i, image in enumerate(depth_images):
+      depth_images[i] = tf.clip_by_value(image, min_depth_allowed,
+                                         max_depth_allowed)
+  return depth_images
