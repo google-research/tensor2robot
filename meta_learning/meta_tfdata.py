@@ -82,7 +82,7 @@ def parallel_read(file_patterns,
   # Shuffle returns a new permutation *per epoch*. Upon epoch completion,
   # shuffling is repeated.
   if shuffle_filenames:
-    dataset = dataset.apply(tf.data.experimental.shuffle_and_repeat(num_tasks))
+    dataset = dataset.shuffle(buffer_size=num_tasks).repeat()
   else:
     dataset = dataset.repeat()
   # From `task_batch_size` tasks at a time, dequeue 2*N elements, where N is
@@ -104,9 +104,8 @@ def parallel_read(file_patterns,
         shuffle_buffer_size,
         num_train_samples_per_task + num_val_samples_per_task)
     if mode == tf.estimator.ModeKeys.TRAIN:
-      dataset_ = dataset_.apply(
-          tf.data.experimental.shuffle_and_repeat(
-              effective_shuffle_buffer_size))
+      dataset_ = dataset_.shuffle(
+          buffer_size=effective_shuffle_buffer_size).repeat()
     else:
       dataset_ = dataset_.repeat()
     dataset_ = dataset_.batch(

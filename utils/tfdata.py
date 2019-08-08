@@ -185,8 +185,7 @@ def parallel_read(file_patterns,
   # Dataset of shard names.
   dataset = tf.data.Dataset.from_tensor_slices(filenames)
   # Shuffle shards (avoid inter-shard correlations).
-  dataset = dataset.apply(
-      tf.data.experimental.shuffle_and_repeat(num_shards, num_epochs))
+  dataset = dataset.shuffle(buffer_size=num_shards).repeat(count=num_epochs)
   # Interleave shards (avoid intra-shard correlations).
   if num_readers is None:
     num_readers = num_shards
@@ -487,8 +486,7 @@ def grasping_input_fn_tmpl(
             sloppy=is_training))
 
     if is_training:
-      dataset = dataset.apply(
-          tf.data.experimental.shuffle_and_repeat(shuffle_buffer_size))
+      dataset = dataset.shuffle(buffer_size=shuffle_buffer_size).repeat()
     else:
       dataset = dataset.repeat()
     dataset = dataset.batch(batch_size, drop_remainder=True)
