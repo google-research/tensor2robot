@@ -305,10 +305,14 @@ def create_parse_tf_example_fn(feature_tspec,
         return value.dtype == tf.bfloat16
 
       def maybe_map_bfloat(value):
+        """Maps bfloat16 to float32."""
         if is_bfloat_feature(value):
           if isinstance(value, tf.FixedLenFeature):
             return tf.FixedLenFeature(value.shape, tf.float32,
                                       default_value=value.default_value)
+          elif isinstance(value, tf.VarLenFeature):
+            return tf.VarLenFeature(
+                value.shape, tf.float32, default_value=value.default_value)
           else:
             return tf.FixedLenSequenceFeature(
                 value.shape, tf.float32, default_value=value.default_value)
@@ -331,6 +335,8 @@ def create_parse_tf_example_fn(feature_tspec,
         if isinstance(v, tf.FixedLenSequenceFeature):
           sequence_features[k] = v
         elif isinstance(v, tf.FixedLenFeature):
+          context_features[k] = v
+        elif isinstance(v, tf.VarLenFeature):
           context_features[k] = v
         else:
           raise ValueError(
@@ -416,6 +422,8 @@ def create_parse_tf_example_fn(feature_tspec,
       img = tf.reshape(img, tf.concat([img_batch_dims, single_img_dims], 0))
 
       return img
+
+    # Ensure that all images are properly decoded.
     for key, val in parsed_tensors.items():
       tensor_spec = tensor_spec_dict[key]
       if tensorspec_utils.is_encoded_image_spec(tensor_spec):
@@ -423,6 +431,14 @@ def create_parse_tf_example_fn(feature_tspec,
         if tensor_spec.dtype != tf.uint8:
           raise ValueError('Encoded images with key {} must be '
                            'specified with uint8 dtype.'.format(key))
+
+    # Pad all varlen features to the corrensponding spec.
+    for key, val in parsed_tensors.items():
+      tensor_spec = tensor_spec_dict[key]
+      if tensor_spec.varlen_default_value is not None:
+        parsed_tensors[key] = tensorspec_utils.pad_sparse_tensor_to_spec_shape(
+            val, tensor_spec)
+
     # Ensure that we have a consistent ordered mapping despite the underlying
     # spec structure.
     flat_feature_tspec = tensorspec_utils.TensorSpecStruct(

@@ -108,15 +108,48 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
     writer.write(example.SerializeToString())
     writer.close()
 
+  def _write_test_varlen_examples(self, data_of_lists, file_path):
+    writer = tf.python_io.TFRecordWriter(file_path)
+    for data in data_of_lists:
+      example = tf.train.Example()
+      example.features.feature['varlen'].int64_list.value.extend(data)
+      writer.write(example.SerializeToString())
+    writer.close()
+
+  @parameterized.named_parameters(
+      ('batch_size=1', 1),
+      ('batch_size=2', 2),
+  )
+  def test_varlen_feature_spec(self, batch_size):
+    file_pattern = os.path.join(self.create_tempdir().full_path,
+                                'test.tfrecord')
+    test_data = [[1], [1, 2]]
+    self._write_test_varlen_examples(test_data, file_pattern)
+    feature_spec = tensorspec_utils.TensorSpecStruct()
+    feature_spec.varlen = tensorspec_utils.ExtendedTensorSpec(
+        shape=(3,), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = tfdata.serialized_to_parsed(dataset, feature_spec, None)
+    features = dataset.make_one_shot_iterator().get_next()
+    # Check tensor shapes.
+    self.assertAllEqual([None, 3], features.varlen.get_shape().as_list())
+    with self.session() as session:
+      np_features = session.run(features)
+      self.assertAllEqual(np_features.varlen,
+                          np.array([[1, 3, 3], [1, 2, 3]][:batch_size]))
+      self.assertAllEqual([batch_size, 3], np_features.varlen.shape)
+      # Check that images are equal.
+
   @parameterized.named_parameters(
       ('batch_size=1', 1),
       ('batch_size=2', 2),
   )
   def test_sequence_parsing(self, batch_size):
-    file_pattern = os.path.join(FLAGS.test_tmpdir, 'test.tfrecord')
+    file_pattern = os.path.join(self.create_tempdir().full_path,
+                                'test.tfrecord')
     sequence_length = 3
-    if not os.path.exists(file_pattern):
-      self._write_test_sequence_examples(sequence_length, file_pattern)
+    self._write_test_sequence_examples(sequence_length, file_pattern)
     dataset = tfdata.parallel_read(file_patterns=file_pattern)
     # Features
     state_spec_1 = tensorspec_utils.ExtendedTensorSpec(
