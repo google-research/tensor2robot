@@ -46,8 +46,10 @@ class ExtendedTensorSpec(TSPEC):
   adds the additional fields is_optional and data_format.
   """
 
-  __slots__ = ['_is_optional', '_is_sequence', '_is_extracted', '_data_format',
-               '_dataset_key']
+  __slots__ = [
+      '_is_optional', '_is_sequence', '_is_extracted', '_data_format',
+      '_dataset_key', '_varlen_default_value'
+  ]
 
   def __init__(self,
                shape,
@@ -57,7 +59,8 @@ class ExtendedTensorSpec(TSPEC):
                is_sequence = False,
                is_extracted = False,
                data_format = None,
-               dataset_key = None):
+               dataset_key = None,
+               varlen_default_value = None):
     """Creates a TensorSpec.
 
     Args:
@@ -71,6 +74,9 @@ class ExtendedTensorSpec(TSPEC):
         np.array.
       data_format: Optional name of the data_format, e.g. jpeg, png.
       dataset_key: Optional key name of which dataset to pull this tensor from.
+      varlen_default_value: Optional if a value other than None is provided
+        the spec is assumed to be a VarLenFeature with the default value in the
+        corrensponding data type.
 
     Raises:
       TypeError: If shape is not convertible to a `tf.TensorShape`, or dtype is
@@ -87,6 +93,11 @@ class ExtendedTensorSpec(TSPEC):
     if dataset_key is None:
       dataset_key = ''
     self._dataset_key = dataset_key
+    self._varlen_default_value = varlen_default_value
+    if self._varlen_default_value is not None and len(self.shape) != 1:
+      raise ValueError(
+          'VarLenFeatures are only supported for shapes of rank 1 ({}).'.format(
+              shape))
 
   @classmethod
   def from_spec(cls,
@@ -99,16 +110,14 @@ class ExtendedTensorSpec(TSPEC):
                 is_extracted = None,
                 data_format = None,
                 dataset_key = None,
-                batch_size = None):
+                batch_size = None,
+                varlen_default_value = None):
     if not (isinstance(spec, TSPEC) or isinstance(spec, ExtendedTensorSpec)):
       raise ValueError('from_spec requires TensorSpec or ExtendedTensorSpec.')
 
     if is_optional is None:
-      # To support the usage of the base TensorSpec.
-      if hasattr(spec, 'is_optional'):
-        is_optional = spec.is_optional
+      is_optional = getattr(spec, 'is_optional', False)
 
-    # To support the usage of the base TensorSpec.
     if is_sequence is None:
       is_sequence = getattr(spec, 'is_sequence', False)
 
@@ -136,8 +145,12 @@ class ExtendedTensorSpec(TSPEC):
         shape = tf.TensorShape([None] + shape.as_list())
       else:
         shape = tf.TensorShape([batch_size] + shape.as_list())
+
+    if varlen_default_value is None:
+      varlen_default_value = getattr(spec, 'varlen_default_value', None)
     return cls(shape, dtype or spec.dtype, name or spec.name, is_optional,
-               is_sequence, is_extracted, data_format, dataset_key)
+               is_sequence, is_extracted, data_format, dataset_key,
+               varlen_default_value)
 
   @classmethod
   def from_tensor(cls,
@@ -163,7 +176,8 @@ class ExtendedTensorSpec(TSPEC):
     }
     # Fill the optional fields.
     for optional_field in [
-        'name', 'is_optional', 'is_extracted', 'data_format', 'dataset_key'
+        'name', 'is_optional', 'is_extracted', 'data_format', 'dataset_key',
+        'varlen_default_value'
     ]:
       if extended_tensor_spec_proto.HasField(optional_field):
         kwargs[optional_field] = getattr(extended_tensor_spec_proto,
@@ -182,6 +196,9 @@ class ExtendedTensorSpec(TSPEC):
       extended_tensor_spec_proto.is_extracted = self.is_extracted
     if self.data_format is not None:
       extended_tensor_spec_proto.data_format = self.data_format
+    if self.varlen_default_value is not None:
+      extended_tensor_spec_proto.varlen_default_value = (
+          self.varlen_default_value)
     return extended_tensor_spec_proto
 
   @classmethod
@@ -230,25 +247,29 @@ class ExtendedTensorSpec(TSPEC):
     """Returns the `dataset_key` of the tensor."""
     return self._dataset_key
 
+  @property
+  def varlen_default_value(self):
+    """Returns the `varlen_default_value` of the tensor."""
+    return self._varlen_default_value
+
   def __eq__(self, other):
     return (self._shape_tuple == other._shape_tuple  # pylint: disable=protected-access
             and self.dtype == other.dtype)
 
   def __repr__(self):
-    return (
-        'ExtendedTensorSpec(shape={}, dtype={}, name={}, is_optional={}, '
-        'is_sequence={}, is_extracted={}, data_format={}, '
-        'dataset_key={})').format(
-            self.shape, repr(self.dtype), repr(self.name),
-            repr(self.is_optional), repr(self.is_sequence),
-            repr(self.is_extracted), repr(self.data_format),
-            repr(self.dataset_key))
+    return ('ExtendedTensorSpec(shape={}, dtype={}, name={}, is_optional={}, '
+            'is_sequence={}, is_extracted={}, data_format={}, '
+            'dataset_key={}, varlen_default_value={})').format(
+                self.shape, repr(self.dtype), repr(self.name),
+                repr(self.is_optional), repr(self.is_sequence),
+                repr(self.is_extracted), repr(self.data_format),
+                repr(self.dataset_key), repr(self.varlen_default_value))
 
   def __reduce__(self):
     return ExtendedTensorSpec, (self._shape, self._dtype, self._name,
                                 self._is_optional, self._is_sequence,
                                 self._is_extracted, self._data_format,
-                                self._dataset_key)
+                                self._dataset_key, self._varlen_default_value)
 
 
 class _OrderedDictKeysView(collections.KeysView):
@@ -1535,8 +1556,11 @@ def is_encoded_image_spec(tensor_spec):
 def _get_feature(tensor_spec,
                  decode_images = True):
   """Get FixedLenfeature or FixedLenSequenceFeature for a tensor spec."""
-  if isinstance(tensor_spec, ExtendedTensorSpec) and tensor_spec.is_sequence:
+  varlen_default_value = getattr(tensor_spec, 'varlen_default_value', None)
+  if getattr(tensor_spec, 'is_sequence', False):
     cls = tf.FixedLenSequenceFeature
+  elif varlen_default_value is not None:
+    cls = tf.VarLenFeature
   else:
     cls = tf.FixedLenFeature
   if decode_images and is_encoded_image_spec(tensor_spec):
@@ -1544,6 +1568,8 @@ def _get_feature(tensor_spec,
       return cls((tensor_spec.shape[0]), tf.string)
     else:
       return cls((), tf.string)
+  elif varlen_default_value is not None:
+    return cls(tensor_spec.dtype)
   else:
     return cls(tensor_spec.shape, tensor_spec.dtype)
 
@@ -1581,6 +1607,33 @@ def tensorspec_to_feature_dict(tensor_spec_struct, decode_images = True):
     features[tensor_spec.name] = _get_feature(tensor_spec, decode_images)
     tensor_spec_dict[tensor_spec.name] = tensor_spec
   return features, tensor_spec_dict
+
+
+def pad_sparse_tensor_to_spec_shape(
+    sparse_tensor,
+    tensor_spec):
+  """Pads a sparse tensor to the desired tensorspec shape.
+
+  Args:
+    sparse_tensor: A sparse tensor, typically the result of dataset parsing.
+    tensor_spec: The corresponding tensor_spec for the sparse_tensor.
+
+  Returns:
+    A dense tensor of the shape defined in the tensor_spec.
+  """
+  default_value = tf.cast(
+      tf.constant(tensor_spec.varlen_default_value), dtype=tensor_spec.dtype)
+  tensor = tf.sparse.to_dense(sparse_tensor, default_value=default_value)
+  batch_dim = tf.shape(tensor)[0]
+  varlen_dim = tf.shape(tensor)[1]
+  assert_length = tf.Assert(
+      tf.less_equal(varlen_dim, tensor_spec.shape[0]), [varlen_dim])
+  with tf.control_dependencies([assert_length]):
+    pad_length = tensor_spec.shape[-1] - varlen_dim
+    padding = tf.ones(
+        dtype=tensor.dtype, shape=[batch_dim, pad_length]) * default_value
+    tensor = tf.concat([tensor, padding], axis=-1)
+    return tf.reshape(tensor, [batch_dim, tensor_spec.shape[-1]])
 
 
 def write_t2r_assets_to_file(t2r_assets, filename):

@@ -22,6 +22,7 @@ from __future__ import print_function
 
 import collections
 import copy
+import os
 import pickle
 
 from absl.testing import parameterized
@@ -543,19 +544,23 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     self.assertEqual(desc.name, 'beep')
 
   def test_repr(self):
-    desc1 = utils.ExtendedTensorSpec(
-        [1], tf.float32, name='beep', is_optional=True, data_format='jpeg')
+    desc1 = utils.ExtendedTensorSpec([1],
+                                     tf.float32,
+                                     name='beep',
+                                     is_optional=True,
+                                     data_format='jpeg',
+                                     varlen_default_value=1)
     self.assertEqual(
         repr(desc1),
         "ExtendedTensorSpec(shape=(1,), dtype=tf.float32, name='beep', "
         "is_optional=True, is_sequence=False, is_extracted=False, "
-        "data_format='jpeg', dataset_key='')")
+        "data_format='jpeg', dataset_key='', varlen_default_value=1)")
     desc2 = utils.ExtendedTensorSpec([1, None], tf.int32, is_sequence=True)
     self.assertEqual(
         repr(desc2),
         "ExtendedTensorSpec(shape=(1, ?), dtype=tf.int32, name=None, "
         "is_optional=False, is_sequence=True, is_extracted=False, "
-        "data_format=None, dataset_key='')")
+        "data_format=None, dataset_key='', varlen_default_value=None)")
 
   def test_from_spec(self):
     spec_1 = utils.ExtendedTensorSpec((1, 2), tf.int32)
@@ -683,6 +688,65 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
       return {'t1': T1, 't2': T2, 't3': T3, 't4': O4, 't5': T5, 's7': S7}
     elif collection_type == 'namedtuple':
       return MockFoo(MockBar(T1, T2), MockBar(T1, T2))
+
+  def _write_test_examples(self, data_of_lists, file_path):
+    writer = tf.python_io.TFRecordWriter(file_path)
+    for data in data_of_lists:
+      example = tf.train.Example()
+      example.features.feature['varlen'].int64_list.value.extend(data)
+      writer.write(example.SerializeToString())
+    writer.close()
+
+  def test_pad_sparse_tensor_to_spec_shape(self):
+    varlen_spec = utils.ExtendedTensorSpec(
+        shape=(3,), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
+    tmp_dir = self.create_tempdir().full_path
+    file_path_padded_to_size_two = os.path.join(tmp_dir, 'size_two.tfrecord')
+    test_data = [[1], [1, 2]]
+    self._write_test_examples(test_data, file_path_padded_to_size_two)
+    dataset = tf.data.TFRecordDataset(
+        filenames=tf.constant([file_path_padded_to_size_two]))
+    dataset = dataset.batch(len(test_data), drop_remainder=True)
+
+    def parse_fn(example):
+      return tf.parse_example(example, {'varlen': tf.VarLenFeature(tf.int64)})
+
+    dataset = dataset.map(parse_fn)
+    sparse_tensors = dataset.make_one_shot_iterator().get_next()['varlen']
+    tensor = utils.pad_sparse_tensor_to_spec_shape(sparse_tensors, varlen_spec)
+    with self.session() as sess:
+      np_tensor = sess.run(tensor)
+      self.assertAllEqual(np_tensor, np.array([[1, 3, 3], [1, 2, 3]]))
+
+  def test_pad_sparse_tensor_to_spec_shape_raises(self):
+    varlen_spec = utils.ExtendedTensorSpec(
+        shape=(3,), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
+    tmp_dir = self.create_tempdir().full_path
+    file_path_padded_to_size_two = os.path.join(tmp_dir, 'size_two.tfrecord')
+    # This will raise because the desired max shape is 3 but we create an
+    # example with shape 4.
+    test_data = [[1, 2, 3, 4]]
+    self._write_test_examples(test_data, file_path_padded_to_size_two)
+    dataset = tf.data.TFRecordDataset(
+        filenames=tf.constant([file_path_padded_to_size_two]))
+    dataset = dataset.batch(len(test_data), drop_remainder=True)
+
+    def parse_fn(example):
+      return tf.parse_example(example, {'varlen': tf.VarLenFeature(tf.int64)})
+
+    dataset = dataset.map(parse_fn)
+    sparse_tensors = dataset.make_one_shot_iterator().get_next()['varlen']
+    tensor = utils.pad_sparse_tensor_to_spec_shape(sparse_tensors, varlen_spec)
+    with self.session() as sess:
+      with self.assertRaises(tf.errors.InvalidArgumentError):
+        sess.run(tensor)
+
+  def test_varlen_default_value_raise(self):
+    with self.assertRaises(ValueError):
+      # This raises since only rank 1 tensors are supported for varlen.
+      utils.ExtendedTensorSpec(
+          shape=(3, 2), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
+
 
 if __name__ == '__main__':
   tf.test.main()

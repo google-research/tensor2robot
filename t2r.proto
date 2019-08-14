@@ -26,6 +26,7 @@ message ExtendedTensorSpec {
   optional bool is_extracted = 5;
   optional string data_format = 6;
   optional string dataset_key = 7;
+  optional float varlen_default_value = 8;
 }
 
 message TensorSpecStruct {
