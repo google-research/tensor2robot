@@ -104,6 +104,77 @@ def CenterCropImages(images, input_shape,
   return crops
 
 
+def CustomCropImages(images, input_shape,
+                     target_shape,
+                     target_locations):
+  """Crop a list of images at with a custom crop location and size.
+
+  Args:
+    images: List of tensors of shape [batch_size, h, w, c].
+    input_shape: Shape [h, w, c] of the input images.
+    target_shape: Shape [h, w] of the cropped output.
+    target_locations: List of crop center coordinates tensors of shape [b, 2].
+  Returns:
+    crops: List of cropped tensors of shape [batch_size] + target_shape + [3].
+  """
+  if len(input_shape) != 3:
+    raise ValueError(
+        'The input shape has to be of the form (height, width, channels) '
+        'but has len {}'.format(len(input_shape)))
+  if len(target_shape) != 2:
+    raise ValueError('The target shape has to be of the form (height, width) '
+                     'but has len {}'.format(len(target_shape)))
+  if len(images) != len(target_locations):
+    raise ValueError('There should be one target location per image. Found {} '
+                     'images for {} locations'.format(len(images),
+                                                      len(target_locations)))
+  if input_shape[0] == target_shape[0] and input_shape[1] == target_shape[1]:
+    return [image for image in images]
+  if input_shape[0] < target_shape[0] or input_shape[1] < target_shape[1]:
+    raise ValueError('The target shape {} is larger than the input image size '
+                     '{}'.format(target_shape, input_shape[:2]))
+  assert_ops = []
+  for image, target_location in zip(images, target_locations):
+    # Assert all images have the same shape.
+    assert_ops.append(
+        tf.assert_equal(
+            input_shape[:2],
+            tf.shape(image)[1:3],
+            message=('All images must have same width and height'
+                     'for CenterCropImages.')))
+
+  with tf.control_dependencies(assert_ops):
+    crops = []
+    for image, target_location in zip(images, target_locations):
+      # If bounding box is outside of image boundaries, move it
+      x_coordinates = tf.slice(
+          target_location,
+          [0, 1], [tf.shape(target_location)[0], 1])
+      y_coordinates = tf.slice(
+          target_location,
+          [0, 0], [tf.shape(target_location)[0], 1])
+
+      x_coordinates = tf.math.maximum(
+          tf.cast(x_coordinates, tf.float32),
+          tf.cast(target_shape[1] // 2, tf.float32))
+      y_coordinates = tf.math.maximum(
+          tf.cast(y_coordinates, tf.float32),
+          tf.cast(target_shape[0] // 2, tf.float32))
+      x_coordinates = tf.math.minimum(
+          tf.cast(x_coordinates, tf.float32),
+          tf.cast(tf.shape(image)[2] - target_shape[1] // 2, tf.float32))
+      y_coordinates = tf.math.minimum(
+          tf.cast(y_coordinates, tf.float32),
+          tf.cast(tf.shape(image)[1] - target_shape[0] // 2, tf.float32)
+          )
+
+      target_location = tf.concat([x_coordinates, y_coordinates], 1)
+      crops.append(
+          tf.image.extract_glimpse(image, target_shape, tf.cast(
+              target_location, tf.float32), centered=False, normalized=False))
+  return crops
+
+
 @gin.configurable
 def ApplyPhotometricImageDistortions(
     images,

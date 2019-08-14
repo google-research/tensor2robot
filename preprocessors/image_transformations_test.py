@@ -218,6 +218,44 @@ class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):
         # Check if any distortion applied.
         self.assertGreater(depth_images_delta, 0)
 
+  @parameterized.parameters(([20, 20],), ([32, 32],))
+  def testCustomCrop(self, target_shape):
+    with tf.Graph().as_default():
+      input_shape = [32, 32, 3]
+      batch_size = 4
+      target_locations = tf.tile(tf.constant([[10, 10]]), [batch_size, 1])
+      images = self._CreateRampTestImages(batch_size, input_shape[0],
+                                          input_shape[1])
+      cropped = image_transformations.CustomCropImages([images],
+                                                       input_shape,
+                                                       target_shape,
+                                                       [target_locations])[0]
+      with tf.Session() as sess:
+        cropped_image = sess.run(cropped)
+        self.assertAllEqual(cropped_image.shape,
+                            [batch_size] + target_shape + [3])
+        self.assertEqual(cropped_image[0, -1, 0, 1] - cropped_image[0, 0, 0, 1],
+                         target_shape[0] - 1)
+        self.assertEqual(cropped_image[0, 0, -1, 0] - cropped_image[0, 0, 0, 0],
+                         target_shape[1] - 1)
+
+  @parameterized.parameters(([32, 32, 3], [53, 8], [10, 10]))
+  def testFaultyCustomCrop(self, input_shape, target_shape, target_location):
+    """Test that wrong crop parameters lead to failure."""
+    with tf.Graph().as_default():
+      batch_size = 4
+      images = self._CreateRampTestImages(batch_size, input_shape[0],
+                                          input_shape[1])
+      target_locations = tf.constant(target_location)
+      target_locations = tf.tile(tf.expand_dims(target_locations, 0),
+                                 [batch_size, 1])
+
+      with tf.Session() as sess:
+        with self.assertRaises(ValueError):
+          cropped = image_transformations.CustomCropImages(
+              [images], input_shape, target_shape, [target_locations])[0]
+          sess.run(cropped)
+
 
 if __name__ == '__main__':
   tf.test.main()
