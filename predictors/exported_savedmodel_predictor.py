@@ -163,57 +163,34 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     # the checkpoint gets written asynchronously.
     while time.time() - start_time_loading < self._timeout:
       try:
+        t2r_assets_file_path = os.path.join(
+            model_dirs[-1], tensorspec_utils.EXTRA_ASSETS_DIRECTORY,
+            tensorspec_utils.T2R_ASSETS_FILENAME)
+        t2r_assets = tensorspec_utils.load_t2r_assets_to_file(
+            t2r_assets_file_path)
+        self._feature_spec = tensorspec_utils.TensorSpecStruct.from_proto(
+            t2r_assets.feature_spec)  # pytype: disable=wrong-arg-types
+        self._label_spec = tensorspec_utils.TensorSpecStruct.from_proto(
+            t2r_assets.label_spec)  # pytype: disable=wrong-arg-types
+
+        if t2r_assets.HasField('global_step'):
+          self._global_step = t2r_assets.global_step
+        else:
+          logging.warning(
+              'Error loading the global step, therefore using the previously'
+              'set global step %s.', str(self.global_step))
+
         self._predict_fn = tf.contrib.predictor.from_saved_model(
             model_dirs[-1], config=self._tf_config)
-        t2r_assets_file_path = os.path.join(
-            model_dirs[-1], 'assets.extra',
-            tensorspec_utils.T2R_ASSETS_FILENAME)
-        if tf.io.gfile.exists(t2r_assets_file_path):
-          t2r_assets = tensorspec_utils.load_t2r_assets_to_file(
-              t2r_assets_file_path)
-          self._feature_spec = tensorspec_utils.TensorSpecStruct.from_proto(
-              t2r_assets.feature_spec)  # pytype: disable=wrong-arg-types
-          self._label_spec = tensorspec_utils.TensorSpecStruct.from_proto(
-              t2r_assets.label_spec)  # pytype: disable=wrong-arg-types
-
-          if t2r_assets.HasField('global_step'):
-            self._global_step = t2r_assets.global_step
-          else:
-            logging.warning(
-                'Error loading the global step, therefore using the previously'
-                'set global step %s.', str(self.global_step))
-          model_global_step = self._predict_fn.session.run(
-              self._predict_fn.graph.get_collection(
-                  tf.GraphKeys.GLOBAL_STEP))[0]
-          if (model_global_step is not None and
-              model_global_step != self._global_step):
-            logging.warning(
-                'Using the global step loaded from the model %s and not the '
-                'one from the assets file %s.', str(model_global_step),
-                str(self._global_step))
-            self._global_step = model_global_step
-        else:
-          input_spec_filename = os.path.join(model_dirs[-1], 'assets.extra',
-                                             'input_specs.pkl')
+        model_global_step = self._predict_fn.session.run(
+            self._predict_fn.graph.get_collection(tf.GraphKeys.GLOBAL_STEP))[0]
+        if (model_global_step is not None and
+            model_global_step != self._global_step):
           logging.warning(
-              'Using the legacy loading, please convert the assets '
-              'using convert_pkl_assets_to_proto_assets binary for '
-              'file path %s.', input_spec_filename)
-          # Load input specs from file.
-          self._feature_spec, self._label_spec = (
-              tensorspec_utils.load_input_spec_from_file(input_spec_filename))
-
-          # Load input specs from file.
-          global_step_filename = os.path.join(model_dirs[-1], 'assets.extra',
-                                              'global_step.pkl')
-          try:
-            global_step = tensorspec_utils.load_global_step_from_file(
-                global_step_filename)
-            self._global_step = global_step
-          except ValueError:
-            logging.warning(
-                'Error loading the global step, therefore using the previously'
-                'set global step %s.', str(self.global_step))
+              'Using the global step loaded from the model %s and not the '
+              'one from the assets file %s.', str(model_global_step),
+              str(self._global_step))
+          self._global_step = model_global_step
         return True
       except ValueError as err:
         logging.warning(
@@ -287,6 +264,9 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       model_exists = tf.io.gfile.exists(
           os.path.join(model_dir,
                        tf.saved_model.constants.SAVED_MODEL_FILENAME_PB))
-      return model_dir_is_numeric and model_exists
+
+      assets_exists = tf.io.gfile.exists(
+          os.path.join(model_dir, tensorspec_utils.EXTRA_ASSETS_DIRECTORY))
+      return model_dir_is_numeric and model_exists and assets_exists
 
     return filter(_isvalid, model_dirs)

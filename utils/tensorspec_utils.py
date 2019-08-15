@@ -34,6 +34,7 @@ from google.protobuf import text_format
 nest = tf.contrib.framework.nest
 TSPEC = tf.contrib.framework.TensorSpec
 
+EXTRA_ASSETS_DIRECTORY = 'assets.extra'
 T2R_ASSETS_FILENAME = 't2r_assets.pbtxt'
 
 
@@ -1644,10 +1645,14 @@ def write_t2r_assets_to_file(t2r_assets, filename):
 
 def load_t2r_assets_to_file(filename):
   """Writes feature and label specifications to file."""
-  with tf.io.gfile.GFile(filename, 'r') as f:
-    t2r_assets = t2r_pb2.T2RAssets()
-    text_format.Parse(f.read(), t2r_assets)
-    return t2r_assets
+  try:
+    with tf.io.gfile.GFile(filename, 'r') as f:
+      t2r_assets = t2r_pb2.T2RAssets()
+      text_format.Parse(f.read(), t2r_assets)
+      return t2r_assets
+  except tf.errors.DeadlineExceededError:
+    raise ValueError(
+        'The file could not be loaded within the parsing deadline.')
 
 
 def write_input_spec_to_file(in_feature_spec, in_label_spec, filename):

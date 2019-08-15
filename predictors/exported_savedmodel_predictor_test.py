@@ -44,6 +44,7 @@ _MAX_EVAL_STEPS = 2
 class ExportedSavedmodelPredictorTest(tf.test.TestCase):
 
   def setUp(self):
+    super(ExportedSavedmodelPredictorTest, self).setUp()
     gin.clear_config()
     gin.parse_config('tf.estimator.RunConfig.save_checkpoints_steps=1')
 
