@@ -112,6 +112,38 @@ def default_init_from_checkpoint_fn(checkpoint,
   tf.train.init_from_checkpoint(checkpoint, assignment_map)
 
 
+class V2SummaryInitHook(tf.estimator.SessionRunHook):
+  """Runs v2 summary init op.
+
+  When running code that creates v2 summaries in TF 1.x graph mode, a v2
+  summary writer must be created in the same graph, before calling any code
+  that would add v2 summaries. You cannot create the V2 summary writer
+  in a SessionRunHook, since this runs after the model code.
+
+  When running tf.estimator.train_and_evaluate, the provided model_fn in the
+  estimator is called twice, once in mode TRAIN and once in mode EVAL. These
+  calls are done in separate graphs. These graphs are not the default graph and
+  are created by tf.estimator. You cannot create the V2 summary writer before
+  the model_fn, because doing so adds the writer to the default graph, instead
+  of the graph tf.estimator creates.
+
+  Therefore, the model must create the summary writer itself, at the same time
+  as the model code. We expect the model to expose
+  the writer init_op to this SessionRunHook, which initializes the summary
+  writer in time for the rest of the model code.
+
+  This is run through a hook instead of a custom init_op because the default
+  init_op is not exposed well in tf.estimator. Using a hook makes it easier to
+  guarantee both the default init_op and summary writer init_op get run.
+  """
+
+  def __init__(self, init_op):
+    self.init_op = init_op
+
+  def after_create_session(self, session=None, coord=None):
+    session.run(self.init_op)
+
+
 @gin.configurable
 class AbstractT2RModel(model_interface.ModelInterface):
   """Base class encapsulating a model_fn and metadata about input/output sizes.
@@ -251,7 +283,7 @@ class AbstractT2RModel(model_interface.ModelInterface):
           tf.train.SummarySaverHook(
               output_dir=os.path.join(config.model_dir, eval_name),
               save_steps=config.save_summary_steps,
-              summary_op=summary_op)
+              summary_op=summary_op),
       ]
     return hooks
 
@@ -691,6 +723,8 @@ class AbstractT2RModel(model_interface.ModelInterface):
         training_hooks.append(
             gin_utils.GinConfigSaverHook(
                 config.model_dir, summarize_config=True))
+        if hasattr(self, 'writer_init_ops'):
+          training_hooks.append(V2SummaryInitHook(self.writer_init_ops[mode]))
 
       # `SyncReplicasOptimizer` needs to attach a training hook.
       if self._sync_replicas_optimizer:
@@ -739,6 +773,8 @@ class AbstractT2RModel(model_interface.ModelInterface):
             gin_utils.GinConfigSaverHook(
                 os.path.join(config.model_dir, eval_name),
                 summarize_config=True))
+        if hasattr(self, 'writer_init_ops'):
+          evaluation_hooks.append(V2SummaryInitHook(self.writer_init_ops[mode]))
       return tf.estimator.EstimatorSpec(
           mode=mode,
           loss=train_loss,
