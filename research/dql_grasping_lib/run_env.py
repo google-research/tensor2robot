@@ -14,6 +14,8 @@
 # limitations under the License.
 
 """Library function for stepping/evaluating a policy in a Gym environment.
+
+Also supports TF-Agents environments.
 """
 
 from __future__ import absolute_import
@@ -28,6 +30,7 @@ import numpy as np
 import PIL.Image as Image
 import six
 import tensorflow as tf
+from tf_agents.trajectories import time_step as ts
 
 
 def encode_image_array_as_png_str(image):
@@ -47,7 +50,33 @@ def encode_image_array_as_png_str(image):
   return png_string
 
 
-@gin.configurable(blacklist=['task', 'num_episodes', 'global_step', 'tag'])
+def _gym_env_reset(env):
+  obs = env.reset()
+  return obs
+
+
+def _gym_env_step(env, action):
+  """Step through Gym env and return (o, r, done, debug) tuple."""
+  new_obs, rew, done, env_debug = env.step(action)
+  return new_obs, rew, done, env_debug
+
+
+def _tfagents_env_reset(env):
+  obs = env.reset().observation
+  return obs
+
+
+def _tfagents_env_step(env, action):
+  """Step through TF-Agents env and return (o, r, done, debug) tuple."""
+  timestep = env.step(action)
+  new_obs = timestep.observation
+  rew = timestep.reward
+  done = timestep.step_type == ts.StepType.LAST
+  env_debug = ()
+  return new_obs, rew, done, env_debug
+
+
+@gin.configurable(blacklist=['global_step', 'tag'])
 def run_env(env,
             policy=None,
             explore_schedule=None,
@@ -58,13 +87,74 @@ def run_env(env,
             global_step=0,
             num_episodes=100,
             tag='collect'):
+  """Runs agent+Gym env loop num_episodes times, logging performance."""
+  return _run_env(
+      env,
+      reset_fn=_gym_env_reset,
+      step_fn=_gym_env_step,
+      policy=policy,
+      explore_schedule=explore_schedule,
+      episode_to_transitions_fn=episode_to_transitions_fn,
+      replay_writer=replay_writer,
+      root_dir=root_dir,
+      task=task,
+      global_step=global_step,
+      num_episodes=num_episodes,
+      tag=tag,
+      unpack_action=False)
+
+
+@gin.configurable(blacklist=['global_step', 'tag'])
+def run_tfagents_env(env,
+                     policy=None,
+                     explore_schedule=None,
+                     episode_to_transitions_fn=None,
+                     replay_writer=None,
+                     root_dir=None,
+                     task=0,
+                     global_step=0,
+                     num_episodes=100,
+                     tag='collect'):
+  """Runs agent+TF-Agents env loop num_episodes times, logging performance."""
+  return _run_env(
+      env,
+      reset_fn=_tfagents_env_reset,
+      step_fn=_tfagents_env_step,
+      policy=policy,
+      explore_schedule=explore_schedule,
+      episode_to_transitions_fn=episode_to_transitions_fn,
+      replay_writer=replay_writer,
+      root_dir=root_dir,
+      task=task,
+      global_step=global_step,
+      num_episodes=num_episodes,
+      tag=tag,
+      unpack_action=True)
+
+
+def _run_env(env,
+             reset_fn,
+             step_fn,
+             policy,
+             explore_schedule,
+             episode_to_transitions_fn,
+             replay_writer,
+             root_dir,
+             task,
+             global_step,
+             num_episodes,
+             tag,
+             unpack_action):
   """Runs agent+env loop num_episodes times and log performance + collect data.
 
   Interpolates between an exploration policy and greedy policy according to a
   explore_schedule. Run this function separately for collect/eval.
 
   Args:
-    env: Gym environment.
+    env: Environment.
+    reset_fn: A function that resets the environment, returning starting obs.
+    step_fn: A function that steps the environment, returning next_obs, reward,
+      done, and debug.
     policy: Policy to collect/evaluate.
     explore_schedule: Exploration schedule that defines a `value(t)` function
       to compute the probability of exploration as a function of global step t.
@@ -76,12 +166,14 @@ def run_env(env,
       replay_writer is specified, data is written to the `policy_*` subdirs.
       Setting root_dir=None results in neither summaries or transitions being
       saved to disk.
-    task: Task number for replica trials for a given experiment.
+    task: Task number for replica trials for a given experiment. Debug summaries
+      are only written when task == 0.
     global_step: Training step corresponding to policy checkpoint.
     num_episodes: Number of episodes to run.
     tag: String prefix for evaluation summaries and collect data.
+    unpack_action: Whether the action output is wrapped in batch_size 1 or is
+      returned as is. If True, unpack the outer dimension.
   """
-
   episode_rewards = []
   episode_q_values = collections.defaultdict(list)
 
@@ -89,7 +181,7 @@ def run_env(env,
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
     record_prefix = os.path.join(root_dir, 'policy_%s' % tag,
                                  'gs%d_t%d_%s' % (global_step, task, timestamp))
-  if root_dir:
+  if root_dir and task == 0:
     summary_dir = os.path.join(root_dir, 'live_eval_%d' % task)
     summary_writer = tf.summary.FileWriter(summary_dir)
 
@@ -99,16 +191,18 @@ def run_env(env,
   for ep in range(num_episodes):
     done, env_step, episode_reward, episode_data = (False, 0, 0.0, [])
     policy.reset()
-    obs = env.reset()
+    obs = reset_fn(env)
     if explore_schedule:
       explore_prob = explore_schedule.value(global_step)
     else:
       explore_prob = 0
     while not done:
       action, policy_debug = policy.sample_action(obs, explore_prob)
+      if unpack_action:
+        action = action[0]
       if policy_debug and 'q' in policy_debug:
         episode_q_values[env_step].append(policy_debug['q'])
-      new_obs, rew, done, env_debug = env.step(action)
+      new_obs, rew, done, env_debug = step_fn(env, action)
       env_step += 1
       episode_reward += rew
 
@@ -130,7 +224,7 @@ def run_env(env,
   if replay_writer:
     replay_writer.close()
 
-  if root_dir:
+  if root_dir and task == 0:
     summary_values = [
         tf.Summary.Value(
             tag='%s/episode_reward' % tag,
