@@ -266,7 +266,13 @@ def TYloss(pregrasp_spatial, postgrasp_spatial, goal_embedding):
   scene should be high (something was detected). If the object is not in the
   scene, the max response should be low (nothing was detected).
 
-  The details of the implementation could use some tweaking.
+  A likelihood ratio based approach seems to be more stable than independent
+  sigmoid cross entropy losses for positives and negatives. In other words,
+  if p(object) is pregrasp similarity and q is postgrasp similartiy, the
+  objective is: max p(object)/q(object), or equivalently,
+
+  max log p(object) - log q(object)
+  min log q(object) - log p(object)
 
   Args:
     pregrasp_spatial: A batch x H x W x D spatial feature map tensor of the
@@ -277,14 +283,14 @@ def TYloss(pregrasp_spatial, postgrasp_spatial, goal_embedding):
   Returns:
     loss: A scalar value.
   """
-  pregrasp_max, _ = _GetSoftMaxResponse(goal_embedding, pregrasp_spatial)
-  postgrasp_max, _ = _GetSoftMaxResponse(goal_embedding, postgrasp_spatial)
-  loss_pre = tf.nn.sigmoid_cross_entropy_with_logits(
-      labels=tf.ones_like(pregrasp_max), logits=pregrasp_max)
-  loss_post = tf.nn.sigmoid_cross_entropy_with_logits(
-      labels=tf.zeros_like(postgrasp_max), logits=postgrasp_max)
-
-  tf.summary.scalar('loss_post', loss_post)
-  tf.summary.scalar('loss_pre', loss_pre)
-  return loss_post+loss_pre
-
+  pregrasp_spatial = tf.math.l2_normalize(pregrasp_spatial, axis=-1)
+  postgrasp_spatial = tf.math.l2_normalize(postgrasp_spatial, -1)
+  goal_embedding = tf.math.l2_normalize(goal_embedding, -1)
+  goal_embedding = tf.expand_dims(tf.expand_dims(goal_embedding, 1), 1)
+  pre_similarity_map = tf.reduce_sum(
+      pregrasp_spatial * goal_embedding, axis=-1)
+  pre_similarity_max = tf.reduce_max(pre_similarity_map, axis=[1, 2])
+  post_similarity_map = tf.reduce_sum(
+      postgrasp_spatial * goal_embedding, axis=-1)
+  post_similarity_max = tf.reduce_max(post_similarity_map, axis=[1, 2])
+  return tf.reduce_mean(post_similarity_max - pre_similarity_max)
