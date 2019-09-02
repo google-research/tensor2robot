@@ -23,12 +23,12 @@ from __future__ import print_function
 import os
 import tempfile
 import gin
-from tensor2robot import t2r_pb2
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.export_generators import default_export_generator
 from tensor2robot.hooks import checkpoint_hooks
 from tensor2robot.hooks import hook_builder
 from tensor2robot.models import model_interface
+from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 

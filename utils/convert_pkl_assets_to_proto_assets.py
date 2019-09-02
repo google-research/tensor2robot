@@ -25,7 +25,7 @@ import os
 from absl import app
 from absl import flags
 
-from tensor2robot import t2r_pb2
+from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
 

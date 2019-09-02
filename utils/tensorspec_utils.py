@@ -26,7 +26,7 @@ from absl import logging
 
 import numpy as np
 from six.moves import cPickle
-from tensor2robot import t2r_pb2
+from tensor2robot.proto import t2r_pb2
 import tensorflow as tf
 from typing import Any, Dict, List, Optional, Text, Union
 from google.protobuf import text_format

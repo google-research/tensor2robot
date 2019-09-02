@@ -26,7 +26,6 @@ import tempfile
 from absl import flags
 from absl import logging
 import gin
-from tensor2robot import t2r_pb2
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.export_generators import default_export_generator
 from tensor2robot.hooks import hook_builder
@@ -34,6 +33,7 @@ from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.models import model_interface
 from tensor2robot.models import tpu_model_wrapper
+from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 
