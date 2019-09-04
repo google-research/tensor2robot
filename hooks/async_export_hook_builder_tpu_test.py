@@ -21,11 +21,11 @@ from __future__ import print_function
 
 import os
 import gin
-from tensor2robot import train_eval
 from tensor2robot.hooks import async_export_hook_builder
 from tensor2robot.predictors import exported_savedmodel_predictor
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
+from tensor2robot.utils import train_eval
 import tensorflow as tf  # tf
 
 _EXPORT_DIR = 'export_dir'

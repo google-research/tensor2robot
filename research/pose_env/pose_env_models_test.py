@@ -25,8 +25,6 @@ import os
 from absl.testing import absltest
 from absl.testing import parameterized
 import gin
-
-from tensor2robot import train_eval
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.meta_learning import meta_policies
 from tensor2robot.meta_learning import preprocessors
@@ -34,6 +32,7 @@ from tensor2robot.predictors import checkpoint_predictor
 from tensor2robot.research.pose_env import pose_env
 from tensor2robot.research.pose_env import pose_env_maml_models
 from tensor2robot.research.pose_env import pose_env_models
+from tensor2robot.utils import train_eval
 from tensor2robot.utils import train_eval_test_utils
 import tensorflow as tf  # tf
 

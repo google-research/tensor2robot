@@ -21,8 +21,8 @@ from __future__ import print_function
 
 import gin
 import mock
-from tensor2robot import train_eval
 from tensor2robot.input_generators import default_input_generator
+from tensor2robot.utils import train_eval
 from tensor2robot.utils import train_eval_test_utils
 import tensorflow as tf
 

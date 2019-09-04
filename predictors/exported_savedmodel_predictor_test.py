@@ -24,12 +24,12 @@ import os
 from absl import flags
 import gin
 import numpy as np
-from tensor2robot import train_eval
 from tensor2robot.hooks import async_export_hook_builder
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.predictors import exported_savedmodel_predictor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
+from tensor2robot.utils import train_eval
 import tensorflow as tf
 
 FLAGS = flags.FLAGS

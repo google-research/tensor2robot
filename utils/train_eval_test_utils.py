@@ -23,9 +23,8 @@ from __future__ import print_function
 
 import os
 from typing import Callable, Optional, Text, List
-
 import gin
-from tensor2robot import train_eval
+from tensor2robot.utils import train_eval
 import tensorflow as tf
 
 DEFAULT_TRAIN_FILENAME_PATTERNS = [

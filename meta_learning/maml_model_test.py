@@ -27,12 +27,12 @@ from absl import flags
 
 from absl.testing import parameterized
 import gin
-from tensor2robot import train_eval
 from tensor2robot.meta_learning import maml_model
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
+from tensor2robot.utils import train_eval
 import tensorflow as tf
 FLAGS = flags.FLAGS
 

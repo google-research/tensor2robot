@@ -22,11 +22,11 @@ from __future__ import print_function
 from absl import flags
 import gin
 import numpy as np
-from tensor2robot import train_eval
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.predictors import checkpoint_predictor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
+from tensor2robot.utils import train_eval
 import tensorflow as tf
 
 FLAGS = flags.FLAGS
@@ -38,6 +38,7 @@ _MAX_TRAIN_STEPS = 3
 class CheckpointPredictorTest(tf.test.TestCase):
 
   def setUp(self):
+    super(CheckpointPredictorTest, self).setUp()
     gin.clear_config()
     gin.parse_config('tf.estimator.RunConfig.save_checkpoints_steps=1')
 

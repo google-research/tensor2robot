@@ -28,11 +28,11 @@ import mock
 import numpy as np
 
 from six.moves import zip
-from tensor2robot import train_eval
 from tensor2robot.hooks import hook_builder
 from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
+from tensor2robot.utils import train_eval
 import tensorflow as tf
 
 FLAGS = flags.FLAGS

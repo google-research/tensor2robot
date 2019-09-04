@@ -27,4 +27,4 @@ import tensor2robot.research.vrgripper.mse_decoder
 import tensor2robot.research.vrgripper.discrete
 import tensor2robot.research.vrgripper.vrgripper_env_meta_models
 import tensor2robot.research.vrgripper.vrgripper_env_wtl_models
-import tensor2robot.train_eval
+import tensor2robot.utils.train_eval
