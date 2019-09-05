@@ -534,7 +534,10 @@ def train_eval_model(
   elif eval_spec is not None:
     if not use_continuous_eval:
       estimator.evaluate(
-          input_fn=eval_spec.input_fn, steps=eval_steps, name=eval_spec.name)
+          input_fn=eval_spec.input_fn,
+          steps=eval_steps,
+          hooks=eval_spec.hooks,
+          name=eval_spec.name)
       return
 
     # This will start with the latest checkpoint and wait afterwards for a new
@@ -545,6 +548,7 @@ def train_eval_model(
           input_fn=eval_spec.input_fn,
           checkpoint_path=checkpoint_path,
           steps=eval_steps,
+          hooks=eval_spec.hooks,
           name=eval_spec.name)
       if eval_spec.exporters:
         for exporter in eval_spec.exporters:
