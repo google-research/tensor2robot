@@ -18,7 +18,7 @@ import tensor2robot.meta_learning.meta_policies
 import tensor2robot.meta_learning.run_meta_env
 import tensor2robot.utils.train_eval
 import tensor2robot.models.abstract_model
-import tensor2robot.continuous_collect_eval
+import tensor2robot.utils.continuous_collect_eval
 import tensor2robot.research.pose_env.episode_to_transitions
 import tensor2robot.research.pose_env.pose_env
 import tensor2robot.research.pose_env.pose_env_maml_models

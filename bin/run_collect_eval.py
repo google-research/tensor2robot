@@ -23,7 +23,7 @@ from __future__ import print_function
 from absl import app
 from absl import flags
 import gin
-from tensor2robot import continuous_collect_eval
+from tensor2robot.utils import continuous_collect_eval
 # Contains the gin_configs and gin_bindings flag definitions.
 FLAGS = flags.FLAGS
 

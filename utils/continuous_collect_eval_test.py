@@ -24,9 +24,8 @@ from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
 import gin
-
-from tensor2robot import continuous_collect_eval
 from tensor2robot.research.pose_env import pose_env
+from tensor2robot.utils import continuous_collect_eval
 import tensorflow as tf
 FLAGS = flags.FLAGS
 

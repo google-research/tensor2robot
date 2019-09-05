@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tensor2robot.continuous_collect_eval
+import tensor2robot.utils.continuous_collect_eval
 import tensor2robot.hooks.google.xm_hooks
 import tensor2robot.input_generators.default_input_generator
 import tensor2robot.meta_learning.meta_policies
