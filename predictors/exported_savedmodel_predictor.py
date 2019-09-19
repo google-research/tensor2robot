@@ -133,7 +133,9 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       # monotonically increase, meaning the largest directory name will contain
       # the latest exported model. Lexicographical sorting will maintain this
       # order.
-      model_dirs = sorted(tf.io.gfile.glob(os.path.join(self._export_dir, '*')))
+      model_dirs = sorted(
+          tf.io.gfile.glob(os.path.join(self._export_dir, '*')),
+          key=os.path.basename)
       model_dirs = self._remove_invalid_model_dirs(model_dirs)
 
       if len(model_dirs) >= 1:
