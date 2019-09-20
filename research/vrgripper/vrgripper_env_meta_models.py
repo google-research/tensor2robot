@@ -143,6 +143,7 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
   def __init__(
       self,
       action_size = 7,
+      gripper_pose_size = 14,
       num_waypoints = 1,
       episode_length = 40,
       embed_loss_weight = 0.,
@@ -156,6 +157,7 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
 
     Args:
       action_size: The number of action dimensions.
+      gripper_pose_size: Size of vector containing gripper state.
       num_waypoints: How many future waypoints to predict.
       episode_length: The fixed length of episode data.
       embed_loss_weight: Weight on embedding loss.
@@ -172,6 +174,7 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
     """
     super(VRGripperEnvTecModel, self).__init__(**kwargs)
     self._action_size = action_size
+    self._gripper_pose_size = gripper_pose_size
     self._num_waypoints = num_waypoints
     self._episode_length = episode_length
     self._embed_loss_weight = embed_loss_weight
@@ -188,8 +191,8 @@ class VRGripperEnvTecModel(abstract_model.AbstractT2RModel):
     image_spec = TensorSpec(
         shape=(100, 100, 3), dtype=tf.float32, name='image0',
         data_format='jpeg')
-    gripper_pose_spec = TensorSpec(
-        shape=(14,), dtype=tf.float32, name='world_pose_gripper')
+    gripper_pose_spec = TensorSpec(shape=(self._gripper_pose_size,),
+                                   dtype=tf.float32, name='world_pose_gripper')
     tspec = tensorspec_utils.TensorSpecStruct(
         image=image_spec,
         gripper_pose=gripper_pose_spec)
