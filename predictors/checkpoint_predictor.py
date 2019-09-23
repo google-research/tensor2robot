@@ -172,8 +172,9 @@ class CheckpointPredictor(abstract_predictor.AbstractPredictor):
       logging.info('Checkpoint \'%s\' wasn\'t updated.', latest_checkpoint)
       return True
 
-    self._current_checkpoint_path = latest_checkpoint
     self._saver.restore(self._sess, latest_checkpoint)
+    self._current_checkpoint_path = latest_checkpoint
+
     self._model_was_restored = True
     return True
 
