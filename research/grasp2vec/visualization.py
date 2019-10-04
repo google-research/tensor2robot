@@ -25,6 +25,10 @@ import gin
 import numpy as np
 import tensorflow as tf
 
+try:
+  from cvx2 import latest as cv2  # pylint: disable=g-import-not-at-top
+except ImportError:
+
 
 def plot_labels(labels, max_label=1, predictions=None, name=''):
   """Plots integer labels and optionally predictions as images.
@@ -90,7 +94,8 @@ def add_heatmap_summary(feature_query, feature_map, name):
 
 
 def add_spatial_softmax(heatmaps, images):
-  locations_ij = tf.contrib.layers.spatial_softmax(heatmaps, temperature=0.1)
+  locations_ij = tf.contrib.layers.spatial_softmax(
+      heatmaps, temperature=0.1, trainable=False)
   # spatial_softmax.BuildSpatialSoftmax returns [x1, ..., xN, y1, ..., yN] in
   # the inner dimension while layers.spatial_softmax returns
   # [i1, j1, ... iN, jN].
@@ -232,3 +237,23 @@ def get_softmax_viz(image, softmax, nrows=None):
 
   img = tf.image.hsv_to_rgb(img)
   return img
+
+
+def _put_text(imgs, texts):
+  """Python function that renders text onto a image."""
+  result = np.empty_like(imgs)
+  for i in range(imgs.shape[0]):
+    text = texts[i]
+    if isinstance(text, bytes):
+      text = text.decode()
+    # You may need to adjust text size and position and size.
+    # If your images are in [0, 255] range replace (0, 0, 1) with (0, 0, 255)
+    result[i, :, :, :] = cv2.putText(
+        imgs[i, :, :, :], str(text), (0, 30),
+        cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 1), 2)
+  return result
+
+
+def tf_put_text(imgs, texts):
+  """Adds text to an image tensor."""
+  return tf.py_func(_put_text, [imgs, texts], Tout=imgs.dtype)

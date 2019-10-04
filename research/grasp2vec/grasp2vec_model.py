@@ -70,10 +70,11 @@ def maybe_crop_images(images,
   else:
     offset_height = (min_offset_height + max_offset_height)//2
     offset_width = (min_offset_width + max_offset_width)//2
-  return [
+  images = [
       tf.image.crop_to_bounding_box(
           img, offset_height, offset_width, target_height, target_width)
       for img in images]
+  return images, offset_height, offset_width
 
 
 @gin.configurable
@@ -120,7 +121,7 @@ class Grasp2VecPreprocessor(
       mode
   ):
     """Crop, distort, random flip, and resize images."""
-    scene_images = maybe_crop_images(
+    scene_images, _, _ = maybe_crop_images(
         [features['pregrasp_image'], features['postgrasp_image']],
         self._scene_crop, mode)
     features['pregrasp_image'] = scene_images[0]
@@ -143,16 +144,19 @@ class Grasp2VecModel(abstract_model.AbstractT2RModel):
   def __init__(self,
                scene_size,
                goal_size,
+               embedding_loss_fn=losses.NPairsLoss,
                **kwargs):
     """Initialize the model.
 
     Args:
       scene_size: 2-Tuple of ints specifying height, width of image input.
       goal_size: 2-Tuple of ints specifying height, widt of goal image input.
+      embedding_loss_fn: NPairsLoss or TripletLoss.
       **kwargs: Passed to parent (AbstractT2RModel) constructor.
     """
     self._scene_size = scene_size
     self._goal_size = goal_size
+    self._embedding_loss_fn = embedding_loss_fn
     super(Grasp2VecModel, self).__init__(**kwargs)
 
   def get_feature_specification(
@@ -210,12 +214,12 @@ class Grasp2VecModel(abstract_model.AbstractT2RModel):
                      mode,
                      config = None,
                      params = None):
-    npairs_loss = losses.NPairsLoss(
+    embed_loss = self._embedding_loss_fn(
         inference_outputs['pre_vector'],
         inference_outputs['goal_vector'],
-        inference_outputs['post_vector'], params)
-    train_outputs = {'npairs_loss': npairs_loss}
-    return npairs_loss, train_outputs
+        inference_outputs['post_vector'])
+    train_outputs = {'embed_loss': embed_loss}
+    return embed_loss, train_outputs
 
   def add_summaries(self,
                     features,

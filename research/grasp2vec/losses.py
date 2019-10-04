@@ -22,7 +22,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
+import gin
 import tensorflow as tf  # tf
 
 
@@ -52,6 +52,7 @@ def L2ArithmeticLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding,
                  lambda: tf.zeros(1, tf.float32))
 
 
+@gin.configurable
 def TripletLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding):
   """Uses semi-hard mining triplet loss.
 
@@ -155,19 +156,26 @@ def SendToZeroLoss(tensor, mask):
                  lambda: tf.zeros(1, tf.float32))
 
 
-def NPairsLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding, params):
+@gin.configurable
+def NPairsLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding,
+               non_negativity_constraint=False):
   """Uses npairs_loss in both directions.
 
   Args:
     pregrasp_embedding: Batch of embeddings of the pregrasp image
     goal_embedding: Batch of embeddings of the goal image
     postgrasp_embedding: Batch of embeddings of the postgrasp image
-    params: Parameters for loss. Currently unused.
+    non_negativity_constraint: If True, passes pre - post through ReLU to
+      represent valid set of objects. This is used to handle situations where
+      postgrasp embedding contains objects that are not contained in the
+      pregrasp embedding (e.g. object was dumped into the bin during the grasp).
   Returns:
     A scalar loss
   """
-  del params
   pair_a = pregrasp_embedding - postgrasp_embedding
+  if non_negativity_constraint:
+    pair_a = tf.nn.relu(pair_a)
+
   pair_b = goal_embedding
   labels = tf.range(pregrasp_embedding.shape[0], dtype=tf.int32)
   loss_1 = tf.contrib.losses.metric_learning.npairs_loss(
