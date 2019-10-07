@@ -113,10 +113,9 @@ def parallel_read(file_patterns,
         drop_remainder=True)
     dataset = parse_fn(dataset_)
     if filter_fn is not None:
-      dataset = dataset.apply(
-          tf.data.experimental.unbatch()).filter(filter_fn).batch(
-              batch_size=num_train_samples_per_task + num_val_samples_per_task,
-              drop_remainder=True)
+      dataset = dataset.unbatch().filter(filter_fn).batch(
+          batch_size=num_train_samples_per_task + num_val_samples_per_task,
+          drop_remainder=True)
     return dataset
 
   # Sample 1 example-set from each task (file). Dequeues one task's worth
