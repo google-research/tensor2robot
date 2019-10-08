@@ -83,7 +83,7 @@ class Policy(object):
   def global_step(self):
     """The global step the model was saved with."""
     if self._predictor is not None:
-      return self._predictor.model_version
+      return self._predictor.global_step
     return 0
 
   def sample_action(self, obs, explore_prob):
