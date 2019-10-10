@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """An abstract predictor to load tf models and expose a predict function."""
 
 from __future__ import absolute_import
@@ -21,22 +22,20 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+from typing import Dict, Optional, Text
 
 import numpy as np
-
+import six
 from tensor2robot.utils import tensorspec_utils
-from typing import Dict, Text, Optional
 
 
-class AbstractPredictor(object):
+class AbstractPredictor(six.with_metaclass(abc.ABCMeta, object)):
   """A predictor responsible to load a T2RModel and expose a predict function.
 
   The purpose of the predictor is to abstract model loading and running, e.g.
   using a raw session interface, a tensorflow predictor created from saved
   models or tensorflow 2.0 models.
   """
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def predict(self, features):

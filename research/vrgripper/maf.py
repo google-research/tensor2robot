@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Conditional density estimation with masked autoregressive flow.
 """
 
@@ -22,6 +23,7 @@ from __future__ import print_function
 
 import gin
 import numpy as np
+from six.moves import range
 import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions

@@ -90,7 +90,7 @@ def default_create_export_fn(
 class AsyncExportHookBuilder(hook_builder.HookBuilder):
   """Creates hooks for exporting for cpu and tpu for serving.
 
-  Arguments:
+  Attributes:
     export_dir: Directory to output the latest models.
     save_secs: Interval to save models, and copy the latest model from
       `export_dir` to `lagged_export_dir`.

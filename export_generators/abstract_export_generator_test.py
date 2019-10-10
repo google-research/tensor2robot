@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for tensor2robot.export_generator.sabstract_export_generator."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from six.moves import zip
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """The abstract base class for input generators."""
 
 from __future__ import absolute_import
@@ -23,15 +24,18 @@ from __future__ import print_function
 import abc
 import functools
 import inspect
+from typing import Callable, Optional, Text, Tuple, Union
+
 import gin
+import six
 from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
-from typing import Callable, Optional, Text, Tuple, Union
+
 
 
 @gin.configurable
-class AbstractInputGenerator(object):
+class AbstractInputGenerator(six.with_metaclass(abc.ABCMeta, object)):
   """The abstract input generator responsible for creating the input pipeline.
 
   The main functionality for exporting models both for serialized tf.Example
@@ -39,8 +43,6 @@ class AbstractInputGenerator(object):
   class. The dataset pipeline used for training has to be overwritten in
   respective subclasses.
   """
-
-  __metaclass__ = abc.ABCMeta
 
   def __init__(self, batch_size = 32):
     """Create an instance.
@@ -114,16 +116,25 @@ class AbstractInputGenerator(object):
       preprocess_fn: The function called during the input dataset generation to
         preprocess the data.
     """
+
     if isinstance(preprocess_fn, functools.partial):  # pytype: disable=wrong-arg-types
       # Note, we do not combine both conditions into one since
       # inspect.getargspec does not work for functools.partial objects.
       if 'mode' not in preprocess_fn.keywords:
         raise ValueError('The preprocess_fn mode has to be set if a partial'
                          'function has been passed.')
-    elif 'mode' in inspect.getargspec(preprocess_fn).args:
-      raise ValueError('The passed preprocess_fn has an open argument `mode`'
-                       'which should be patched by a closure or with '
-                       'functools.partial.')
+    else:
+      if six.PY3:
+        argspec = inspect.getfullargspec(preprocess_fn)
+        # first 4 element of fullspec corresponds to spec:
+        # https://docs.python.org/3.4/library/inspect.html
+        argspec = inspect.ArgSpec(*argspec[:4])
+      else:
+        argspec = inspect.getargspec(preprocess_fn)  # pylint: disable=deprecated-method
+      if 'mode' in argspec.args:
+        raise ValueError('The passed preprocess_fn has an open argument `mode`'
+                         'which should be patched by a closure or with '
+                         'functools.partial.')
 
     self._preprocess_fn = preprocess_fn
 

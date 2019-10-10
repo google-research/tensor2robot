@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """ResNet tower.
 """
 
@@ -21,10 +22,13 @@ from __future__ import division
 
 from __future__ import print_function
 
+from typing import List, Optional
+
 import gin
+from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
 import tensorflow as tf
-from typing import Optional, List
+
 slim = tf.contrib.slim
 
 
@@ -58,7 +62,7 @@ def _get_block_sizes(resnet_size):
   except KeyError:
     err = ('Could not find layers for selected Resnet size.\n'
            'Size received: {}; sizes allowed: {}.'.format(
-               resnet_size, choices.keys()))
+               resnet_size, list(choices.keys())))
     raise ValueError(err)
 
 

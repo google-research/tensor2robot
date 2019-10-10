@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Default input generators wrapping tfdata, metadata and replay buffer."""
 
 from __future__ import absolute_import
@@ -23,15 +24,15 @@ from __future__ import print_function
 import abc
 import json
 import os
+from typing import Dict, Optional, Text
+
 from absl import logging
 import gin
+import six
 from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
-
 import tensorflow as tf
-
-from typing import Dict, Optional, Text
 
 
 _TF_CONFIG_ENV = 'TF_CONFIG'
@@ -152,9 +153,10 @@ class MultiEvalRecordInputGenerator(DefaultRecordInputGenerator):
       raise ValueError('multi_eval_name not set in TF_CONFIG env variable')
 
 
-class GeneratorInputGenerator(abstract_input_generator.AbstractInputGenerator):
+class GeneratorInputGenerator(
+    six.with_metaclass(abc.ABCMeta,
+                       abstract_input_generator.AbstractInputGenerator)):
   """Class to use for constructing input generators from Python generator objects."""
-  __metaclass__ = abc.ABCMeta
 
   def __init__(self, sequence_length=None, **kwargs):
     self._sequence_length = sequence_length

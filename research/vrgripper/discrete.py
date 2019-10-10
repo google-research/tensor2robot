@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utility functions for vr gripper.
 
 Includes utils needed for discrete actions.
@@ -23,10 +24,12 @@ from __future__ import division
 
 from __future__ import print_function
 
+from typing import List, Optional
+
 import gin
 import numpy as np
+from six.moves import range
 import tensorflow as tf
-from typing import List, Optional
 
 slim = tf.contrib.slim
 

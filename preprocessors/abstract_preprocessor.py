@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """The abstract preprocessor, handling boilerplate validation."""
 
 from __future__ import absolute_import
@@ -21,23 +22,22 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+from typing import Any, Callable, Optional, Tuple
+
+import six
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
-
-from typing import Any, Callable, Optional, Tuple
 
 ModeKeys = tf.estimator.ModeKeys
 
 
-class AbstractPreprocessor(object):
+class AbstractPreprocessor(six.with_metaclass(abc.ABCMeta, object)):
   """A per example preprocessing function executed prior to the model_fn.
 
   Note, our preprocessor is invoked for a batch of features and labels.
   If the _preprocess_fn can only operate on batch_size one please use
   tf.map_fn as described in _preprocessor_fn.
   """
-
-  __metaclass__ = abc.ABCMeta
 
   def __init__(
       self,

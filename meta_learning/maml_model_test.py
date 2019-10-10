@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for robotics.learning.estimator_models.meta_learning.maml_model."""
 
 from __future__ import absolute_import
@@ -23,11 +24,13 @@ from __future__ import print_function
 import copy
 import functools
 import os
+from typing import Optional, Dict, Any, Text
 from absl import flags
 
 from absl.testing import parameterized
 import gin
 from tensor2robot.meta_learning import maml_model
+from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
@@ -50,12 +53,13 @@ class MockMetaInputGenerator(mocks.MockInputGenerator):
     self._num_condition_samples_per_task = num_condition_samples_per_task
     self._num_inference_samples_per_task = num_inference_samples_per_task
 
-  def set_specification_from_model(self, tf_model,
+  def set_specification_from_model(self,
+                                   t2r_model,
                                    mode):
     """See base class documentation."""
-    super(MockMetaInputGenerator, self).set_specification_from_model(
-        tf_model, mode)
-    self._meta_map_fn = tf_model.preprocessor.create_meta_map_fn(
+    super(MockMetaInputGenerator,
+          self).set_specification_from_model(t2r_model, mode)
+    self._meta_map_fn = t2r_model.preprocessor.create_meta_map_fn(
         self._num_condition_samples_per_task,
         self._num_inference_samples_per_task)
 
@@ -102,15 +106,16 @@ class MockMetaExportGenerator(mocks.MockExportGenerator):
     self._num_condition_samples_per_task = num_condition_samples_per_task
     self._num_inference_samples_per_task = num_inference_samples_per_task
 
-  def set_specification_from_model(self, tf_model):
+  def set_specification_from_model(self,
+                                   t2r_model):
     """See base class documentation."""
-    super(MockMetaExportGenerator, self).set_specification_from_model(tf_model)
+    super(MockMetaExportGenerator, self).set_specification_from_model(t2r_model)
     self._base_feature_spec = (
-        tf_model.preprocessor.base_preprocessor.get_in_feature_specification(
+        t2r_model.preprocessor.base_preprocessor.get_in_feature_specification(
             tf.estimator.ModeKeys.PREDICT))
     tensorspec_utils.assert_valid_spec_structure(self._base_feature_spec)
     self._base_label_spec = (
-        tf_model.preprocessor.base_preprocessor.get_in_label_specification(
+        t2r_model.preprocessor.base_preprocessor.get_in_label_specification(
             tf.estimator.ModeKeys.PREDICT))
     tensorspec_utils.assert_valid_spec_structure(self._base_label_spec)
 
@@ -170,8 +175,8 @@ class MockMetaExportGenerator(mocks.MockExportGenerator):
 
     return serving_input_receiver_fn
 
-  def create_serving_input_receiver_tf_example_fn(
-      self, params = None):
+  def create_serving_input_receiver_tf_example_fn(self,
+                                                  params = None):
     """Create a serving input receiver for tf_examples.
 
     Args:
@@ -303,7 +308,7 @@ class MAMLModelTest(parameterized.TestCase):
         tf.io.gfile.glob(
             os.path.join(export_dir, 'best_exporter_tf_example', '*'))[-1])
     self.assertCountEqual(['input_example_tensor'],
-                          tf_example_predictor_fn.feed_tensors.keys())
+                          list(tf_example_predictor_fn.feed_tensors.keys()))
 
 
 if __name__ == '__main__':

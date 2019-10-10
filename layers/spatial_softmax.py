@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """TensorFlow impl of Spatial Softmax layers. (spatial soft arg-max).
 
 TODO(T2R_CONTRIBUTORS) - consider replacing with contrib version.
@@ -24,6 +25,7 @@ from __future__ import print_function
 
 import gin
 import numpy as np
+from six.moves import range
 import tensorflow as tf
 import tensorflow_probability as tfp
 

@@ -36,7 +36,7 @@ MODE = tf.estimator.ModeKeys.PREDICT
 class DefaultExportGenerator(abstract_export_generator.AbstractExportGenerator):
   """Class to manage assets related to exporting a model.
 
-  Args:
+  Attributes:
     export_raw_receivers: Whether to export receiver_fns which do not have
       preprocessing enabled. This is useful for serving using Servo, in
       conjunction with client-preprocessing.

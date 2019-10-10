@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Interface to manage building hooks."""
 
 from __future__ import absolute_import
@@ -21,14 +22,14 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
-
-from tensor2robot.models import model_interface
-import tensorflow as tf  # tf
 from typing import List
 
+import six
+from tensor2robot.models import model_interface
+import tensorflow as tf  # tf
 
-class HookBuilder(object):
-  __metaclass__ = abc.ABCMeta
+
+class HookBuilder(six.with_metaclass(abc.ABCMeta, object)):
 
   @abc.abstractmethod
   def create_hooks(

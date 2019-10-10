@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """A predictor based on exported saved models."""
 
 from __future__ import absolute_import
@@ -22,6 +23,7 @@ from __future__ import print_function
 
 import os
 import time
+from typing import Callable, Dict, List, Optional, Text
 
 from absl import logging
 import gin
@@ -29,7 +31,6 @@ import numpy as np
 from tensor2robot.predictors import abstract_predictor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
-from typing import Dict, Callable, List, Text, Optional
 
 
 _BUSY_WAITING_SLEEP_TIME_IN_SECS = 10

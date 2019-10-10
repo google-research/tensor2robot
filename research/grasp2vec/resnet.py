@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Modified ResNet for Grasp2Vec.
 
 Note: for future uses of Grasp2Vec, please use `get_resnet50_spatial` instead
@@ -24,6 +25,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
 from tensor2robot.layers import resnet
 import tensorflow as tf

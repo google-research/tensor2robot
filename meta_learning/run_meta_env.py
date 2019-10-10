@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Stepping & evaluating meta-learning policies in a Gym environment.
 """
 
@@ -27,6 +28,7 @@ import os
 
 import gin
 import numpy as np
+from six.moves import range
 import tensorflow as tf
 
 

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utilities for exporting savedmodels."""
 
 from __future__ import absolute_import
@@ -23,12 +24,13 @@ from __future__ import print_function
 import abc
 import functools
 import os
-import gin
+from typing import Any, Dict, List, Optional, Text
 
+import gin
+import six
 from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
-from typing import Optional, Dict, Text, Any, List
 
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_log_pb2
@@ -37,16 +39,14 @@ MODE = tf.estimator.ModeKeys.PREDICT
 
 
 @gin.configurable
-class AbstractExportGenerator(object):
+class AbstractExportGenerator(six.with_metaclass(abc.ABCMeta, object)):
   """Class to manage assets related to exporting a model.
 
-  Args:
+  Attributes:
     export_raw_receivers: Whether to export receiver_fns which do not have
       preprocessing enabled. This is useful for serving using Servo, in
       conjunction with client-preprocessing.
   """
-
-  __metaclass__ = abc.ABCMeta
 
   def __init__(self, export_raw_receivers = False):
     self._export_raw_receivers = export_raw_receivers

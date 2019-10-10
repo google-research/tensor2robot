@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """TFModel abstract subclasses."""
 
 from __future__ import absolute_import
@@ -21,15 +22,14 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+from typing import Callable, Optional, Text
+
 from absl import flags
 import gin
 import six
-
 from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
-
-from typing import Optional, Text, Callable
 
 FLAGS = flags.FLAGS
 TRAIN = tf.estimator.ModeKeys.TRAIN
@@ -218,7 +218,7 @@ class CriticModel(abstract_model.AbstractT2RModel):
 
     if 'q_predicted' not in outputs:
       raise ValueError('For critic models q_predicted is a required key in '
-                       'outputs but is not in {}.'.format(outputs.keys()))
+                       'outputs but is not in {}.'.format(list(outputs.keys())))
 
     if self.use_summaries(params):
       tf.summary.histogram('q_t_predicted', outputs['q_predicted'])

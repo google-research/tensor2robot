@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for tensor2robot.layers.resnet."""
 
 from __future__ import absolute_import
@@ -21,6 +22,7 @@ from __future__ import print_function
 
 import functools
 from absl.testing import parameterized
+from six.moves import range
 from tensor2robot.layers import resnet
 import tensorflow as tf
 

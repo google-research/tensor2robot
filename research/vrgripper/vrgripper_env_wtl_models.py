@@ -13,14 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """T2R models for the Watch, Try, Learn experiments: https://arxiv.org/abs/1906.03352."""  # pylint: disable=line-too-long
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import print_function
 
+from typing import Any, Dict, Optional, Text, Tuple
+
 import gin
 import numpy as np
+from six.moves import range
 from tensor2robot.layers import mdn
 from tensor2robot.layers import tec
 from tensor2robot.layers import vision_layers
@@ -31,7 +35,6 @@ from tensor2robot.research.vrgripper import episode_to_transitions
 from tensor2robot.research.vrgripper import vrgripper_env_models
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
-from typing import Any, Dict, Optional, Text, Tuple
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
 PREDICT = tf.estimator.ModeKeys.PREDICT

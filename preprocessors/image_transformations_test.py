@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for tensor2robot image_transformations."""
 
 from __future__ import absolute_import
@@ -21,6 +22,7 @@ from __future__ import print_function
 
 from absl.testing import parameterized
 import numpy as np
+from six.moves import range
 from tensor2robot.preprocessors import image_transformations
 import tensorflow as tf  # tf
 

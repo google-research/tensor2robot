@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """The minimal T2RModel interface required by T2R infrastructure.
 
 # TODO(T2R_CONTRIBUTORS): Sunset this interface in favor of AbstractT2RModel.
@@ -32,10 +33,12 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+from typing import Any, Dict, Optional, Text, Union
+
+import six
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
-from typing import Any, Optional, Union, Text, Dict
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
 EVAL = tf.estimator.ModeKeys.EVAL
@@ -47,10 +50,8 @@ RunConfigType = Optional[
 ParamsType = Optional[Dict[Text, Any]]
 
 
-class ModelInterface(object):
+class ModelInterface(six.with_metaclass(abc.ABCMeta, object)):
   """A minimal T2RModel interface used by T2R infrastructure."""
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def get_feature_specification_for_packing(self, mode):

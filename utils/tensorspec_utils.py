@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Manipulating (nested) collections of TensorSpec objects."""
 
 from __future__ import absolute_import
@@ -21,14 +22,15 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+from typing import Any, Dict, List, Optional, Text, Union
 
 from absl import logging
-
 import numpy as np
 from six.moves import cPickle
+from six.moves import zip
 from tensor2robot.proto import t2r_pb2
 import tensorflow as tf
-from typing import Any, Dict, List, Optional, Text, Union
+
 from google.protobuf import text_format
 
 nest = tf.contrib.framework.nest
@@ -38,7 +40,7 @@ EXTRA_ASSETS_DIRECTORY = 'assets.extra'
 T2R_ASSETS_FILENAME = 't2r_assets.pbtxt'
 
 
-class ExtendedTensorSpec(TSPEC):
+class ExtendedTensorSpec(TSPEC, object):
   """Extension to TensorSpec to suport optional tensors and data formats.
 
   An ExtendedTensorSpec allows an API to describe the Tensors that it accepts or
@@ -47,10 +49,8 @@ class ExtendedTensorSpec(TSPEC):
   adds the additional fields is_optional and data_format.
   """
 
-  __slots__ = [
-      '_is_optional', '_is_sequence', '_is_extracted', '_data_format',
-      '_dataset_key', '_varlen_default_value'
-  ]
+  __slots__ = ('_is_optional', '_is_sequence', '_is_extracted', '_data_format',
+               '_dataset_key', '_varlen_default_value')
 
   def __init__(self,
                shape,
@@ -400,7 +400,7 @@ class TensorSpecStruct(collections.OrderedDict):
     Returns:
       A `shallow` dict copy of the current instance.
     """
-    return dict(self.items())
+    return dict(list(self.items()))
 
   @classmethod
   def from_proto(cls, tensor_spec_struct_proto):
@@ -455,7 +455,7 @@ class TensorSpecStruct(collections.OrderedDict):
 
     # In order to allow attribute like access we construct a hierarchy
     # of dicts from our flat version.
-    hierarchy = self._create_hierarchy(self.items())
+    hierarchy = self._create_hierarchy(list(self.items()))
 
     # In case a hierarchical key is passed, e.g. 'train/actions' we iterate
     # through the hierarchy.
@@ -1383,7 +1383,7 @@ def pack_flat_sequence_to_spec_structure(
                          flat_sequence_with_joined_string_paths))
 
   # We want to query our flat sequence by keys, hence, we convert it to a dict.
-  flat_sequence = dict(flat_sequence_with_joined_string_paths.items())
+  flat_sequence = dict(list(flat_sequence_with_joined_string_paths.items()))
 
   # Note, we will only need the actual tensors or tensor_specs not the keys.
   filtered_flat_sequence = []

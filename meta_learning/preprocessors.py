@@ -13,19 +13,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Specialized preprocessors for meta learning e.g. for MAML."""
 
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import print_function
+
+from typing import Optional, Text, Tuple
+
 import gin
+from six.moves import range
 from tensor2robot.meta_learning import meta_tfdata
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
 import tensorflow as tf
-
-from typing import Optional, Text, Tuple
 
 nest = tf.contrib.framework.nest
 TSpecStructure = utils.TensorSpecStruct
@@ -238,8 +241,8 @@ class MAMLPreprocessorV2(abstract_preprocessor.AbstractPreprocessor):
     if mode is None:
       raise ValueError('The mode should never be None.')
 
-    condition_feature = features.condition.features.values()[0]
-    inference_feature = features.inference.features.values()[0]
+    condition_feature = list(features.condition.features.values())[0]
+    inference_feature = list(features.inference.features.values())[0]
     # In order to unflatten the flattened examples later, we need to keep
     # track of the original shapes.
     num_condition_samples_per_task = (

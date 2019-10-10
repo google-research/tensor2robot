@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utility functions for providing input data to meta-learning algorithms."""
 
 from __future__ import absolute_import
@@ -164,9 +165,9 @@ def tile_val_mode(pair):
   Raises:
     ValueError: If num_train_samples does not match num_val_samples.
   """
-  train_tensor = utils.flatten_spec_structure(pair.train).values()[0]
+  train_tensor = list(utils.flatten_spec_structure(pair.train).values())[0]
   num_train_samples_per_task = train_tensor.shape.as_list()[1]
-  val_tensor = utils.flatten_spec_structure(pair.val).values()[0]
+  val_tensor = list(utils.flatten_spec_structure(pair.val).values())[0]
   num_val_samples_per_task = val_tensor.shape.as_list()[1]
   if num_train_samples_per_task != num_val_samples_per_task:
     raise ValueError('Flattening example and batch dimensions requires '

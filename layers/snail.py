@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Implementation of building blocks from https://arxiv.org/abs/1707.03141.
 
 Implementation here is designed to match pseudocode in the paper.
@@ -23,10 +24,11 @@ from __future__ import division
 
 from __future__ import print_function
 
-import numpy as np
-import tensorflow as tf
-
 from typing import Text
+
+import numpy as np
+from six.moves import range
+import tensorflow as tf
 
 layers = tf.contrib.layers
 

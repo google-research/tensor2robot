@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Policies that use predictors."""
 
 from __future__ import absolute_import
@@ -21,23 +22,22 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+from typing import Any, Optional, Text
 
 import gin
 import numpy as np
+import six
 from tensor2robot.models import critic_model
 from tensor2robot.models import regression_model
 from tensor2robot.predictors import abstract_predictor
 from tensor2robot.utils import cross_entropy
-from typing import Any, Optional, Text
 
 _BUSY_WAITING_SLEEP_TIME_IN_SECS = 10
 
 
 @gin.configurable
-class Policy(object):
+class Policy(six.with_metaclass(abc.ABCMeta, object)):
   """Base Policy class."""
-
-  __metaclass__ = abc.ABCMeta
 
   def __init__(
       self, predictor = None):

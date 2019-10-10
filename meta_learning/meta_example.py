@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utility function for dealing with meta-examples.
 """
 
@@ -21,10 +22,11 @@ from __future__ import division
 
 from __future__ import print_function
 
-import tensorflow as tf  # tf
 from typing import List
 from typing import Union
 
+import six
+import tensorflow as tf  # tf
 
 Example = Union[tf.train.Example, tf.train.SequenceExample]
 
@@ -51,7 +53,7 @@ def make_meta_example(
 def append_example(example, ep_example, prefix):
   """Add episode Example to Meta TFExample with a prefix."""
   context_feature_map = example.features.feature
-  for key, feature in ep_example.features.feature.iteritems():
+  for key, feature in six.iteritems(ep_example.features.feature):
     context_feature_map[prefix + '/' + key].CopyFrom(feature)
 
 
@@ -59,9 +61,9 @@ def append_sequence_example(meta_example, ep_example, prefix):
   """Add episode SequenceExample to the Meta SequenceExample with a prefix."""
   context_feature_map = meta_example.context.feature
   # Append context features.
-  for key, feature in ep_example.context.feature.iteritems():
+  for key, feature in six.iteritems(ep_example.context.feature):
     context_feature_map[prefix + '/' + key].CopyFrom(feature)
   # Append Sequential features.
   sequential_feature_map = meta_example.feature_lists.feature_list
-  for key, feature_list in ep_example.feature_lists.feature_list.iteritems():
+  for key, feature_list in six.iteritems(ep_example.feature_lists.feature_list):
     sequential_feature_map[prefix + '/' + key].CopyFrom(feature_list)

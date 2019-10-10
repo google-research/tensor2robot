@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """t2r_model abstract subclasses."""
 
 from __future__ import absolute_import
@@ -21,18 +22,17 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+from typing import Optional, Text
+
 from absl import flags
 import gin
 from gin.tf import utils as gin_utils
-
 from tensor2robot.models import abstract_model
 from tensor2robot.models import model_interface
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import tpu_preprocessor_wrapper
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
-
-from typing import Optional, Text
 
 FLAGS = flags.FLAGS
 TRAIN = tf.estimator.ModeKeys.TRAIN
@@ -190,7 +190,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
       elif isinstance(model_fn_results, dict):
         export_outputs = {}
         if len(model_fn_results) == 1:
-          name, output = model_fn_results.items()[0]
+          name, output = list(model_fn_results.items())[0]
           export_outputs[name] = tf.estimator.export.RegressionOutput(output)
         export_outputs[tf.saved_model.signature_constants
                        .DEFAULT_SERVING_SIGNATURE_DEF_KEY] = (

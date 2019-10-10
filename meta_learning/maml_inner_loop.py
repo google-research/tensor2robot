@@ -13,16 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Custom getter utilities to leverage existing models for MAML."""
 
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import print_function
-import gin
-import tensorflow as tf
 
-from typing import List, Mapping, Text, Tuple, Optional
+from typing import List, Mapping, Optional, Text, Tuple
+
+import gin
+from six.moves import zip
+import tensorflow as tf
 
 
 @gin.configurable
@@ -167,7 +170,7 @@ class MAMLInnerLoopGradientDescent(object):
     # The new cache will contain the updated variables.
     self._custom_getter_variable_cache = {}
 
-    variable_list = variable_cache_old.keys()
+    variable_list = list(variable_cache_old.keys())
     gradients = tf.gradients(
         [loss], [variable_cache_old[name] for name in variable_list])
     for name, gradient in zip(variable_list, gradients):

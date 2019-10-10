@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Meta-Learning TFModels.
 
 A standard TFModel encapsulates an `InputGenerator`, a `Preprocessor`, and a
@@ -28,6 +29,8 @@ from __future__ import division
 
 from __future__ import print_function
 
+from typing import Optional, Text
+
 from absl import logging
 import gin
 import numpy as np
@@ -36,8 +39,6 @@ from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
 import tensorflow as tf  # tf
-
-from typing import Optional, Text
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
 EVAL = tf.estimator.ModeKeys.EVAL
@@ -59,7 +60,7 @@ def select_mode(val_mode, train, val):
   train_dict = utils.flatten_spec_structure(train).to_dict()
   select_mode_fn = lambda train, val: tf.where(val_mode, x=val, y=train)
   return utils.TensorSpecStruct(
-      nest.map_structure(select_mode_fn, train_dict, val_dict).items())
+      list(nest.map_structure(select_mode_fn, train_dict, val_dict).items()))
 
 
 def _create_meta_spec(

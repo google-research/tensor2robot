@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """A generatic MAML model which can operate on any TFModel."""
 
 from __future__ import absolute_import
@@ -22,10 +23,12 @@ from __future__ import print_function
 
 import abc
 import copy
+from typing import Dict, Optional, Text, TypeVar
 
 from absl import logging
 import gin
 import six
+from six.moves import range
 from tensor2robot.meta_learning import maml_inner_loop
 from tensor2robot.meta_learning import meta_tfdata
 from tensor2robot.meta_learning import preprocessors
@@ -33,8 +36,6 @@ from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
 import tensorflow as tf  # tf
-
-from typing import Optional, Dict, Text, TypeVar
 
 
 # pylint: disable=invalid-name
@@ -212,8 +213,8 @@ class MAMLModel(abstract_model.AbstractT2RModel):
       # We flatten the features to infer the batch_size for parallel iterations.
       # The flattened TensorSpecStruct enables us to get the
       # first element of condition without knowning the name.
-      parallel_iterations = utils.flatten_spec_structure(
-          elems).values()[0].get_shape().as_list()[0]
+      parallel_iterations = list(utils.flatten_spec_structure(
+          elems).values())[0].get_shape().as_list()[0]
       # Use parallel execution per batch, if we don't know the batch_size we
       # use the standard.
       if parallel_iterations is None:
@@ -327,16 +328,16 @@ class MAMLModel(abstract_model.AbstractT2RModel):
     # We keep the full outputs such that we can simply call the
     # model_condition_fn of the base model.
     predictions.full_condition_output = (
-        utils.TensorSpecStruct(base_condition_output.items()))
+        utils.TensorSpecStruct(list(base_condition_output.items())))
 
     for pos, base_condition_output in enumerate(condition_output):
       predictions['full_condition_outputs/output_{}'.format(pos)] = (
-          utils.TensorSpecStruct(base_condition_output.items()))
+          utils.TensorSpecStruct(list(base_condition_output.items())))
 
     predictions.full_inference_output_unconditioned = (
-        utils.TensorSpecStruct(unconditioned_inference_output.items()))
+        utils.TensorSpecStruct(list(unconditioned_inference_output.items())))
     predictions.full_inference_output = (
-        utils.TensorSpecStruct(conditioned_inference_output.items()))
+        utils.TensorSpecStruct(list(conditioned_inference_output.items())))
     if self.use_summaries(params):
       for key, inference in predictions.items():
         tf.summary.histogram(key, inference)
@@ -349,11 +350,11 @@ class MAMLModel(abstract_model.AbstractT2RModel):
     if 'condition_output' not in predictions:
       raise ValueError(
           'The required condition_output is not in predictions {}.'.format(
-              predictions.keys()))
+              list(predictions.keys())))
     if 'inference_output' not in predictions:
       raise ValueError(
           'The required inference_output is not in predictions {}.'.format(
-              predictions.keys()))
+              list(predictions.keys())))
     return predictions
 
   @abc.abstractmethod

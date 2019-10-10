@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for robotics.learning.estimator_models.meta_learning.preprocessors."""
 
 from __future__ import absolute_import
@@ -22,6 +23,7 @@ from __future__ import print_function
 import functools
 from absl.testing import parameterized
 import numpy as np
+from six.moves import range
 from tensor2robot.meta_learning import preprocessors
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
@@ -205,8 +207,9 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
           [raw_meta_features, raw_meta_labels])
       ref_features, ref_labels = mock_tensors
 
-      self.assertEqual(np_raw_meta_features.condition.features.keys(),
-                       np_raw_meta_features.inference.features.keys())
+      self.assertEqual(
+          list(np_raw_meta_features.condition.features.keys()),
+          list(np_raw_meta_features.inference.features.keys()))
       for feature_name in np_raw_meta_features.condition.features.keys():
         np.testing.assert_array_almost_equal(
             np_raw_meta_features.condition.features[feature_name],
@@ -217,8 +220,9 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
             [num_condition_samples_per_task:batch_size])
 
       # The labels and the condition labels have to have the same keys.
-      self.assertEqual(np_raw_meta_features.condition.labels.keys(),
-                       np_raw_meta_labels.keys())
+      self.assertEqual(
+          list(np_raw_meta_features.condition.labels.keys()),
+          list(np_raw_meta_labels.keys()))
       for label_name in np_raw_meta_features.condition.labels.keys():
         np.testing.assert_array_almost_equal(
             np_raw_meta_features.condition.labels[label_name],
@@ -262,8 +266,9 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
           [raw_meta_features, raw_meta_labels])
       ref_features, ref_labels = mock_tensors
 
-      self.assertEqual(np_raw_meta_features.condition.features.keys(),
-                       np_raw_meta_features.inference.features.keys())
+      self.assertEqual(
+          list(np_raw_meta_features.condition.features.keys()),
+          list(np_raw_meta_features.inference.features.keys()))
 
       # The image has been resized. Therefore, we ensure that its shape is
       # correct. Note, we have to strip the outer and inner batch dimensions.
@@ -300,8 +305,9 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
           [num_condition_samples_per_task:inner_batch_size])
 
       # The labels and the condition labels have to have the same keys.
-      self.assertEqual(np_raw_meta_features.condition.labels.keys(),
-                       np_raw_meta_labels.keys())
+      self.assertEqual(
+          list(np_raw_meta_features.condition.labels.keys()),
+          list(np_raw_meta_labels.keys()))
       for label_name in np_raw_meta_features.condition.labels.keys():
         np.testing.assert_array_almost_equal(
             np_raw_meta_features.condition.labels[label_name][0],
@@ -330,13 +336,13 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
 
     flat_feature_spec = utils.flatten_spec_structure(feature_spec)
     self.assertLen(
-        metaexample_spec.keys(),
-        num_samples_in_task * len(flat_feature_spec.keys()))
+        list(metaexample_spec.keys()),
+        num_samples_in_task * len(list(flat_feature_spec.keys())))
 
     for key in flat_feature_spec:
       for i in range(num_samples_in_task):
         meta_example_key = key + '/{:d}'.format(i)
-        self.assertIn(meta_example_key, metaexample_spec.keys())
+        self.assertIn(meta_example_key, list(metaexample_spec.keys()))
         self.assertTrue(
             metaexample_spec[meta_example_key].name.startswith('condition_ep'))
 
@@ -401,13 +407,13 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
       ref_features, ref_labels = mock_tensors
 
       self.assertEqual(
-          np_raw_meta_features.condition.features.keys(),
-          np_raw_meta_features.inference.features.keys())
+          list(np_raw_meta_features.condition.features.keys()),
+          list(np_raw_meta_features.inference.features.keys()))
 
       # The labels and the condition labels have to have the same keys.
       self.assertEqual(
-          np_raw_meta_features.condition.labels.keys(),
-          np_raw_meta_labels.keys())
+          list(np_raw_meta_features.condition.labels.keys()),
+          list(np_raw_meta_labels.keys()))
 
       # The image has been resized. Therefore, we ensure that its shape is
       # correct. Note, we have to strip the outer and inner batch dimensions.

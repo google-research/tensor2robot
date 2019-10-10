@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """TFModel abstract subclasses."""
 
 from __future__ import absolute_import
@@ -22,20 +23,20 @@ from __future__ import print_function
 
 import abc
 import os
+from typing import Any, Callable, Dict, Optional, Text, Tuple, Union
+
 from absl import flags
 from absl import logging
 import gin
 from gin.tf import utils as gin_utils
 import numpy as np
-
+import six
 from tensor2robot.models import model_interface
 from tensor2robot.models import optimizers
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
-
-from typing import Any, Callable, Dict, Optional, Text, Tuple, Union
 
 FLAGS = flags.FLAGS
 TRAIN = tf.estimator.ModeKeys.TRAIN
@@ -145,7 +146,8 @@ class V2SummaryInitHook(tf.estimator.SessionRunHook):
 
 
 @gin.configurable
-class AbstractT2RModel(model_interface.ModelInterface):
+class AbstractT2RModel(
+    six.with_metaclass(abc.ABCMeta, model_interface.ModelInterface)):
   """Base class encapsulating a model_fn and metadata about input/output sizes.
 
   The `T2RModel` abstraction defines a `model_fn` method that can be constructed
@@ -157,7 +159,6 @@ class AbstractT2RModel(model_interface.ModelInterface):
   the raw input tensors is necessary please use a custom preprocessor.
 
   """
-  __metaclass__ = abc.ABCMeta
 
   def __init__(self,
                preprocessor_cls=None,

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for learning.estimator_models.meta_learning.maml_inner_loop."""
 
 from __future__ import absolute_import
@@ -20,6 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 from absl.testing import parameterized
+from six.moves import range
 from tensor2robot.meta_learning import maml_inner_loop
 import tensorflow as tf
 
@@ -209,11 +211,11 @@ class MAMLInnerLoopGradientDescentTest(
         # Again we know that the x sequence is converging, the loss might
         # not be go down monotonically due to the inner loop though.
         x_previous = sess.run(
-            maml_inner_loop_instance._variable_cache[0].values()[0])
-        for _ in xrange(10):
+            list(maml_inner_loop_instance._variable_cache[0].values())[0])
+        for _ in range(10):
           sess.run([train_op], feed_dict={features[COEFF_A]: [COEFF_A_VALUE]})
           x_new = sess.run(
-              maml_inner_loop_instance._variable_cache[0].values()[0])
+              list(maml_inner_loop_instance._variable_cache[0].values())[0])
           self.assertLess(x_new, x_previous)
           x_previous = x_new
 
@@ -262,11 +264,11 @@ class MAMLInnerLoopGradientDescentTest(
         # We know that the x sequence is converging, the loss might
         # not be go down monotonically due to the inner loop though.
         x_previous = sess.run(
-            maml_inner_loop_instance._variable_cache[0].values()[0])
+            list(maml_inner_loop_instance._variable_cache[0].values())[0])
         for _ in range(10):
           sess.run([train_op], feed_dict={features[COEFF_A]: [COEFF_A_VALUE]})
           x_new = sess.run(
-              maml_inner_loop_instance._variable_cache[0].values()[0])
+              list(maml_inner_loop_instance._variable_cache[0].values())[0])
           self.assertLess(x_new, x_previous)
           x_previous = x_new
 

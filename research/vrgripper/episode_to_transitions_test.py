@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for episodes_to_transitions."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from six.moves import range
 from tensor2robot.research.vrgripper import episode_to_transitions
 import tensorflow as tf
 

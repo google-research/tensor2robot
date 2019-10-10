@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Visualization utilities for models, mostly for tensorboard summaries.
 """
 
@@ -21,8 +22,12 @@ from __future__ import division
 from __future__ import print_function
 
 import colorsys
+
 import gin
 import numpy as np
+import six
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 
 try:
@@ -245,7 +250,7 @@ def _put_text(imgs, texts):
   for i in range(imgs.shape[0]):
     text = texts[i]
     if isinstance(text, bytes):
-      text = text.decode()
+      text = six.ensure_text(text)
     # You may need to adjust text size and position and size.
     # If your images are in [0, 255] range replace (0, 0, 1) with (0, 0, 255)
     result[i, :, :, :] = cv2.putText(

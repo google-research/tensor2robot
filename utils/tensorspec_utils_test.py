@@ -28,6 +28,7 @@ import pickle
 from absl.testing import parameterized
 
 import numpy as np
+from six.moves import zip
 from tensor2robot.utils import tensorspec_utils as utils
 import tensorflow as tf
 nest = tf.contrib.framework.nest

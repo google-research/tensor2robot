@@ -13,12 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Grasp2Vec T2R model."""
 
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import print_function
+
+from typing import Optional, Tuple
 
 import gin
 from tensor2robot.models import abstract_model
@@ -27,10 +30,7 @@ from tensor2robot.research.grasp2vec import losses
 from tensor2robot.research.grasp2vec import networks
 from tensor2robot.research.grasp2vec import visualization
 from tensor2robot.utils import tensorspec_utils
-
 import tensorflow as tf
-
-from typing import Optional, Tuple
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
 EVAL = tf.estimator.ModeKeys.EVAL
@@ -236,7 +236,7 @@ class Grasp2VecModel(abstract_model.AbstractT2RModel):
       return
     for key in ['pregrasp', 'postgrasp', 'goal']:
       feature_name = key + '_image'
-      if feature_name in features.keys():
+      if feature_name in list(features.keys()):
         tf.summary.image('image/%s' % key, features[feature_name])
     heatmaps = visualization.add_heatmap_summary(
         inference_outputs['goal_vector'], inference_outputs['pre_spatial'],
