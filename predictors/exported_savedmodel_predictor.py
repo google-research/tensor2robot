@@ -127,19 +127,12 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       True if a exported saved model has been loaded and False otherwise.
     """
     start_time = time.time()
-
     while time.time() - start_time < self._timeout:
-      # The exported saved models directory names are numbers (timestamp) which
-      # monotonically increase, meaning the largest directory name will contain
-      # the latest exported model. Lexicographical sorting will maintain this
-      # order.
-      model_dirs = sorted(
-          tf.io.gfile.glob(os.path.join(self._export_dir, '*')),
-          key=os.path.basename)
-      model_dirs = self._remove_invalid_model_dirs(model_dirs)
+      model_dir = self._latest_valid_model_dirs(
+          tf.io.gfile.glob(os.path.join(self._export_dir, '*')))
 
-      if len(model_dirs) >= 1:
-        logging.info('Found latest model at %s. ', model_dirs[-1])
+      if model_dir is not None:
+        logging.info('Found latest model at %s. ', model_dir)
         break
 
       logging.info('Waiting for an exported model to become available at %s.',
@@ -148,17 +141,17 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       # loop, we throttle checking for checkpoints.
       time.sleep(_BUSY_WAITING_SLEEP_TIME_IN_SECS)
 
-    if model_dirs is None or not model_dirs:
+    if model_dir is None:
       logging.warning('No checkpoint available after %s seconds.',
                       str(self._timeout))
       return False
 
-    if self._latest_export_dir == model_dirs[-1]:
+    if self._latest_export_dir == model_dir:
       # The latest model has already been loaded.
       return True
 
-    logging.info('Loading the latest model at %s. ', model_dirs[-1])
-    self._latest_export_dir = model_dirs[-1]
+    logging.info('Loading the latest model at %s. ', model_dir)
+    self._latest_export_dir = model_dir
     start_time_loading = time.time()
 
     # Note, loading from a saved model might require several attempts if
@@ -166,7 +159,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     while time.time() - start_time_loading < self._timeout:
       try:
         t2r_assets_file_path = os.path.join(
-            model_dirs[-1], tensorspec_utils.EXTRA_ASSETS_DIRECTORY,
+            model_dir, tensorspec_utils.EXTRA_ASSETS_DIRECTORY,
             tensorspec_utils.T2R_ASSETS_FILENAME)
         t2r_assets = tensorspec_utils.load_t2r_assets_to_file(
             t2r_assets_file_path)
@@ -183,7 +176,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
               'set global step %s.', str(self.global_step))
 
         self._predict_fn = tf.contrib.predictor.from_saved_model(
-            model_dirs[-1], config=self._tf_config)
+            model_dir, config=self._tf_config)
         model_global_step = self._predict_fn.session.run(
             self._predict_fn.graph.get_collection(tf.GraphKeys.GLOBAL_STEP))[0]
         if (model_global_step is not None and
@@ -197,7 +190,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       except ValueError as err:
         logging.warning(
             'Error loading model as %s:\n%s\nThe next attempt at loading the '
-            'latest model will be in %d seconds', model_dirs[-1], err,
+            'latest model will be in %d seconds', model_dir, err,
             _BUSY_WAITING_SLEEP_TIME_IN_SECS)
       # Since a checkpoint might be written by the tf model concurrently
       # this is a busy waiting loop.
@@ -241,8 +234,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     self.assert_is_loaded()
     return self._latest_export_dir
 
-  def _remove_invalid_model_dirs(self, model_dirs):
-    """Removes invalid exported saved model directories.
+  def _latest_valid_model_dirs(self, model_dirs):
+    """Returns the latest valid exported saved model directories.
 
     The exported saved models directory names are numbers (timestamp) which
     monotonically increase, meaning the largest directory name will contain
@@ -253,8 +246,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     directory names starting from the back.
 
     Args:
-      model_dirs: A list of all discovered, lexicographical sorted exported
-        model dirs.
+      model_dirs: A list of all discovered, exported model dirs with the
+        timestamp as the directory name.
 
     Returns:
       model_dirs: All discovered model dirs which are infact numbers and are
@@ -271,4 +264,10 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
           os.path.join(model_dir, tensorspec_utils.EXTRA_ASSETS_DIRECTORY))
       return model_dir_is_numeric and model_exists and assets_exists
 
-    return filter(_isvalid, model_dirs)
+    # The exported saved models directory names are numbers (timestamp) which
+    # monotonically increase, meaning the largest directory name will contain
+    # the latest exported model. Lexicographical sorting will maintain this
+    # order.
+    for model_dir in sorted(model_dirs, key=os.path.basename, reverse=True):
+      if _isvalid(model_dir):
+        return model_dir
