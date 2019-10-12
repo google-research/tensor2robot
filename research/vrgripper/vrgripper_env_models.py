@@ -133,9 +133,10 @@ class DefaultVRGripperPreprocessor(abstract_preprocessor.AbstractPreprocessor):
       for key, x in features.items():
         if x.dtype in FLOAT_DTYPES:
           features[key] = lmbda * x + (1-lmbda)*tf.reverse(x, axis=[0])
-      for key, x in labels.items():
-        if x.dtype in FLOAT_DTYPES:
-          labels[key] = lmbda * x + (1-lmbda)*tf.reverse(x, axis=[0])
+      if labels is not None:
+        for key, x in labels.items():
+          if x.dtype in FLOAT_DTYPES:
+            labels[key] = lmbda * x + (1 - lmbda) * tf.reverse(x, axis=[0])
     return features, labels
 
 

@@ -54,7 +54,8 @@ def append_example(example, ep_example, prefix):
   """Add episode Example to Meta TFExample with a prefix."""
   context_feature_map = example.features.feature
   for key, feature in six.iteritems(ep_example.features.feature):
-    context_feature_map[prefix + '/' + key].CopyFrom(feature)
+    context_feature_map[six.ensure_str(prefix) + '/' +
+                        six.ensure_str(key)].CopyFrom(feature)
 
 
 def append_sequence_example(meta_example, ep_example, prefix):
@@ -62,8 +63,10 @@ def append_sequence_example(meta_example, ep_example, prefix):
   context_feature_map = meta_example.context.feature
   # Append context features.
   for key, feature in six.iteritems(ep_example.context.feature):
-    context_feature_map[prefix + '/' + key].CopyFrom(feature)
+    context_feature_map[six.ensure_str(prefix) + '/' +
+                        six.ensure_str(key)].CopyFrom(feature)
   # Append Sequential features.
   sequential_feature_map = meta_example.feature_lists.feature_list
   for key, feature_list in six.iteritems(ep_example.feature_lists.feature_list):
-    sequential_feature_map[prefix + '/' + key].CopyFrom(feature_list)
+    sequential_feature_map[six.ensure_str(prefix) + '/' +
+                           six.ensure_str(key)].CopyFrom(feature_list)

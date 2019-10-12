@@ -19,12 +19,16 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import collections
+
 import gin
 import numpy as np
 from PIL import Image
+import six
 from six.moves import range
 import tensorflow as tf
+
 
 
 _bytes_feature = (

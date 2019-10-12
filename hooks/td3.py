@@ -49,7 +49,7 @@ class TD3Hooks(hook_builder.HookBuilder):
   `export_dir` contains the latest version of the model, `lagged_export_dir`
   contains a lagged version, delayed by one interval of `save_secs`.
 
-  Arguments:
+  Attributes:
     export_dir: Directory to output the latest models.
     lagged_export_dir: Directory containing a lagged version of SavedModels
     save_secs: Interval to save models, and copy the latest model from

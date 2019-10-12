@@ -56,7 +56,7 @@ def plot_labels(labels, max_label=1, predictions=None, name=''):
     pred_image = tf.reshape(predictions[:3], (1, 3, 4, 1))
     image2 = tf.concat([empty_image, pred_image, empty_image], axis=-1)
     image = tf.concat([image, image2], axis=1)
-  tf.summary.image('labels_' + name, image, max_outputs=1)
+  tf.summary.image('labels_' + six.ensure_str(name), image, max_outputs=1)
 
 
 def plot_distances(pregrasp, goal, postgrasp):
@@ -94,7 +94,8 @@ def add_heatmap_summary(feature_query, feature_map, name):
   tf.summary.image(name, heatmaps)
   shape = tf.shape(heatmaps)
   softmaxheatmaps = tf.nn.softmax(tf.reshape(heatmaps, (int(batch), -1)))
-  tf.summary.image(name + 'softmax', tf.reshape(softmaxheatmaps, shape))
+  tf.summary.image(
+      six.ensure_str(name) + 'softmax', tf.reshape(softmaxheatmaps, shape))
   return heatmaps
 
 

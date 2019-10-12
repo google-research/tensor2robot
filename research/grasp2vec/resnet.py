@@ -25,6 +25,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import six
 from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
 from tensor2robot.layers import resnet
@@ -449,7 +450,7 @@ class Model(object):
 
     if dtype in CASTABLE_TYPES:
       var = getter(name, shape, tf.float32, *args, **kwargs)
-      return tf.cast(var, dtype=dtype, name=name + '_cast')
+      return tf.cast(var, dtype=dtype, name=six.ensure_str(name) + '_cast')
     else:
       return getter(name, shape, dtype, *args, **kwargs)
 

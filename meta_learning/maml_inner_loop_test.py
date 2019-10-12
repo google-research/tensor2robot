@@ -152,8 +152,8 @@ class MAMLInnerLoopGradientDescentTest(
             labels=labels,
             inference_outputs=outputs)
         # Now we have variables cached in our custom getter cache.
-        self.assertGreater(
-            maml_inner_loop_instance._custom_getter_variable_cache, 0)
+        self.assertNotEmpty(
+            maml_inner_loop_instance._custom_getter_variable_cache)
 
         # Initially we have nothing in the variable cache.
         self.assertEmpty(maml_inner_loop_instance._variable_cache)

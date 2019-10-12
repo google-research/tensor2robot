@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Utilities for generating SavedModel exports based on AbstractT2RModels."""
 
 from __future__ import absolute_import
@@ -21,13 +22,14 @@ from __future__ import division
 from __future__ import print_function
 
 import copy
-import gin
+from typing import Any, Dict, Optional, Text
 
+import gin
+import six
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
 import tensorflow as tf
-from typing import Optional, Dict, Text, Any
 
 MODE = tf.estimator.ModeKeys.PREDICT
 
@@ -118,7 +120,8 @@ class DefaultExportGenerator(abstract_export_generator.AbstractExportGenerator):
       receiver_tensors = {}
       parse_tensors = {}
       for dataset_key in dataset_keys:
-        receiver_name = 'input_example_' + (dataset_key or 'tensor')
+        receiver_name = 'input_example_' + six.ensure_str(
+            (dataset_key or 'tensor'))
         parse_tensors[dataset_key] = tf.placeholder(
             dtype=tf.string, shape=[None], name=receiver_name)
         receiver_tensors[receiver_name] = parse_tensors[dataset_key]

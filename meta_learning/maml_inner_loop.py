@@ -24,6 +24,7 @@ from __future__ import print_function
 from typing import List, Mapping, Optional, Text, Tuple
 
 import gin
+import six
 from six.moves import zip
 import tensorflow as tf
 
@@ -91,7 +92,7 @@ class MAMLInnerLoopGradientDescent(object):
     except KeyError:
       with tf.variable_scope(
           'inner_learning_rates', reuse=tf.AUTO_REUSE, use_resource=True):
-        name = '_'.join(var_name.split('/')) + '_inner_lr'
+        name = '_'.join(six.ensure_str(var_name).split('/')) + '_inner_lr'
         learning_rate = tf.get_variable(
             name, shape=(), dtype=tf.float32,
             initializer=tf.initializers.constant(self._learning_rate))
@@ -102,7 +103,8 @@ class MAMLInnerLoopGradientDescent(object):
     """Add parameter summaries for the MAML inner loop."""
     if self._learn_inner_lr:
       for name, var in self._lr_cache.items():
-        tf.summary.scalar('inner_loop_learning_rates/' + name, var)
+        tf.summary.scalar('inner_loop_learning_rates/' + six.ensure_str(name),
+                          var)
     else:
       tf.summary.scalar('inner_loop_learning_rate',
                         tf.constant(self._learning_rate))

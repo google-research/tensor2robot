@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Tests for estimator_models.input_generators.default_input_generator."""
 
 from __future__ import absolute_import
@@ -21,7 +22,9 @@ from __future__ import print_function
 
 import json
 import os
+
 from absl.testing import absltest
+import six
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
@@ -137,8 +140,9 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
     input_generator = default_input_generator.FractionalRecordInputGenerator(
         file_fraction=fraction, file_patterns=file_patterns,
         batch_size=BATCH_SIZE)
-    self.assertEqual(len(input_generator._file_patterns.split(',')),
-                     int(fraction * num_files))
+    self.assertEqual(
+        len(six.ensure_str(input_generator._file_patterns).split(',')),
+        int(fraction * num_files))
 
   def test_random_dataset(self):
     input_generator = default_input_generator.DefaultRandomInputGenerator(

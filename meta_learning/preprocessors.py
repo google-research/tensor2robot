@@ -24,6 +24,7 @@ from __future__ import print_function
 from typing import Optional, Text, Tuple
 
 import gin
+import six
 from six.moves import range
 from tensor2robot.meta_learning import meta_tfdata
 from tensor2robot.preprocessors import abstract_preprocessor
@@ -308,7 +309,7 @@ def create_metaexample_spec(
     for i in range(num_samples_per_task):
       spec = model_spec[key]
       name_prefix = '{:s}_ep{:d}'.format(prefix, i)
-      new_name = name_prefix + '/' + spec.name
+      new_name = name_prefix + '/' + six.ensure_str(spec.name)
       meta_example_spec[key + '/{:}'.format(i)] = (
           utils.ExtendedTensorSpec.from_spec(
               spec, name=new_name))

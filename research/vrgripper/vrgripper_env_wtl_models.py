@@ -24,6 +24,7 @@ from typing import Any, Dict, Optional, Text, Tuple
 
 import gin
 import numpy as np
+import six
 from six.moves import range
 from tensor2robot.layers import mdn
 from tensor2robot.layers import tec
@@ -324,7 +325,7 @@ class VRGripperEnvSimpleTrialModel(abstract_model.AbstractT2RModel):
     if train_outputs is not None:
       eval_outputs = {}
       for key, value in train_outputs.items():
-        eval_outputs['mean_' + key] = tf.metrics.mean(value)
+        eval_outputs['mean_' + six.ensure_str(key)] = tf.metrics.mean(value)
       return eval_outputs
 
   def get_run_config(self):
@@ -542,7 +543,7 @@ class VRGripperEnvVisionTrialModel(abstract_model.AbstractT2RModel):
     if train_outputs is not None:
       eval_outputs = {}
       for key, value in train_outputs.items():
-        eval_outputs['mean_' + key] = tf.metrics.mean(value)
+        eval_outputs['mean_' + six.ensure_str(key)] = tf.metrics.mean(value)
       return eval_outputs
 
   def get_run_config(self):

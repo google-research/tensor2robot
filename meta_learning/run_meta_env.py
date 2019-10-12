@@ -28,6 +28,7 @@ import os
 
 import gin
 import numpy as np
+import six
 from six.moves import range
 import tensorflow as tf
 
@@ -169,7 +170,7 @@ def run_meta_env(env,
     elif hasattr(env, 'task_data') and hasattr(policy, 'adapt'):
       env_task_data = env.task_data
       for episode_name, episode_data in env_task_data.items():
-        if episode_name.startswith('condition_ep'):
+        if six.ensure_str(episode_name).startswith('condition_ep'):
           condition_data.append(episode_data)
       policy.adapt(copy.copy(condition_data))
 

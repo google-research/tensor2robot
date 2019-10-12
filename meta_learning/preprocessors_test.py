@@ -21,8 +21,10 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+
 from absl.testing import parameterized
 import numpy as np
+import six
 from six.moves import range
 from tensor2robot.meta_learning import preprocessors
 from tensor2robot.preprocessors import abstract_preprocessor
@@ -341,10 +343,11 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
 
     for key in flat_feature_spec:
       for i in range(num_samples_in_task):
-        meta_example_key = key + '/{:d}'.format(i)
+        meta_example_key = six.ensure_str(key) + '/{:d}'.format(i)
         self.assertIn(meta_example_key, list(metaexample_spec.keys()))
         self.assertTrue(
-            metaexample_spec[meta_example_key].name.startswith('condition_ep'))
+            six.ensure_str(metaexample_spec[meta_example_key].name).startswith(
+                'condition_ep'))
 
   def test_stack_intratask_episodes(self):
     feature_spec = TSpec()
@@ -441,7 +444,7 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
         for label_name in np_raw_meta_features.condition.labels.keys():
           np.testing.assert_array_almost_equal(
               np_raw_meta_labels[label_name][:, i, Ellipsis],
-              ref_labels[label_name + '/{:d}'.format(i)])
+              ref_labels[six.ensure_str(label_name) + '/{:d}'.format(i)])
 
 
 if __name__ == '__main__':
