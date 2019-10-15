@@ -521,6 +521,13 @@ def train_eval_model(
     if eval_spec.name is not None:
       params['eval_name'] = 'eval_{}'.format(eval_spec.name)
 
+      # This is a hack to address a chicken-and-egg problem. Essentially to get
+      # eval_spec we need to have an instance of estimator. To initialize the
+      # estimator though we need to pass params. Since estimator makes a deep
+      # copy of the params, hence there is no way to pass eval_name to the
+      # estimator unless we do the following hack!
+      estimator._params['eval_name'] = params['eval_name']  # pylint: disable=protected-access
+
   logging.info('gin operative configuration:')
   logging.info(gin.operative_config_str())
 
