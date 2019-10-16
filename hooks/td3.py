@@ -88,6 +88,8 @@ class TD3Hooks(hook_builder.HookBuilder):
       t2r_model,
       estimator,
   ):
+    if not self._export_dir and not self._lagged_export_dir:
+      return []
     self._export_generator.set_specification_from_model(t2r_model)
     warmup_requests_file = self._export_generator.create_warmup_requests_numpy(
         batch_sizes=self._batch_sizes_for_export,
