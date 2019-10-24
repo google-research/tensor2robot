@@ -61,7 +61,7 @@ class VariableLoggerHook(tf.train.SessionRunHook):
       variable_value = variable_value.ravel()
       logging.info('%s.mean = %s', variable.op.name, np.mean(variable_value))
       logging.info('%s.std = %s', variable.op.name, np.std(variable_value))
-      if self._max_variable_values:
-        variable_value = variable_value[:self._max_variable_values]
+      if self._max_num_variable_values:
+        variable_value = variable_value[:self._max_num_variable_values]
       logging.info('%s = %s', variable.op.name, variable_value)
     np.set_printoptions(**original)
