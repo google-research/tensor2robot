@@ -22,6 +22,7 @@ from __future__ import print_function
 
 import os
 import tempfile
+import time
 
 from absl import flags
 from absl import logging
@@ -551,9 +552,14 @@ def train_eval_model(
     # checkpoint for the next evaluation.
     for checkpoint_path in tf.contrib.training.checkpoints_iterator(
         estimator.model_dir):
+      backup_checkpoint_path = create_backup_checkpoint_for_eval(
+          checkpoint_path)
+      if backup_checkpoint_path is None:
+        logging.info('Skipping %s since no checkpoint copy could be created.',
+                     checkpoint_path)
       eval_result = estimator.evaluate(
           input_fn=eval_spec.input_fn,
-          checkpoint_path=checkpoint_path,
+          checkpoint_path=backup_checkpoint_path,
           steps=eval_steps,
           hooks=eval_spec.hooks,
           name=eval_spec.name)
@@ -566,8 +572,67 @@ def train_eval_model(
           exporter.export(
               estimator=estimator,
               export_path=export_path,
-              checkpoint_path=checkpoint_path,
+              checkpoint_path=backup_checkpoint_path,
               eval_result=eval_result,
               is_the_final_export=True)
   else:
     raise ValueError('Neither train nor eval was provided.')
+
+
+@gin.configurable
+def create_backup_checkpoint_for_eval(checkpoint_path,
+                                      max_num_copy_attempts = 10
+                                     ):
+  """Creates a backup of a checkpoint for evaluation.
+
+  Args:
+    checkpoint_path: The current checkpoint path which will be backed up.
+    max_num_copy_attempts: The maximum number of copy attempts.
+
+  Returns:
+    The backed up checkpoint path which will not be garbage collected but
+    deleted on the next backup checkpoint creation.
+  """
+  # The latest checkpoint might be written concurrently which is why a check
+  # and additional copy attempts are required.
+  for attempt in range(max_num_copy_attempts):
+    current_eval_checkpoint = os.path.join(
+        os.path.dirname(checkpoint_path), 'current_eval_checkpoint')
+    src_filenames = tf.io.gfile.glob(checkpoint_path + '*')
+
+    # Since files are written concurrently, it is important to check if there
+    # are tmp files in the filename which is by convention model..
+    is_valid_checkpoint = True
+    for src_filename in src_filenames:
+      if 'tmp' in os.path.basename(src_filename):
+        logging.info(
+            'Found filename with `tmp` %s and therefore waiting for '
+            'copying to be completed.', os.path.basename(src_filename))
+        is_valid_checkpoint = False
+
+    # A valid checkpoint path (version 2) contains a index file.
+    if not tf.io.gfile.exists(checkpoint_path + '.index'):
+      is_valid_checkpoint = False
+
+    if not is_valid_checkpoint:
+      logging.info(
+          'The current checkpoint_path %s is not valid yet, spleeping for 1 '
+          'second and trying again %s/%s', checkpoint_path, str(attempt),
+          str(max_num_copy_attempts))
+      time.sleep(1.0)
+      continue
+
+    # Cleanup the latest backup of the eval checkpoint.
+    if tf.io.gfile.exists(current_eval_checkpoint):
+      tf.io.gfile.rmtree(current_eval_checkpoint)
+    tf.io.gfile.makedirs(current_eval_checkpoint)
+    # Copy the checkpoint in question in order to ensure that how matter
+    # how long evaluation takes the checkpoint is still available.
+    # This is important since checkpoints are otherwise automatically garbage
+    # collected which results in export crashes.
+    for src_filename in src_filenames:
+      dest_filename = os.path.join(current_eval_checkpoint,
+                                   os.path.basename(src_filename))
+      tf.io.gfile.copy(src_filename, dest_filename)
+    return os.path.join(current_eval_checkpoint,
+                        os.path.basename(checkpoint_path))
