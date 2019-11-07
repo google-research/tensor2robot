@@ -75,7 +75,7 @@ def _model_output(inputs, data_format):
 
 
 def _get_resnet_scope():
-  scope = tf.get_variable_scope().name
+  scope = tf.get_default_graph().get_name_scope()
   if scope:
     scope += '/'
   return scope + 'resnet_model/'
