@@ -579,15 +579,18 @@ def train_eval_model(
     raise ValueError('Neither train nor eval was provided.')
 
 
-@gin.configurable
-def create_backup_checkpoint_for_eval(checkpoint_path,
-                                      max_num_copy_attempts = 10
-                                     ):
+@gin.configurable(blacklist=['checkpoint_path'])
+def create_backup_checkpoint_for_eval(
+    checkpoint_path,
+    max_num_copy_attempts = 10,
+    backup_checkpoint_folder_name = 'current_eval_checkpoint'
+):
   """Creates a backup of a checkpoint for evaluation.
 
   Args:
     checkpoint_path: The current checkpoint path which will be backed up.
     max_num_copy_attempts: The maximum number of copy attempts.
+    backup_checkpoint_folder_name: The folder to save the backup checkpoint.
 
   Returns:
     The backed up checkpoint path which will not be garbage collected but
@@ -597,7 +600,7 @@ def create_backup_checkpoint_for_eval(checkpoint_path,
   # and additional copy attempts are required.
   for attempt in range(max_num_copy_attempts):
     current_eval_checkpoint = os.path.join(
-        os.path.dirname(checkpoint_path), 'current_eval_checkpoint')
+        os.path.dirname(checkpoint_path), backup_checkpoint_folder_name)
     src_filenames = tf.io.gfile.glob(checkpoint_path + '*')
 
     # Since files are written concurrently, it is important to check if there
