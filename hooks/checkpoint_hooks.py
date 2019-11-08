@@ -26,6 +26,7 @@ import os
 
 from absl import logging
 import distutils.dir_util
+import six
 import tensorflow as tf  # tf
 from typing import Text, Callable, Optional, List
 
@@ -71,7 +72,7 @@ class CheckpointExportListener(tf.train.CheckpointSaverListener):
       num_versions: number of exports to keep. If unset, keep all exports.
     """
     self._export_fn = export_fn
-    self._export_dir = export_dir
+    self._export_dir = six.ensure_text(export_dir)
     tf.io.gfile.makedirs(self._export_dir)
     self._gc = None
     if num_versions:
@@ -84,7 +85,8 @@ class CheckpointExportListener(tf.train.CheckpointSaverListener):
 
   def after_save(self, session, global_step):
     logging.info('Exporting SavedModel at global_step %d', global_step)
-    exported_path = self._export_fn(self._export_dir, global_step)
+    exported_path = six.ensure_text(
+        self._export_fn(self._export_dir, global_step))
     logging.info('Saved model to %s', exported_path)
     if self._gc:
       self._gc.observe(exported_path)
@@ -165,6 +167,8 @@ class LaggedCheckpointListener(CheckpointExportListener):
     Returns:
       Destination path of the copied model.
     """
+    source_dir = six.ensure_text(source_dir)
+    destination = six.ensure_text(destination)
     basename = os.path.basename(source_dir)
     dest_base_dir = os.path.join(destination, basename)
     copy_fn(source_dir, dest_base_dir)
