@@ -607,9 +607,10 @@ def create_backup_checkpoint_for_eval(
     # are tmp files in the filename which is by convention model..
     is_valid_checkpoint = True
     for src_filename in src_filenames:
-      if 'tmp' in os.path.basename(src_filename):
+      if ('tmp' in os.path.basename(src_filename) or
+          'temp' in os.path.basename(src_filename)):
         logging.info(
-            'Found filename with `tmp` %s and therefore waiting for '
+            'Found filename with `tmp` or `temp` %s and therefore waiting for '
             'copying to be completed.', os.path.basename(src_filename))
         is_valid_checkpoint = False
 
