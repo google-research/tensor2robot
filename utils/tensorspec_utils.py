@@ -95,10 +95,15 @@ class ExtendedTensorSpec(TSPEC, object):
       dataset_key = ''
     self._dataset_key = dataset_key
     self._varlen_default_value = varlen_default_value
-    if self._varlen_default_value is not None and len(self.shape) != 1:
-      raise ValueError(
-          'VarLenFeatures are only supported for shapes of rank 1 ({}).'.format(
-              shape))
+    if self._varlen_default_value is not None:
+      if data_format is None and len(self.shape) != 1:
+        raise ValueError(
+            ('VarLenFeatures are only supported for shapes of rank 1 ({}) when '
+             'not using an image spec.').format(shape))
+      if data_format is not None and len(self.shape) != 4:
+        raise ValueError(
+            ('VarLenFeatures are only supported for shapes of rank 4 ({}) when '
+             'using an image spec.').format(shape))
 
   @classmethod
   def from_spec(cls,
@@ -1565,7 +1570,11 @@ def _get_feature(tensor_spec,
   else:
     cls = tf.FixedLenFeature
   if decode_images and is_encoded_image_spec(tensor_spec):
-    if len(tensor_spec.shape) > 3:
+    if varlen_default_value is not None:
+      # Contains a variable length list of images.
+      return cls(tf.string)
+    elif len(tensor_spec.shape) > 3:
+      # Contains a fixed length list of images.
       return cls((tensor_spec.shape[0]), tf.string)
     else:
       return cls((), tf.string)
@@ -1610,31 +1619,32 @@ def tensorspec_to_feature_dict(tensor_spec_struct, decode_images = True):
   return features, tensor_spec_dict
 
 
-def pad_sparse_tensor_to_spec_shape(
-    sparse_tensor,
-    tensor_spec):
-  """Pads a sparse tensor to the desired tensorspec shape.
+def pad_tensor_to_spec_shape(tensor,
+                             tensor_spec):
+  """Pads a sparse or dense tensor to the desired tensorspec shape.
 
   Args:
-    sparse_tensor: A sparse tensor, typically the result of dataset parsing.
-    tensor_spec: The corresponding tensor_spec for the sparse_tensor.
+    tensor: A tensor, typically the result of dataset parsing.
+    tensor_spec: The corresponding tensor_spec for the tensor.
 
   Returns:
     A dense tensor of the shape defined in the tensor_spec.
   """
   default_value = tf.cast(
       tf.constant(tensor_spec.varlen_default_value), dtype=tensor_spec.dtype)
-  tensor = tf.sparse.to_dense(sparse_tensor, default_value=default_value)
   batch_dim = tf.shape(tensor)[0]
   varlen_dim = tf.shape(tensor)[1]
   assert_length = tf.Assert(
       tf.less_equal(varlen_dim, tensor_spec.shape[0]), [varlen_dim])
   with tf.control_dependencies([assert_length]):
-    pad_length = tensor_spec.shape[-1] - varlen_dim
+    pad_length = tensor_spec.shape[0] - varlen_dim
     padding = tf.ones(
-        dtype=tensor.dtype, shape=[batch_dim, pad_length]) * default_value
-    tensor = tf.concat([tensor, padding], axis=-1)
-    return tf.reshape(tensor, [batch_dim, tensor_spec.shape[-1]])
+        dtype=tensor.dtype,
+        shape=[batch_dim, pad_length] +
+        tensor_spec.shape.as_list()[1:]) * default_value
+    tensor = tf.concat([tensor, padding], axis=1)
+    return tf.reshape(tensor, [batch_dim, tensor_spec.shape[0]] +
+                      tensor_spec.shape.as_list()[1:])
 
 
 def write_t2r_assets_to_file(t2r_assets, filename):

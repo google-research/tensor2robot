@@ -104,17 +104,15 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
       f = example.feature_lists.feature_list[image_seq_key].feature.add()
       img = TEST_IMAGE * i
       f.bytes_list.value.append(image.numpy_to_image_string(img, 'jpeg'))
-    writer = tf.python_io.TFRecordWriter(tfrecord_path)
-    writer.write(example.SerializeToString())
-    writer.close()
+    with tf.python_io.TFRecordWriter(tfrecord_path) as writer:
+      writer.write(example.SerializeToString())
 
   def _write_test_varlen_examples(self, data_of_lists, file_path):
-    writer = tf.python_io.TFRecordWriter(file_path)
-    for data in data_of_lists:
-      example = tf.train.Example()
-      example.features.feature['varlen'].int64_list.value.extend(data)
-      writer.write(example.SerializeToString())
-    writer.close()
+    with tf.python_io.TFRecordWriter(file_path) as writer:
+      for data in data_of_lists:
+        example = tf.train.Example()
+        example.features.feature['varlen'].int64_list.value.extend(data)
+        writer.write(example.SerializeToString())
 
   @parameterized.named_parameters(
       ('batch_size=1', 1),
@@ -140,6 +138,101 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
                           np.array([[1, 3, 3], [1, 2, 3]][:batch_size]))
       self.assertAllEqual([batch_size, 3], np_features.varlen.shape)
       # Check that images are equal.
+
+  def _write_test_varlen_images_examples(self, batch_of_list_of_encoded_images,
+                                         file_path):
+    with tf.python_io.TFRecordWriter(file_path) as writer:
+      for list_of_encoded_images in batch_of_list_of_encoded_images:
+        example = tf.train.Example()
+        for encoded_image in list_of_encoded_images:
+          example.features.feature['varlen_images'].bytes_list.value.append(
+              encoded_image)
+        writer.write(example.SerializeToString())
+
+  @parameterized.named_parameters(
+      ('batch_size=1', 1),
+      ('batch_size=2', 2),
+  )
+  def test_varlen_images_feature_spec(self, batch_size):
+    file_pattern = os.path.join(self.create_tempdir().full_path,
+                                'test.tfrecord')
+    image_width = 640
+    image_height = 512
+    padded_varlen_size = 3
+    maxval = 255  # Maximum value for byte-encoded image.
+    image_np = np.random.uniform(
+        size=(image_height, image_width), high=maxval).astype(np.int32)
+    png_encoded_image = image.numpy_to_image_string(image_np, 'png')
+    test_data = [[png_encoded_image], [png_encoded_image, png_encoded_image]]
+    self._write_test_varlen_images_examples(test_data, file_pattern)
+    feature_spec = tensorspec_utils.TensorSpecStruct()
+    feature_spec.varlen_images = tensorspec_utils.ExtendedTensorSpec(
+        shape=(padded_varlen_size, image_height, image_width, 1),
+        dtype=tf.uint8,
+        name='varlen_images',
+        data_format='png',
+        varlen_default_value=0)
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = tfdata.serialized_to_parsed(dataset, feature_spec, None)
+    features = dataset.make_one_shot_iterator().get_next()
+    # Check tensor shapes.
+    self.assertAllEqual(
+        [None, padded_varlen_size, image_height, image_width, 1],
+        features.varlen_images.get_shape().as_list())
+    with self.session() as session:
+      np_features = session.run(features)
+      black_image = np.zeros((image_height, image_width))
+      self.assertAllEqual(
+          np_features.varlen_images,
+          np.expand_dims(
+              np.stack([
+                  np.stack([image_np, black_image, black_image]),
+                  np.stack([image_np, image_np, black_image])
+              ])[:batch_size, :, :, :],
+              axis=-1))
+      self.assertAllEqual(
+          [batch_size, padded_varlen_size, image_height, image_width, 1],
+          np_features.varlen_images.shape)
+
+  @parameterized.named_parameters(
+      ('batch_size=1', 1),
+      ('batch_size=2', 2),
+  )
+  def test_varlen_images_feature_spec_raises(self, batch_size):
+    file_pattern = os.path.join(self.create_tempdir().full_path,
+                                'test.tfrecord')
+    image_width = 640
+    image_height = 512
+    padded_varlen_size = 3
+    maxval = 255  # Maximum value for byte-encoded image.
+    image_np = np.random.uniform(
+        size=(image_height, image_width), high=maxval).astype(np.int32)
+    image_with_invalid_size = np.ones((1024, 1280)) * 255
+    png_encoded_image = image.numpy_to_image_string(image_np, 'png')
+    png_encoded_image_with_invalid_size = image.numpy_to_image_string(
+        image_with_invalid_size, 'png')
+    test_data = [[png_encoded_image_with_invalid_size],
+                 [png_encoded_image, png_encoded_image_with_invalid_size]]
+    self._write_test_varlen_images_examples(test_data, file_pattern)
+    feature_spec = tensorspec_utils.TensorSpecStruct()
+    feature_spec.varlen_images = tensorspec_utils.ExtendedTensorSpec(
+        shape=(padded_varlen_size, image_height, image_width, 1),
+        dtype=tf.uint8,
+        name='varlen_images',
+        data_format='png',
+        varlen_default_value=0)
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = tfdata.serialized_to_parsed(dataset, feature_spec, None)
+    features = dataset.make_one_shot_iterator().get_next()
+    # Check tensor shapes.
+    self.assertAllEqual(
+        [None, padded_varlen_size, image_height, image_width, 1],
+        features.varlen_images.get_shape().as_list())
+    with self.session() as session:
+      with self.assertRaises(tf.errors.InvalidArgumentError):
+        session.run(features)
 
   @parameterized.named_parameters(
       ('batch_size=1', 1),

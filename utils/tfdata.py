@@ -410,18 +410,41 @@ def create_parse_tf_example_fn(feature_tspec,
       # The spatial + channel dimensions of a single image, assumed to be the
       # last 3 entries of the image feature's tensor spec.
       single_img_dims = tensor_spec_dict[key].shape[-3:]
+      num_channels = single_img_dims[2]
 
       # Collapse (possibly multiple) batch dims to a single batch dim for
       # decoding purposes.
       raw_bytes = tf.reshape(raw_bytes, [-1])
+
+      def _decode_images(image_bytes):
+        image = tf.cond(
+            tf.equal(image_bytes, ''),
+            lambda: tf.zeros(single_img_dims, dtype=tf.uint8),
+            lambda: tf.image.decode_image(image_bytes, channels=num_channels))
+        image.set_shape([None, None, None])
+        return image
+
       img = tf.map_fn(
-          tf.image.decode_image, raw_bytes, dtype=tf.uint8, back_prop=False)
+          _decode_images, raw_bytes, dtype=tf.uint8, back_prop=False)
       img.set_shape(raw_bytes.shape.concatenate(single_img_dims))
 
       # Expand the collapsed batch dim back to the original img_batch_dims.
       img = tf.reshape(img, tf.concat([img_batch_dims, single_img_dims], 0))
 
       return img
+
+    # Convert all sparse tensors to dense tensors.
+    for key, val in parsed_tensors.items():
+      tensor_spec = tensor_spec_dict[key]
+      if tensor_spec.varlen_default_value is not None:
+        if tensorspec_utils.is_encoded_image_spec(tensor_spec):
+          default_value = ''
+        else:
+          default_value = tf.cast(
+              tf.constant(tensor_spec.varlen_default_value),
+              dtype=tensor_spec.dtype)
+        parsed_tensors[key] = tf.sparse.to_dense(
+            val, default_value=default_value)
 
     # Ensure that all images are properly decoded.
     for key, val in parsed_tensors.items():
@@ -436,7 +459,7 @@ def create_parse_tf_example_fn(feature_tspec,
     for key, val in parsed_tensors.items():
       tensor_spec = tensor_spec_dict[key]
       if tensor_spec.varlen_default_value is not None:
-        parsed_tensors[key] = tensorspec_utils.pad_sparse_tensor_to_spec_shape(
+        parsed_tensors[key] = tensorspec_utils.pad_tensor_to_spec_shape(
             val, tensor_spec)
 
     # Ensure that we have a consistent ordered mapping despite the underlying

@@ -545,7 +545,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     self.assertEqual(desc.name, 'beep')
 
   def test_repr(self):
-    desc1 = utils.ExtendedTensorSpec([1],
+    desc1 = utils.ExtendedTensorSpec([1, 512, 640, 3],
                                      tf.float32,
                                      name='beep',
                                      is_optional=True,
@@ -553,8 +553,8 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
                                      varlen_default_value=1)
     self.assertEqual(
         repr(desc1),
-        "ExtendedTensorSpec(shape=(1,), dtype=tf.float32, name='beep', "
-        "is_optional=True, is_sequence=False, is_extracted=False, "
+        'ExtendedTensorSpec(shape=(1, 512, 640, 3), dtype=tf.float32, '
+        "name='beep', is_optional=True, is_sequence=False, is_extracted=False, "
         "data_format='jpeg', dataset_key='', varlen_default_value=1)")
     desc2 = utils.ExtendedTensorSpec([1, None], tf.int32, is_sequence=True)
     self.assertEqual(
@@ -698,7 +698,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
       writer.write(example.SerializeToString())
     writer.close()
 
-  def test_pad_sparse_tensor_to_spec_shape(self):
+  def test_pad_tensor_to_spec_shape(self):
     varlen_spec = utils.ExtendedTensorSpec(
         shape=(3,), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
     tmp_dir = self.create_tempdir().full_path
@@ -714,12 +714,38 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
 
     dataset = dataset.map(parse_fn)
     sparse_tensors = dataset.make_one_shot_iterator().get_next()['varlen']
-    tensor = utils.pad_sparse_tensor_to_spec_shape(sparse_tensors, varlen_spec)
+    default_value = tf.cast(
+        tf.constant(varlen_spec.varlen_default_value), dtype=varlen_spec.dtype)
+    tensor = utils.pad_tensor_to_spec_shape(
+        tf.sparse.to_dense(sparse_tensors, default_value), varlen_spec)
     with self.session() as sess:
       np_tensor = sess.run(tensor)
       self.assertAllEqual(np_tensor, np.array([[1, 3, 3], [1, 2, 3]]))
 
-  def test_pad_sparse_tensor_to_spec_shape_raises(self):
+  def test_pad_image_tensor_to_spec_shape(self):
+    varlen_spec = utils.ExtendedTensorSpec(
+        shape=(3, 2, 2, 1),
+        dtype=tf.uint8,
+        name='varlen',
+        data_format='png',
+        varlen_default_value=3.0)
+    test_data = [[
+        [[[1]] * 2] * 2,
+        [[[2]] * 2] * 2,
+    ]]
+    prepadded_tensor = tf.convert_to_tensor(test_data, dtype=varlen_spec.dtype)
+    tensor = utils.pad_tensor_to_spec_shape(prepadded_tensor, varlen_spec)
+    with self.session() as sess:
+      np_tensor = sess.run(tensor)
+      self.assertAllEqual(
+          np_tensor,
+          np.array([[
+              [[[1]] * 2] * 2,
+              [[[2]] * 2] * 2,
+              [[[3]] * 2] * 2,
+          ]]))
+
+  def test_pad_tensor_to_spec_shape_raises(self):
     varlen_spec = utils.ExtendedTensorSpec(
         shape=(3,), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
     tmp_dir = self.create_tempdir().full_path
@@ -737,16 +763,33 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
 
     dataset = dataset.map(parse_fn)
     sparse_tensors = dataset.make_one_shot_iterator().get_next()['varlen']
-    tensor = utils.pad_sparse_tensor_to_spec_shape(sparse_tensors, varlen_spec)
+    default_value = tf.cast(
+        tf.constant(varlen_spec.varlen_default_value), dtype=varlen_spec.dtype)
+    tensor = utils.pad_tensor_to_spec_shape(
+        tf.sparse.to_dense(sparse_tensors, default_value), varlen_spec)
     with self.session() as sess:
       with self.assertRaises(tf.errors.InvalidArgumentError):
         sess.run(tensor)
 
   def test_varlen_default_value_raise(self):
     with self.assertRaises(ValueError):
-      # This raises since only rank 1 tensors are supported for varlen.
+      # This raises since only rank 1 tensors are supported for varlen without
+      # images.
       utils.ExtendedTensorSpec(
-          shape=(3, 2), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
+          shape=(3, 2, 4, 1),
+          dtype=tf.int64,
+          name='varlen',
+          varlen_default_value=3.0)
+
+    with self.assertRaises(ValueError):
+      # This raises since only rank 4 tensors are supported for varlen with
+      # images.
+      utils.ExtendedTensorSpec(
+          shape=(3),
+          dtype=tf.int64,
+          name='varlen',
+          varlen_default_value=3.0,
+          data_format='png')
 
 
 if __name__ == '__main__':
