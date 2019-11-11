@@ -31,7 +31,6 @@ import tensorflow as tf
 from typing import Dict, List, Optional, Text, Tuple, Union
 
 
-
 nest = tf.contrib.framework.nest
 
 DATA_FORMAT = {
@@ -63,8 +62,7 @@ def get_batch_size(params, batch_size):
     logging.info(
         'The input_fn has a batch_size set through `params`, as '
         'well as in the input generator. These batch sizes do '
-        'not match. Using the batch size %d from params',
-        params_batch_size)
+        'not match. Using the batch size %d from params', params_batch_size)
     return params_batch_size
   return batch_size
 
@@ -92,9 +90,8 @@ def infer_data_format(file_patterns):
       data_format = key
 
   if data_format is None:
-    raise ValueError(
-        'Could not infer file record type from extension '
-        'of pattern "%s"' % file_patterns)
+    raise ValueError('Could not infer file record type from extension '
+                     'of pattern "%s"' % file_patterns)
   return data_format
 
 
@@ -205,8 +202,8 @@ def serialized_to_parsed(dataset,
   when we are pulling batches from Replay Buffer).
 
   Args:
-    dataset: tf.data.Dataset whose outputs are
-      Dict[dataset_key, serialized tf.Examples].
+    dataset: tf.data.Dataset whose outputs are Dict[dataset_key, serialized
+      tf.Examples].
     feature_tspec: Collection of TensorSpec designating how to extract features.
     label_tspec: Collection of TensorSpec designating how to extract labels.
     num_parallel_calls: (Optional.) A tf.int32 scalar tf.Tensor, representing
@@ -217,8 +214,7 @@ def serialized_to_parsed(dataset,
     tf.data.Dataset whose output is single (features, labels) tuple.
   """
   parse_tf_example_fn = create_parse_tf_example_fn(
-      feature_tspec=feature_tspec,
-      label_tspec=label_tspec)
+      feature_tspec=feature_tspec, label_tspec=label_tspec)
   dataset = dataset.map(
       map_func=parse_tf_example_fn, num_parallel_calls=num_parallel_calls)
   return dataset
@@ -231,10 +227,11 @@ def _get_sstable_proto_dict(*input_values):
     dequeued batches which could be 1-tuples or 2-tuples or dictionaries.
 
   Args:
-    *input_values: A (string tensor,) tuple if mapping from a
-      RecordIODataset or TFRecordDataset, or a (key, string tensor) tuple if
-      mapping from a SSTableDataset, or (Dict[dataset_key, values],) if
-      mapping from multiple datasets.
+    *input_values: A (string tensor,) tuple if mapping from a RecordIODataset or
+      TFRecordDataset, or a (key, string tensor) tuple if mapping from a
+      SSTableDataset, or (Dict[dataset_key, values],) if mapping from multiple
+      datasets.
+
   Returns:
     dict_extracted: dictionary mapping each sstable (or '' for singular) to the
       batch of string tensors for the corresponding serialized protos.
@@ -255,8 +252,7 @@ def _get_sstable_proto_dict(*input_values):
   return dict_extracted
 
 
-def create_parse_tf_example_fn(feature_tspec,
-                               label_tspec=None):
+def create_parse_tf_example_fn(feature_tspec, label_tspec=None):
   """Create a parse function for serialized tf.Example protos.
 
   Args:
@@ -271,14 +267,15 @@ def create_parse_tf_example_fn(feature_tspec,
       sample is expected to be the last one. If a dictionary of {key:
       serialized output} is passed, it will parse each dataset separately.
   """
+
   def parse_tf_example_fn(*input_values):
     """Maps string tensors (serialized TFExamples) to parsed tensors.
 
     Args:
-      *input_values: A (string tensor,) tuple if mapping from a
-        RecordIODataset or TFRecordDataset, or a (key, string tensor) tuple if
-        mapping from a SSTableDataset, or (Dict[dataset_key, values],) if
-        mapping from multiple datasets.
+      *input_values: A (string tensor,) tuple if mapping from a RecordIODataset
+        or TFRecordDataset, or a (key, string tensor) tuple if mapping from a
+        SSTableDataset, or (Dict[dataset_key, values],) if mapping from multiple
+        datasets.
 
     Returns:
       features: Collection of tensors conforming to feature_tspec.
@@ -298,9 +295,11 @@ def create_parse_tf_example_fn(feature_tspec,
       Args:
         example: TFExample
         spec_dict: Dictionary of feature name -> tf.FixedLenFeature
+
       Returns:
         Parsed feature map
       """
+
       def is_bfloat_feature(value):
         return value.dtype == tf.bfloat16
 
@@ -308,8 +307,8 @@ def create_parse_tf_example_fn(feature_tspec,
         """Maps bfloat16 to float32."""
         if is_bfloat_feature(value):
           if isinstance(value, tf.FixedLenFeature):
-            return tf.FixedLenFeature(value.shape, tf.float32,
-                                      default_value=value.default_value)
+            return tf.FixedLenFeature(
+                value.shape, tf.float32, default_value=value.default_value)
           elif isinstance(value, tf.VarLenFeature):
             return tf.VarLenFeature(
                 value.shape, tf.float32, default_value=value.default_value)
@@ -320,7 +319,8 @@ def create_parse_tf_example_fn(feature_tspec,
 
       # Change bfloat features to float32 for parsing.
       new_spec_dict = {
-          k: maybe_map_bfloat(v) for k, v in six.iteritems(spec_dict)}
+          k: maybe_map_bfloat(v) for k, v in six.iteritems(spec_dict)
+      }
       for k, v in six.iteritems(new_spec_dict):
         if v.dtype not in [tf.float32, tf.string, tf.int64]:
           raise ValueError('Feature specification with invalid data type for '
@@ -349,7 +349,8 @@ def create_parse_tf_example_fn(feature_tspec,
         for parse_name in sequence_features:
           del context_features[parse_name + '_length']
         result, sequence_result, feature_lengths = tf.io.parse_sequence_example(
-            example, context_features=context_features,
+            example,
+            context_features=context_features,
             sequence_features=sequence_features)
         result.update(sequence_result)
         # Augment the parsed tensors with feature length tensors.
@@ -358,7 +359,8 @@ def create_parse_tf_example_fn(feature_tspec,
       else:
         result = tf.parse_example(example, context_features)
       to_convert = [
-          k for k, v in six.iteritems(spec_dict) if is_bfloat_feature(v)]
+          k for k, v in six.iteritems(spec_dict) if is_bfloat_feature(v)
+      ]
 
       for c in to_convert:
         result[c] = tf.cast(result[c], tf.bfloat16)
@@ -409,8 +411,18 @@ def create_parse_tf_example_fn(feature_tspec,
       img_batch_dims = tf.shape(raw_bytes)
       # The spatial + channel dimensions of a single image, assumed to be the
       # last 3 entries of the image feature's tensor spec.
+      if len(tensor_spec_dict[key].shape) < 3:
+        raise ValueError(
+            'Shape of tensor spec for image feature "%s" must '
+            'be 3 dimensional (h, w, c), but is %s' %
+            (tensor_spec_dict[key].name, tensor_spec_dict[key].shape))
       single_img_dims = tensor_spec_dict[key].shape[-3:]
       num_channels = single_img_dims[2]
+      if num_channels not in [1, 3]:
+        raise ValueError(
+            'Last dimension of shape of tensor spec for image '
+            'feature "%s" must 1 or 3, but the shape is %s' %
+            (tensor_spec_dict[key].name, tensor_spec_dict[key].shape))
 
       # Collapse (possibly multiple) batch dims to a single batch dim for
       # decoding purposes.
@@ -418,8 +430,8 @@ def create_parse_tf_example_fn(feature_tspec,
 
       def _decode_images(image_bytes):
         image = tf.cond(
-            tf.equal(image_bytes, ''),
-            lambda: tf.zeros(single_img_dims, dtype=tf.uint8),
+            tf.equal(image_bytes,
+                     ''), lambda: tf.zeros(single_img_dims, dtype=tf.uint8),
             lambda: tf.image.decode_image(image_bytes, channels=num_channels))
         image.set_shape([None, None, None])
         return image
@@ -469,9 +481,10 @@ def create_parse_tf_example_fn(feature_tspec,
     # Using the flat spec structure we allow to map the same parsed_tensor
     # to multiple features or labels. Note, the spec structure ensures that
     # the corresponding tensorspecs are iddentical in such cases.
-    features = tensorspec_utils.TensorSpecStruct(
-        [(key, parsed_tensors[value.dataset_key + value.name])
-         for key, value in flat_feature_tspec.items()])
+    features = tensorspec_utils.TensorSpecStruct([
+        (key, parsed_tensors[value.dataset_key + value.name])
+        for key, value in flat_feature_tspec.items()
+    ])
 
     features = tensorspec_utils.validate_and_pack(
         flat_feature_tspec, features, ignore_batch=True)
@@ -480,9 +493,10 @@ def create_parse_tf_example_fn(feature_tspec,
       # spec structure.
       flat_label_tspec = tensorspec_utils.TensorSpecStruct(
           sorted(tensorspec_utils.flatten_spec_structure(label_tspec).items()))
-      labels = tensorspec_utils.TensorSpecStruct(
-          [(key, parsed_tensors[value.dataset_key + value.name])
-           for key, value in flat_label_tspec.items()])
+      labels = tensorspec_utils.TensorSpecStruct([
+          (key, parsed_tensors[value.dataset_key + value.name])
+          for key, value in flat_label_tspec.items()
+      ])
       labels = tensorspec_utils.validate_and_pack(
           flat_label_tspec, labels, ignore_batch=True)
       return features, labels
@@ -535,10 +549,7 @@ def grasping_input_fn_tmpl(
   dataset = tf.data.Dataset.zip(datasets)
   # Parse all datasets together.
   dataset = serialized_to_parsed(
-      dataset,
-      feature_spec,
-      label_spec,
-      num_parallel_calls=num_parallel_calls)
+      dataset, feature_spec, label_spec, num_parallel_calls=num_parallel_calls)
   if preprocess_fn is not None:
     # TODO(psanketi): Consider adding num_parallel calls here.
     dataset = dataset.map(preprocess_fn, num_parallel_calls=parallel_shards)
@@ -550,6 +561,7 @@ def grasping_input_fn_tmpl(
 def get_input_fn(feature_spec, label_spec, file_patterns, mode, batch_size,
                  preprocess_fn):
   """Input function for record-backed data."""
+
   def input_fn(params=None):
     """Input function passed to the Estimator API.
 
