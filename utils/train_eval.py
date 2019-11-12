@@ -630,7 +630,7 @@ def create_backup_checkpoint_for_eval(
     if tf.io.gfile.exists(current_eval_checkpoint):
       tf.io.gfile.rmtree(current_eval_checkpoint)
     tf.io.gfile.makedirs(current_eval_checkpoint)
-    # Copy the checkpoint in question in order to ensure that how matter
+    # Copy the checkpoint in question in order to ensure that no matter
     # how long evaluation takes the checkpoint is still available.
     # This is important since checkpoints are otherwise automatically garbage
     # collected which results in export crashes.
