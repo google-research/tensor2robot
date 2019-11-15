@@ -583,7 +583,8 @@ def train_eval_model(
 def create_backup_checkpoint_for_eval(
     checkpoint_path,
     max_num_copy_attempts = 10,
-    backup_checkpoint_folder_name = 'current_eval_checkpoint'
+    backup_checkpoint_folder_name = 'current_eval_checkpoint',
+    max_copy_attempts_per_file = 5,
 ):
   """Creates a backup of a checkpoint for evaluation.
 
@@ -591,6 +592,8 @@ def create_backup_checkpoint_for_eval(
     checkpoint_path: The current checkpoint path which will be backed up.
     max_num_copy_attempts: The maximum number of copy attempts.
     backup_checkpoint_folder_name: The folder to save the backup checkpoint.
+    max_copy_attempts_per_file: The maximum number of trials to copy each
+      individual file.
 
   Returns:
     The backed up checkpoint path which will not be garbage collected but
@@ -637,6 +640,60 @@ def create_backup_checkpoint_for_eval(
     for src_filename in src_filenames:
       dest_filename = os.path.join(current_eval_checkpoint,
                                    os.path.basename(src_filename))
-      tf.io.gfile.copy(src_filename, dest_filename)
+      if not save_copy(
+          src_filename, dest_filename, num_retries=max_copy_attempts_per_file):
+        # For some reason copying the file failed. It is saver to give up and
+        # skip this checkpoint.
+        return None
+
     return os.path.join(current_eval_checkpoint,
                         os.path.basename(checkpoint_path))
+
+
+def save_copy(src_filename,
+              dest_filename,
+              overwrite=False,
+              num_retries=3,
+              sleep_time=0.5):
+  """Copy a file while catching errors and retrying a set amount of times.
+
+  Args:
+    src_filename: Source file name.
+    dest_filename: Destination file name.
+    overwrite: Whether to overwrite an existing destination.
+    num_retries: Number of times to try again on failure.
+    sleep_time: Time to sleep between trials in seconds.
+
+  Returns:
+    True is no errors occured, False otherwise.
+  """
+  if tf.io.gfile.exists(dest_filename):
+    logging.warn('Could not copy file "%s" to "%s", because the destination'
+                 ' already exists.', src_filename, dest_filename)
+    return False
+
+  for _ in range(num_retries):
+    try:
+      logging.info('Copying %s to %s', src_filename, dest_filename)
+      tf.io.gfile.copy(src_filename, dest_filename, overwrite=overwrite)
+    except tf.errors.NotFoundError:
+      # This should not happen, but it does. tf.io.gfile.glob gave us a
+      # filename, but somehow it is not yet available anyway.
+      logging.warn('Copying %s to %s failed with NotFoundError',
+                   src_filename, dest_filename)
+      time.sleep(sleep_time)
+    except tf.errors.AlreadyExistsError:
+      # This should not happen, but it does. tf.io.gfile.exists said the
+      # destination did not exist right before, but now it did.
+      logging.warn('Copying %s to %s failed with AlreadyExistsError',
+                   src_filename, dest_filename)
+      return False
+    else:
+      break
+  else:
+    logging.warn(
+        'Could not copy file "%s", because source file was not found. ',
+        src_filename)
+    return False
+
+  return True
