@@ -471,7 +471,7 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None):
     for key, val in parsed_tensors.items():
       tensor_spec = tensor_spec_dict[key]
       if tensor_spec.varlen_default_value is not None:
-        parsed_tensors[key] = tensorspec_utils.pad_tensor_to_spec_shape(
+        parsed_tensors[key] = tensorspec_utils.pad_or_clip_tensor_to_spec_shape(
             val, tensor_spec)
 
     # Ensure that we have a consistent ordered mapping despite the underlying

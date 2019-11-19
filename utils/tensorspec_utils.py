@@ -77,7 +77,10 @@ class ExtendedTensorSpec(TSPEC, object):
       dataset_key: Optional key name of which dataset to pull this tensor from.
       varlen_default_value: Optional if a value other than None is provided
         the spec is assumed to be a VarLenFeature with the default value in the
-        corrensponding data type.
+        corrensponding data type. When using a VarLenFeature, the 0th index in
+        the shape corresponds to the length that the feature will be padded or
+        clipped to. When padded, the varlen_default_value will be used for
+        padding. When clipped, some data might be ignored.
 
     Raises:
       TypeError: If shape is not convertible to a `tf.TensorShape`, or dtype is
@@ -1619,32 +1622,58 @@ def tensorspec_to_feature_dict(tensor_spec_struct, decode_images = True):
   return features, tensor_spec_dict
 
 
-def pad_tensor_to_spec_shape(tensor,
-                             tensor_spec):
-  """Pads a sparse or dense tensor to the desired tensorspec shape.
+def pad_or_clip_tensor_to_spec_shape(
+    tensor, tensor_spec):
+  """Pads or clips a dense tensor to the desired `tensor_spec` shape.
+
+  Target range T for the 2nd index is given by tensor_spec.shape[0].
+
+  A [B, N, ...]-`tensor` is clipped to [B, 0..T-1, ...] for N > T and
+  right-padded to [B, T, ...]-shape for N <= T.
+
+  For example, these are the expected outputs when tensor_spec.shape = (3,),
+  tensor_spec.dtype=tf.float, and tensor_spec.varlen_default_value = 3.0:
+
+  Padding example:
+    tensor: tf.ragged.constant([[1], [1, 2]])
+    padded_or_clipped_tensor: tf.ragged.constant([[1, 3, 3], [1, 2, 3]])
+
+  Clipping example:
+    tensor: tf.ragged.constant([[1, 2, 3, 4]])
+    padded_or_clipped_tensor: tf.ragged.constant([[1, 2, 3]])
 
   Args:
     tensor: A tensor, typically the result of dataset parsing.
     tensor_spec: The corresponding tensor_spec for the tensor.
 
   Returns:
-    A dense tensor of the shape defined in the tensor_spec.
+    A tensor of the shape defined in the tensor_spec.
   """
+  # The cast is necessary so that the default_value dtype of the padded tensor
+  # matches that of the expected input/output tensor defined in the tensor_spec.
   default_value = tf.cast(
       tf.constant(tensor_spec.varlen_default_value), dtype=tensor_spec.dtype)
-  batch_dim = tf.shape(tensor)[0]
-  varlen_dim = tf.shape(tensor)[1]
-  assert_length = tf.Assert(
-      tf.less_equal(varlen_dim, tensor_spec.shape[0]), [varlen_dim])
-  with tf.control_dependencies([assert_length]):
+  batch_dim, varlen_dim = tf.unstack(tf.shape(tensor))[:2]
+
+  def _pad_or_clip_fn(tensor):
+    """Pads or clips the 0th index of single example in the batch."""
     pad_length = tensor_spec.shape[0] - varlen_dim
-    padding = tf.ones(
-        dtype=tensor.dtype,
-        shape=[batch_dim, pad_length] +
-        tensor_spec.shape.as_list()[1:]) * default_value
-    tensor = tf.concat([tensor, padding], axis=1)
-    return tf.reshape(tensor, [batch_dim, tensor_spec.shape[0]] +
-                      tensor_spec.shape.as_list()[1:])
+
+    def _pad_fn():
+      return tf.pad(
+          tensor, [(0, pad_length)] + [(0, 0)] * (len(tensor_spec.shape) - 1),
+          constant_values=default_value)
+
+    def _clip_fn():
+      assert tensor.shape.as_list()[1:] == tensor_spec.shape[1:]
+      return tf.slice(tensor, [0] * len(tensor_spec.shape), tensor_spec.shape)
+
+    return tf.cond(pad_length > 0, _pad_fn, _clip_fn)
+
+  padded_or_clipped_tensor = tf.map_fn(_pad_or_clip_fn, tensor)
+  return tf.reshape(padded_or_clipped_tensor,
+                    [batch_dim, tensor_spec.shape[0]] +
+                    tensor_spec.shape.as_list()[1:])
 
 
 def write_t2r_assets_to_file(t2r_assets, filename):

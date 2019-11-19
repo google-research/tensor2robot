@@ -698,16 +698,20 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
       writer.write(example.SerializeToString())
     writer.close()
 
-  def test_pad_tensor_to_spec_shape(self):
+  @parameterized.named_parameters(
+      ('does_padding', [[1], [1, 2]], [[1, 3, 3], [1, 2, 3]]),
+      ('does_clipping', [[1, 2, 3, 4]], [[1, 2, 3]]),
+      ('is_unchanged', [[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]]),
+  )
+  def test_pad_or_clip_tensor_to_spec_shape(self, input_data, expected_output):
     varlen_spec = utils.ExtendedTensorSpec(
         shape=(3,), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
     tmp_dir = self.create_tempdir().full_path
     file_path_padded_to_size_two = os.path.join(tmp_dir, 'size_two.tfrecord')
-    test_data = [[1], [1, 2]]
-    self._write_test_examples(test_data, file_path_padded_to_size_two)
+    self._write_test_examples(input_data, file_path_padded_to_size_two)
     dataset = tf.data.TFRecordDataset(
         filenames=tf.constant([file_path_padded_to_size_two]))
-    dataset = dataset.batch(len(test_data), drop_remainder=True)
+    dataset = dataset.batch(len(input_data), drop_remainder=True)
 
     def parse_fn(example):
       return tf.parse_example(example, {'varlen': tf.VarLenFeature(tf.int64)})
@@ -716,11 +720,11 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     sparse_tensors = dataset.make_one_shot_iterator().get_next()['varlen']
     default_value = tf.cast(
         tf.constant(varlen_spec.varlen_default_value), dtype=varlen_spec.dtype)
-    tensor = utils.pad_tensor_to_spec_shape(
+    tensor = utils.pad_or_clip_tensor_to_spec_shape(
         tf.sparse.to_dense(sparse_tensors, default_value), varlen_spec)
     with self.session() as sess:
       np_tensor = sess.run(tensor)
-      self.assertAllEqual(np_tensor, np.array([[1, 3, 3], [1, 2, 3]]))
+      self.assertAllEqual(np_tensor, np.array(expected_output))
 
   def test_pad_image_tensor_to_spec_shape(self):
     varlen_spec = utils.ExtendedTensorSpec(
@@ -734,7 +738,8 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
         [[[2]] * 2] * 2,
     ]]
     prepadded_tensor = tf.convert_to_tensor(test_data, dtype=varlen_spec.dtype)
-    tensor = utils.pad_tensor_to_spec_shape(prepadded_tensor, varlen_spec)
+    tensor = utils.pad_or_clip_tensor_to_spec_shape(prepadded_tensor,
+                                                    varlen_spec)
     with self.session() as sess:
       np_tensor = sess.run(tensor)
       self.assertAllEqual(
@@ -744,32 +749,6 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
               [[[2]] * 2] * 2,
               [[[3]] * 2] * 2,
           ]]))
-
-  def test_pad_tensor_to_spec_shape_raises(self):
-    varlen_spec = utils.ExtendedTensorSpec(
-        shape=(3,), dtype=tf.int64, name='varlen', varlen_default_value=3.0)
-    tmp_dir = self.create_tempdir().full_path
-    file_path_padded_to_size_two = os.path.join(tmp_dir, 'size_two.tfrecord')
-    # This will raise because the desired max shape is 3 but we create an
-    # example with shape 4.
-    test_data = [[1, 2, 3, 4]]
-    self._write_test_examples(test_data, file_path_padded_to_size_two)
-    dataset = tf.data.TFRecordDataset(
-        filenames=tf.constant([file_path_padded_to_size_two]))
-    dataset = dataset.batch(len(test_data), drop_remainder=True)
-
-    def parse_fn(example):
-      return tf.parse_example(example, {'varlen': tf.VarLenFeature(tf.int64)})
-
-    dataset = dataset.map(parse_fn)
-    sparse_tensors = dataset.make_one_shot_iterator().get_next()['varlen']
-    default_value = tf.cast(
-        tf.constant(varlen_spec.varlen_default_value), dtype=varlen_spec.dtype)
-    tensor = utils.pad_tensor_to_spec_shape(
-        tf.sparse.to_dense(sparse_tensors, default_value), varlen_spec)
-    with self.session() as sess:
-      with self.assertRaises(tf.errors.InvalidArgumentError):
-        sess.run(tensor)
 
   def test_varlen_default_value_raise(self):
     with self.assertRaises(ValueError):
