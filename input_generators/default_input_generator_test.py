@@ -23,7 +23,6 @@ from __future__ import print_function
 import json
 import os
 
-from absl.testing import absltest
 import six
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.utils import tensorspec_utils
@@ -156,4 +155,4 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  absltest.main()
+  tf.test.main()
