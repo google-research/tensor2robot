@@ -180,6 +180,11 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
     inference_outputs = self._t2r_model.inference_network_fn(
         features, labels, mode, config, params)
 
+    update_ops = None
+    if isinstance(inference_outputs, tuple):
+      update_ops = inference_outputs[1]
+      inference_outputs = inference_outputs[0]
+
     if mode == tf.estimator.ModeKeys.PREDICT:
       model_fn_results = self._t2r_model.create_export_outputs_fn(
           features, inference_outputs, mode, config, params)
@@ -220,10 +225,8 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
       # Create the tf.train.Optimizer.
       optimizer = get_cross_shard_optimizer(self._t2r_model.create_optimizer())
 
-      # Required for batch norm usage.
-      update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-      with tf.control_dependencies(update_ops):
-        train_op = self._t2r_model.create_train_op(train_loss, optimizer)
+      train_op = self._t2r_model.create_train_op(train_loss, optimizer,
+                                                 update_ops)
 
       self._t2r_model.add_summaries(features, labels, inference_outputs,
                                     train_loss, train_outputs, mode, config,

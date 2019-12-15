@@ -23,7 +23,7 @@ from __future__ import print_function
 
 import abc
 import os
-from typing import Any, Callable, Dict, Optional, Text, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Text, Tuple, Union
 
 from absl import flags
 from absl import logging
@@ -52,6 +52,9 @@ DictOrSpec = Union[Dict[Text, tf.Tensor], tensorspec_utils.TensorSpecStruct]
 ModelTrainOutputType = Union[tf.Tensor, Tuple[tf.Tensor, DictOrSpec]]
 ExportOutputType = Union[Dict[Text, tf.Tensor], Tuple[
     Dict[Text, tf.Tensor], Dict[Text, tf.estimator.export.PredictOutput]]]
+InferenceNetworkOutputsType = Union[DictOrSpec,
+                                    Tuple[DictOrSpec,
+                                          Optional[Sequence[tf.Tensor]]]]
 
 try:
   flags.DEFINE_string('master', '', 'Master for TPU RunConfig')
@@ -319,25 +322,33 @@ class AbstractT2RModel(
       mode: The mode for feature specifications
     """
 
-  def create_train_op(self, loss, optimizer):
+  def create_train_op(
+      self,
+      loss,
+      optimizer,
+      update_ops = None):
     """Create the train_op of from the loss obtained from model_train_fn.
 
     Args:
       loss: The loss we compute within model_train_fn.
       optimizer: An instance of `tf.train.Optimizer`.
+      update_ops: List of update ops to execute alongside the training op.
 
     Returns:
       train_op: Op for the training step.
     """
+    summarize_gradients = self._summarize_gradients
     if self.is_device_tpu:
       # TPUs don't support summaries up until now. Hence, we overwrite the user
       # provided summarize_gradients option to False.
       if self._summarize_gradients:
         logging.info('We cannot use summarize_gradients on TPUs.')
-      return tf.contrib.training.create_train_op(
-          loss, optimizer, summarize_gradients=False)
+      summarize_gradients = False
     return tf.contrib.training.create_train_op(
-        loss, optimizer, summarize_gradients=self._summarize_gradients)
+        loss,
+        optimizer,
+        summarize_gradients=summarize_gradients,
+        update_ops=update_ops)
 
   def maybe_init_from_checkpoint(self):
     """Optionally initialize the model from a checkpoint.
@@ -361,12 +372,13 @@ class AbstractT2RModel(
           self.__name__))
 
   @abc.abstractmethod
-  def inference_network_fn(self,
-                           features,
-                           labels,
-                           mode,
-                           config = None,
-                           params = None):
+  def inference_network_fn(
+      self,
+      features,
+      labels,
+      mode,
+      config = None,
+      params = None):
     """The inference network implementation.
 
     This creates the main network based on features.
@@ -660,6 +672,14 @@ class AbstractT2RModel(
           ignore_batch=True)
     inference_outputs = self.inference_network_fn(features, labels, mode,
                                                   config, params)
+    update_ops = None
+    if isinstance(inference_outputs, tuple):
+      if len(inference_outputs) != 2:
+        raise ValueError('Unknown output of inference_network_fn: '
+                         'tuple of length %d' % len(inference_outputs))
+      outputs = inference_outputs[0]
+      update_ops = inference_outputs[1]
+      inference_outputs = outputs
 
     if mode == tf.estimator.ModeKeys.PREDICT:
       model_fn_results = self.create_export_outputs_fn(
@@ -700,10 +720,7 @@ class AbstractT2RModel(
       # Create the tf.train.Optimizer.
       optimizer = self.create_optimizer()
 
-      # Required for batch norm usage.
-      update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-      with tf.control_dependencies(update_ops):
-        train_op = self.create_train_op(train_loss, optimizer)
+      train_op = self.create_train_op(train_loss, optimizer, update_ops)
 
       self.add_summaries(features, labels, inference_outputs, train_loss,
                          train_outputs, mode, config, params)

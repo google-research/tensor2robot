@@ -196,12 +196,13 @@ class CriticModel(abstract_model.AbstractT2RModel):
     return self._loss_function(
         labels=labels.reward, predictions=inference_outputs['q_predicted'])
 
-  def inference_network_fn(self,
-                           features,
-                           labels,
-                           mode,
-                           config = None,
-                           params = None):
+  def inference_network_fn(
+      self,
+      features,
+      labels,
+      mode,
+      config = None,
+      params = None):
     """See base class."""
     del labels
 
@@ -212,6 +213,11 @@ class CriticModel(abstract_model.AbstractT2RModel):
         config=config,
         params=params,
         reuse=tf.AUTO_REUSE)
+    if isinstance(outputs, tuple):
+      update_ops = outputs[1]
+      outputs = outputs[0]
+    else:
+      update_ops = None
 
     if not isinstance(outputs, dict):
       raise ValueError('The output of q_func is expected to be a dict.')
@@ -222,7 +228,7 @@ class CriticModel(abstract_model.AbstractT2RModel):
 
     if self.use_summaries(params):
       tf.summary.histogram('q_t_predicted', outputs['q_predicted'])
-    return outputs
+    return outputs, update_ops
 
   def model_train_fn(self,
                      features,

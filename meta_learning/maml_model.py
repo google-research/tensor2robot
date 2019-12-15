@@ -374,7 +374,7 @@ class MAMLModel(abstract_model.AbstractT2RModel):
     """
     return predictions
 
-  def create_train_op(self, loss, optimizer):
+  def create_train_op(self, loss, optimizer, update_ops=None):
     """Create meta-training op.
 
     MAMLModel has a configurable var_scope used to select which variables to
@@ -387,6 +387,7 @@ class MAMLModel(abstract_model.AbstractT2RModel):
     Args:
       loss: The loss we compute within model_train_fn.
       optimizer: An instance of `tf.train.Optimizer`.
+      update_ops: List of update ops to execute alongside the training op.
 
     Returns:
       train_op: Op for the training step.
@@ -395,17 +396,17 @@ class MAMLModel(abstract_model.AbstractT2RModel):
     if self._var_scope is not None:
       vars_to_train = [
           v for v in vars_to_train if v.op.name.startswith(self._var_scope)]
+    summarize_gradients = self._summarize_gradients
     if self.is_device_tpu:
       # TPUs don't support summaries up until now. Hence, we overwrite the user
       # provided summarize_gradients option to False.
       if self._summarize_gradients:
         logging.info('We cannot use summarize_gradients on TPUs.')
-      return tf.contrib.training.create_train_op(
-          loss, optimizer, variables_to_train=vars_to_train,
-          summarize_gradients=False)
+      summarize_gradients = False
     return tf.contrib.training.create_train_op(
         loss, optimizer, variables_to_train=vars_to_train,
-        summarize_gradients=self._summarize_gradients)
+        summarize_gradients=summarize_gradients,
+        update_ops=update_ops)
 
   def model_train_fn(self,
                      features,
