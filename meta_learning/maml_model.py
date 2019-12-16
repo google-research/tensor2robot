@@ -64,9 +64,9 @@ def pfor_map_fn(fn, elems):
   """
   def loop_fn(i):
     """Calls fn on the i'th entry of each tensor in `elems`."""
-    gathered_elems = tf.contrib.framework.nest.map_structure(lambda x: tf.gather(x, i), elems)
+    gathered_elems = tf.nest.map_structure(lambda x: tf.gather(x, i), elems)
     return fn(gathered_elems)
-  batch_size = tf.shape(tf.contrib.framework.nest.flatten(elems)[0])[0]
+  batch_size = tf.shape(tf.nest.flatten(elems)[0])[0]
   return tf.contrib.parallel_for.pfor(loop_fn, batch_size)
 
 

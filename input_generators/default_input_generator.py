@@ -191,11 +191,11 @@ class GeneratorInputGenerator(
       else:
         return [used_batch_size] + x.shape.as_list()
 
-    feature_dtypes = tf.contrib.framework.nest.map_structure(lambda x: x.dtype,
+    feature_dtypes = tf.nest.map_structure(lambda x: x.dtype,
                                            self._feature_spec)
-    feature_shapes = tf.contrib.framework.nest.map_structure(shape_transform, self._feature_spec)
-    label_dtypes = tf.contrib.framework.nest.map_structure(lambda x: x.dtype, self._label_spec)
-    label_shapes = tf.contrib.framework.nest.map_structure(shape_transform, self._label_spec)
+    feature_shapes = tf.nest.map_structure(shape_transform, self._feature_spec)
+    label_dtypes = tf.nest.map_structure(lambda x: x.dtype, self._label_spec)
+    label_shapes = tf.nest.map_structure(shape_transform, self._label_spec)
 
     dataset = tf.data.Dataset.from_generator(
         lambda: self._generator_fn(used_batch_size),

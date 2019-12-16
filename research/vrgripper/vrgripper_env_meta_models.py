@@ -116,7 +116,7 @@ def pack_vrgripper_meta_features(
   for i in range(num_condition_samples_per_task):
     pack_condition_features(prev_episode_data[i % len(prev_episode_data)], i)
   # Add meta-dim and type to everything.
-  return tf.contrib.framework.nest.map_structure(lambda x: np.expand_dims(x, 0), meta_features)
+  return tf.nest.map_structure(lambda x: np.expand_dims(x, 0), meta_features)
 
 
 @gin.configurable

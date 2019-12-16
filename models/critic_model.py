@@ -133,7 +133,7 @@ class CriticModel(abstract_model.AbstractT2RModel):
         return tensorspec_utils.ExtendedTensorSpec.from_spec(
             spec, shape=new_shape)
 
-      tiled_action_spec = tf.contrib.framework.nest.map_structure(_expand_spec,
+      tiled_action_spec = tf.nest.map_structure(_expand_spec,
                                                 self.get_action_specification())
 
       return tensorspec_utils.TensorSpecStruct(
