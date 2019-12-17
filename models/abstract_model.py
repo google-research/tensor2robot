@@ -43,8 +43,8 @@ TRAIN = tf.estimator.ModeKeys.TRAIN
 EVAL = tf.estimator.ModeKeys.EVAL
 PREDICT = tf.estimator.ModeKeys.PREDICT
 
-RunConfigType = Optional[
-    Union[tf.estimator.RunConfig, tf.contrib.tpu.RunConfig]]
+RunConfigType = Optional[Union[tf.estimator.RunConfig,
+                               tf.contrib.tpu.RunConfig]]
 ParamsType = Optional[Dict[Text, Any]]
 
 DictOrSpec = Union[Dict[Text, tf.Tensor], tensorspec_utils.TensorSpecStruct]
@@ -208,10 +208,10 @@ class AbstractT2RModel(
     self._optimizer = None  # type: Optional[tf.train.Optimizer]
     self._scaffold_fn = tf.train.Scaffold
 
-  def create_pack_features(self,
-                           feature_spec,
-                           label_spec
-                          ):
+  def create_pack_features(
+      self, feature_spec,
+      label_spec
+  ):
     """Creates a callable function which packs features for model inference.
 
     Note, it is important that this function is very much independent of the
@@ -235,8 +235,8 @@ class AbstractT2RModel(
     """Returns the feature_spec that create_pack_features expects."""
     return self.preprocessor.get_in_feature_specification(mode)
 
-  def get_label_specification_for_packing(self, mode
-                                         ):
+  def get_label_specification_for_packing(
+      self, mode):
     """Returns the label_spec that create_pack_features expects."""
     return self.preprocessor.get_in_label_specification(mode)
 
@@ -311,8 +311,8 @@ class AbstractT2RModel(
     """
 
   @abc.abstractmethod
-  def get_label_specification(self, mode
-                             ):
+  def get_label_specification(
+      self, mode):
     """Required labels for the model_fn/model_train_fn/model_eval_fn.
 
     Note, the model_fn might use additional labels for debugging/development
@@ -326,13 +326,16 @@ class AbstractT2RModel(
       self,
       loss,
       optimizer,
-      update_ops = None):
+      update_ops = None,
+      train_outputs = None):
     """Create the train_op of from the loss obtained from model_train_fn.
 
     Args:
       loss: The loss we compute within model_train_fn.
       optimizer: An instance of `tf.train.Optimizer`.
       update_ops: List of update ops to execute alongside the training op.
+      train_outputs: (Optional) A dict with additional tensors the training
+        model generates.
 
     Returns:
       train_op: Op for the training step.
@@ -682,8 +685,9 @@ class AbstractT2RModel(
       inference_outputs = outputs
 
     if mode == tf.estimator.ModeKeys.PREDICT:
-      model_fn_results = self.create_export_outputs_fn(
-          features, inference_outputs, mode, config, params)
+      model_fn_results = self.create_export_outputs_fn(features,
+                                                       inference_outputs, mode,
+                                                       config, params)
       export_outputs = None
       if isinstance(model_fn_results, tuple):
         predictions = model_fn_results[0]
@@ -720,7 +724,8 @@ class AbstractT2RModel(
       # Create the tf.train.Optimizer.
       optimizer = self.create_optimizer()
 
-      train_op = self.create_train_op(train_loss, optimizer, update_ops)
+      train_op = self.create_train_op(train_loss, optimizer, update_ops,
+                                      train_outputs)
 
       self.add_summaries(features, labels, inference_outputs, train_loss,
                          train_outputs, mode, config, params)
@@ -819,6 +824,7 @@ class AbstractT2RModel(
         saver = optimizers.create_swapping_saver(optimizer)
         tf.add_to_collection(tf.GraphKeys.SAVERS, saver)
         return tf.train.Scaffold(saver=saver)
+
       self._scaffold_fn = create_swapping_saver_scaffold
     if (self._use_sync_replicas_optimizer and (not self.is_device_tpu) and
         config is not None and config.num_worker_replicas > 1):

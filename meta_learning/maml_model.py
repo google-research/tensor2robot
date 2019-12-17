@@ -375,7 +375,11 @@ class MAMLModel(abstract_model.AbstractT2RModel):
     """
     return predictions
 
-  def create_train_op(self, loss, optimizer, update_ops=None):
+  def create_train_op(self,
+                      loss,
+                      optimizer,
+                      update_ops=None,
+                      train_outputs=None):
     """Create meta-training op.
 
     MAMLModel has a configurable var_scope used to select which variables to
@@ -389,6 +393,8 @@ class MAMLModel(abstract_model.AbstractT2RModel):
       loss: The loss we compute within model_train_fn.
       optimizer: An instance of `tf.train.Optimizer`.
       update_ops: List of update ops to execute alongside the training op.
+      train_outputs: (Optional) A dict with additional tensors the training
+        model generates.
 
     Returns:
       train_op: Op for the training step.

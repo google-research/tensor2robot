@@ -226,7 +226,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
       optimizer = get_cross_shard_optimizer(self._t2r_model.create_optimizer())
 
       train_op = self._t2r_model.create_train_op(train_loss, optimizer,
-                                                 update_ops)
+                                                 update_ops, train_outputs)
 
       self._t2r_model.add_summaries(features, labels, inference_outputs,
                                     train_loss, train_outputs, mode, config,
