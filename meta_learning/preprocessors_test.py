@@ -30,9 +30,9 @@ from tensor2robot.meta_learning import preprocessors
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
 import tensorflow as tf
+from tensorflow.contrib import framework as contrib_framework
 
-
-nest = tf.contrib.framework.nest
+nest = contrib_framework.nest
 
 TSpec = utils.TensorSpecStruct
 

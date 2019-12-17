@@ -28,8 +28,10 @@ import gin
 from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
 import tensorflow as tf
+from tensorflow.contrib import framework as contrib_framework
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def _get_block_sizes(resnet_size):
@@ -201,7 +203,7 @@ def resnet_model(images,
     # optimization-specific variables (e.g. Momentum, Adam Beta).
     assignment_map = {}
     resnet_scope = _get_resnet_scope()
-    for var in tf.contrib.framework.get_variables(
+    for var in contrib_framework.get_variables(
         scope=resnet_scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
       if 'dense' not in var.op.name:
         # Remove the parent scope prefix.

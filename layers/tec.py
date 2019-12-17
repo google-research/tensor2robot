@@ -23,8 +23,8 @@ import gin
 from tensor2robot.layers import vision_layers
 import tensorflow as tf  # tf
 from typing import Optional, Text, Tuple
-
-slim = tf.contrib.slim
+from tensorflow.contrib import layers
+from tensorflow.contrib import losses as contrib_losses
 
 
 def embed_fullstate(
@@ -42,10 +42,10 @@ def embed_fullstate(
     A rank 2 tensor: [N, embed_size].
   """
   with tf.variable_scope(scope, reuse=reuse, use_resource=True):
-    embedding = slim.stack(
-        fullstate, slim.fully_connected, fc_layers,
-        activation_fn=tf.nn.relu, normalizer_fn=slim.layer_norm)
-    embedding = slim.fully_connected(
+    embedding = layers.stack(
+        fullstate, layers.fully_connected, fc_layers,
+        activation_fn=tf.nn.relu, normalizer_fn=layers.layer_norm)
+    embedding = layers.fully_connected(
         embedding, embed_size, activation_fn=None)
   return embedding
 
@@ -76,13 +76,13 @@ def embed_condition_images(
     image_embedding, _ = vision_layers.BuildImagesToFeaturesModel(
         condition_image)
     if fc_layers is not None:
-      image_embedding = slim.stack(
+      image_embedding = layers.stack(
           image_embedding,
-          slim.fully_connected,
+          layers.fully_connected,
           fc_layers[:-1],
           activation_fn=tf.nn.relu,
-          normalizer_fn=slim.layer_norm)
-      image_embedding = slim.fully_connected(
+          normalizer_fn=layers.layer_norm)
+      image_embedding = layers.fully_connected(
           image_embedding, fc_layers[-1], activation_fn=None)
   return image_embedding
 
@@ -120,15 +120,15 @@ def reduce_temporal_embeddings(
       for num_filters in conv1d_layers:
         embedding = tf.layers.conv1d(
             embedding, num_filters, 10, activation=tf.nn.relu, use_bias=False)
-        embedding = slim.layer_norm(embedding)
-    embedding = slim.flatten(embedding)
-    embedding = slim.stack(
+        embedding = layers.layer_norm(embedding)
+    embedding = layers.flatten(embedding)
+    embedding = layers.stack(
         embedding,
-        slim.fully_connected,
+        layers.fully_connected,
         fc_hidden_layers,
         activation_fn=tf.nn.relu,
-        normalizer_fn=slim.layer_norm)
-    embedding = slim.fully_connected(
+        normalizer_fn=layers.layer_norm)
+    embedding = layers.fully_connected(
         embedding, output_size, activation_fn=None)
   return embedding
 
@@ -166,6 +166,6 @@ def compute_embedding_contrastive_loss(
     inference_success = tf.math.equal(tf.reduce_mean(successes, axis=1), 1.0)
     labels = tf.logical_and(labels, inference_success)
   # Unlike TEC paper, use standard contrastive loss.
-  embed_loss = tf.contrib.losses.metric_learning.contrastive_loss(
+  embed_loss = contrib_losses.metric_learning.contrastive_loss(
       labels, anchor, avg_con_embedding)
   return embed_loss

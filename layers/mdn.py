@@ -26,8 +26,9 @@ from tensor2robot.meta_learning import meta_tfdata
 import tensorflow as tf
 import tensorflow_probability as tfp
 from typing import Optional, Tuple, Union
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def get_mixture_distribution(
@@ -165,4 +166,3 @@ class MDNDecoder(object):
     nll_local = -self._gm.log_prob(labels.action)
     # Average across batch, sequence.
     return tf.reduce_mean(nll_local)
-

@@ -24,6 +24,7 @@ from absl.testing import parameterized
 from six.moves import range
 from tensor2robot.meta_learning import maml_inner_loop
 import tensorflow as tf
+from tensorflow.contrib import graph_editor as contrib_graph_editor
 
 LEARNING_RATE = 0.001
 TARGET = 'target'
@@ -219,8 +220,7 @@ class MAMLInnerLoopGradientDescentTest(
           self.assertLess(x_new, x_previous)
           x_previous = x_new
 
-        tensors.append(
-            tf.contrib.graph_editor.get_tensors(tf.get_default_graph()))
+        tensors.append(contrib_graph_editor.get_tensors(tf.get_default_graph()))
 
     # When we use second order, we have a larger graph due to the additional
     # required computation nodes.
@@ -272,8 +272,7 @@ class MAMLInnerLoopGradientDescentTest(
           self.assertLess(x_new, x_previous)
           x_previous = x_new
 
-        tensors.append(
-            tf.contrib.graph_editor.get_tensors(tf.get_default_graph()))
+        tensors.append(contrib_graph_editor.get_tensors(tf.get_default_graph()))
 
     # When we use second order, we have a larger graph due to the additional
     # required computation nodes.

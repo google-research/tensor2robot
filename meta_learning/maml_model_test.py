@@ -37,6 +37,7 @@ from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
 from tensor2robot.utils import train_eval
 import tensorflow as tf
+from tensorflow.contrib import predictor as contrib_predictor
 FLAGS = flags.FLAGS
 
 _NUM_CONDITION_SAMPLES_PER_TASK = 2
@@ -294,7 +295,7 @@ class MAMLModelTest(parameterized.TestCase):
     export_dir = os.path.join(model_dir, 'export')
     # best_exporter_numpy, best_exporter_tf_example.
     self.assertLen(tf.io.gfile.glob(os.path.join(export_dir, '*')), 4)
-    numpy_predictor_fn = tf.contrib.predictor.from_saved_model(
+    numpy_predictor_fn = contrib_predictor.from_saved_model(
         tf.io.gfile.glob(os.path.join(export_dir, 'best_exporter_numpy',
                                       '*'))[-1])
 
@@ -304,7 +305,7 @@ class MAMLModelTest(parameterized.TestCase):
         feed_tensor_keys,
     )
 
-    tf_example_predictor_fn = tf.contrib.predictor.from_saved_model(
+    tf_example_predictor_fn = contrib_predictor.from_saved_model(
         tf.io.gfile.glob(
             os.path.join(export_dir, 'best_exporter_tf_example', '*'))[-1])
     self.assertCountEqual(['input_example_tensor'],

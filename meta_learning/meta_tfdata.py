@@ -26,8 +26,9 @@ import gin
 from tensor2robot.utils import tensorspec_utils as utils
 from tensor2robot.utils import tfdata
 import tensorflow as tf  # tf
+from tensorflow.contrib import framework as contrib_framework
 
-nest = tf.contrib.framework.nest
+nest = contrib_framework.nest
 TrainValPair = collections.namedtuple(
     'TrainValPair', ['train', 'val', 'val_mode'])
 

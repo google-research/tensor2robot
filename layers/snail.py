@@ -29,8 +29,7 @@ from typing import Text
 import numpy as np
 from six.moves import range
 import tensorflow as tf
-
-layers = tf.contrib.layers
+from tensorflow.contrib import layers
 
 
 def CausalConv(x, dilation_rate, filters, kernel_size=2, scope = ""):
@@ -50,8 +49,11 @@ def CausalConv(x, dilation_rate, filters, kernel_size=2, scope = ""):
     causal_pad_size = (kernel_size - 1) * dilation_rate
     # Pad sequence dimension.
     x = tf.pad(x, [[0, 0], [causal_pad_size, 0], [0, 0]])
-    return tf.contrib.layers.conv1d(
-        x, filters, kernel_size=kernel_size, padding="VALID",
+    return layers.conv1d(
+        x,
+        filters,
+        kernel_size=kernel_size,
+        padding="VALID",
         rate=dilation_rate)
 
 

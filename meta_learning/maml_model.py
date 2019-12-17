@@ -36,6 +36,7 @@ from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
 import tensorflow as tf  # tf
+from tensorflow.contrib import training as contrib_training
 
 
 # pylint: disable=invalid-name
@@ -67,7 +68,7 @@ def pfor_map_fn(fn, elems):
     gathered_elems = tf.nest.map_structure(lambda x: tf.gather(x, i), elems)
     return fn(gathered_elems)
   batch_size = tf.shape(tf.nest.flatten(elems)[0])[0]
-  return tf.contrib.parallel_for.pfor(loop_fn, batch_size)
+  return tf.vectorized_map(loop_fn, batch_size)
 
 
 @gin.configurable
@@ -403,8 +404,10 @@ class MAMLModel(abstract_model.AbstractT2RModel):
       if self._summarize_gradients:
         logging.info('We cannot use summarize_gradients on TPUs.')
       summarize_gradients = False
-    return tf.contrib.training.create_train_op(
-        loss, optimizer, variables_to_train=vars_to_train,
+    return contrib_training.create_train_op(
+        loss,
+        optimizer,
+        variables_to_train=vars_to_train,
         summarize_gradients=summarize_gradients,
         update_ops=update_ops)
 
