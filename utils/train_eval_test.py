@@ -34,6 +34,7 @@ from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import train_eval
 import tensorflow as tf
+from tensorflow.contrib import predictor as contrib_predictor
 
 FLAGS = flags.FLAGS
 
@@ -149,7 +150,7 @@ class TrainEvalTest(tf.test.TestCase):
     # interface, there are no dependencies on the model_fn or preprocessor
     # anymore.
     # We load the latest model since it had the best eval performance.
-    numpy_predictor_fn = tf.contrib.predictor.from_saved_model(
+    numpy_predictor_fn = contrib_predictor.from_saved_model(
         numpy_model_paths[-1])
 
     features, labels = mock_input_generator_eval.create_numpy_data()
@@ -173,7 +174,7 @@ class TrainEvalTest(tf.test.TestCase):
     # interface, there are no dependencies on the model_fn or preprocessor
     # anymore.
     # We load the latest model since it had the best eval performance.
-    tf_example_predictor_fn = tf.contrib.predictor.from_saved_model(
+    tf_example_predictor_fn = contrib_predictor.from_saved_model(
         tf_example_model_paths[-1])
     tf_example_predictions = []
     for feature, label in zip(features, labels):

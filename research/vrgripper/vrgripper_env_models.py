@@ -34,6 +34,7 @@ import tensorflow as tf  # tf
 import tensorflow_probability as tfp
 from typing import Callable, Dict, List, Optional, Text, Tuple
 
+from tensorflow.contrib import layers as contrib_layers
 
 TensorSpec = tensorspec_utils.ExtendedTensorSpec
 TRAIN = tf.estimator.ModeKeys.TRAIN
@@ -240,7 +241,7 @@ class VRGripperRegressionModel(regression_model.RegressionModel):
         feature_points, end_points = vision_layers.BuildImagesToFeaturesModel(
             features.image,
             is_training=(mode == TRAIN),
-            normalizer_fn=tf.contrib.layers.layer_norm)
+            normalizer_fn=contrib_layers.layer_norm)
 
       if context_fn:
         feature_points = context_fn(feature_points)
@@ -356,7 +357,7 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
     """Predict the condition gripper pose from feature points."""
     out = feature_points
     out = tf.layers.dense(out, 40, activation=tf.nn.relu, use_bias=False)
-    out = tf.contrib.layers.layer_norm(out)
+    out = contrib_layers.layer_norm(out)
     out = tf.layers.dense(out, 14, activation=None)
     return out
 
@@ -373,7 +374,7 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
         feature_points, end_points = vision_layers.BuildImagesToFeaturesModel(
             features.image,
             is_training=(mode == TRAIN),
-            normalizer_fn=tf.contrib.layers.layer_norm)
+            normalizer_fn=contrib_layers.layer_norm)
 
       if context_fn:
         feature_points = context_fn(feature_points)
@@ -441,7 +442,7 @@ class VRGripperDomainAdaptiveModel(VRGripperRegressionModel):
       for num_filters in self._learned_loss_conv1d_layers[:-1]:
         net = tf.layers.conv1d(
             net, num_filters, 10, activation=tf.nn.relu, use_bias=False)
-        net = tf.contrib.layers.layer_norm(net)
+        net = contrib_layers.layer_norm(net)
       net = tf.layers.conv1d(net, self._learned_loss_conv1d_layers[-1],
                              1)  # 1x1 convolution.
       return tf.reduce_mean(tf.reduce_sum(tf.square(net), axis=(1, 2)))

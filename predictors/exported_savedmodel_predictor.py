@@ -176,7 +176,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
               'Error loading the global step, therefore using the previously'
               'set global step %s.', str(self.global_step))
 
-        self._predict_fn = tf.contrib.predictor.from_saved_model(
+        self._predict_fn = contrib_predictor.from_saved_model(
             model_dir, config=self._tf_config)
         model_global_step = self._predict_fn.session.run(
             self._predict_fn.graph.get_collection(tf.GraphKeys.GLOBAL_STEP))[0]

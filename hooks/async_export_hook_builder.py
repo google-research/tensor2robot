@@ -34,6 +34,7 @@ from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 
 from typing import Text, List, Callable, Optional
+from tensorflow.contrib import tpu as contrib_tpu
 
 CreateExportFnType = Callable[[
     model_interface.ModelInterface,
@@ -124,7 +125,7 @@ class AsyncExportHookBuilder(hook_builder.HookBuilder):
   ):
     self._export_generator.set_specification_from_model(t2r_model)
     return [
-        tf.contrib.tpu.AsyncCheckpointSaverHook(
+        contrib_tpu.AsyncCheckpointSaverHook(
             save_secs=self._save_secs,
             checkpoint_dir=estimator.model_dir,
             listeners=[

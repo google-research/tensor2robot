@@ -37,14 +37,16 @@ from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
+from tensorflow.contrib import framework as contrib_framework
+from tensorflow.contrib import tpu as contrib_tpu
+from tensorflow.contrib import training as contrib_training
 
 FLAGS = flags.FLAGS
 TRAIN = tf.estimator.ModeKeys.TRAIN
 EVAL = tf.estimator.ModeKeys.EVAL
 PREDICT = tf.estimator.ModeKeys.PREDICT
 
-RunConfigType = Optional[Union[tf.estimator.RunConfig,
-                               tf.contrib.tpu.RunConfig]]
+RunConfigType = Optional[Union[tf.estimator.RunConfig, contrib_tpu.RunConfig]]
 ParamsType = Optional[Dict[Text, Any]]
 
 DictOrSpec = Union[Dict[Text, tf.Tensor], tensorspec_utils.TensorSpecStruct]
@@ -71,12 +73,12 @@ gin_configurable_run_config_cls = gin.external_configurable(
     blacklist=['model_dir'])
 
 gin_configurable_tpu_run_config_cls = gin.external_configurable(
-    tf.contrib.tpu.RunConfig,
+    contrib_tpu.RunConfig,
     name='tf.contrib.tpu.RunConfig',
     blacklist=['model_dir', 'tpu_config'])
 
 gin_configurable_tpu_config_cls = gin.external_configurable(
-    tf.contrib.tpu.TPUConfig, name='tf.contrib.tpu.TPUConfig')
+    contrib_tpu.TPUConfig, name='tf.contrib.tpu.TPUConfig')
 
 # Expose the tf.train.Saver to gin.
 gin_configurable_saver = gin.external_configurable(
@@ -99,7 +101,7 @@ def default_init_from_checkpoint_fn(checkpoint,
   """
   logging.info('Initializing model weights from %s', checkpoint)
   reader = tf.train.load_checkpoint(checkpoint)
-  variables_to_restore = tf.contrib.framework.get_variables()
+  variables_to_restore = contrib_framework.get_variables()
   assignment_map = {}
   for v in variables_to_restore:
     op_name = v.op.name
@@ -347,7 +349,7 @@ class AbstractT2RModel(
       if self._summarize_gradients:
         logging.info('We cannot use summarize_gradients on TPUs.')
       summarize_gradients = False
-    return tf.contrib.training.create_train_op(
+    return contrib_training.create_train_op(
         loss,
         optimizer,
         summarize_gradients=summarize_gradients,

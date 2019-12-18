@@ -39,14 +39,14 @@ import six
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
+from tensorflow.contrib import tpu as contrib_tpu
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
 EVAL = tf.estimator.ModeKeys.EVAL
 PREDICT = tf.estimator.ModeKeys.PREDICT
 TensorSpecStruct = tensorspec_utils.TensorSpecStruct
 
-RunConfigType = Optional[
-    Union[tf.estimator.RunConfig, tf.contrib.tpu.RunConfig]]
+RunConfigType = Optional[Union[tf.estimator.RunConfig, contrib_tpu.RunConfig]]
 ParamsType = Optional[Dict[Text, Any]]
 
 

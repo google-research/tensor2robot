@@ -33,6 +33,7 @@ from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 
 from typing import Text, List, Optional
+from tensorflow.contrib import tpu as contrib_tpu
 
 
 @gin.configurable
@@ -121,7 +122,7 @@ class TD3Hooks(hook_builder.HookBuilder):
       return res
 
     return [
-        tf.contrib.tpu.AsyncCheckpointSaverHook(
+        contrib_tpu.AsyncCheckpointSaverHook(
             save_secs=self._save_secs,
             checkpoint_dir=estimator.model_dir,
             listeners=[

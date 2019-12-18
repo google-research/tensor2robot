@@ -26,6 +26,8 @@ from tensor2robot.export_generators import default_export_generator
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 import tensorflow as tf
+from tensorflow.contrib import predictor as contrib_predictor
+from tensorflow.contrib import tpu as contrib_tpu
 
 MAX_STEPS = 4000
 BATCH_SIZE = 32
@@ -40,10 +42,10 @@ class DefaultExportGeneratorTest(tf.test.TestCase, parameterized.TestCase):
         multi_dataset=multi_dataset)
 
     # We create a tpu estimator for potential training.
-    estimator = tf.contrib.tpu.TPUEstimator(
+    estimator = contrib_tpu.TPUEstimator(
         model_fn=mock_t2r_model.model_fn,
         use_tpu=mock_t2r_model.is_device_tpu,
-        config=tf.contrib.tpu.RunConfig(model_dir=model_dir),
+        config=contrib_tpu.RunConfig(model_dir=model_dir),
         train_batch_size=BATCH_SIZE,
         eval_batch_size=BATCH_SIZE)
 
@@ -90,7 +92,7 @@ class DefaultExportGeneratorTest(tf.test.TestCase, parameterized.TestCase):
 
     # Load trained and exported serving estimator, run prediction and assert
     # it is the same as before exporting.
-    feed_predictor_fn = tf.contrib.predictor.from_saved_model(
+    feed_predictor_fn = contrib_predictor.from_saved_model(
         exported_savedmodel_path)
     mock_input_generator = mocks.MockInputGenerator(batch_size=BATCH_SIZE)
     features, labels = mock_input_generator.create_numpy_data()
@@ -127,7 +129,7 @@ class DefaultExportGeneratorTest(tf.test.TestCase, parameterized.TestCase):
 
     # Now we can load our exported estimator graph, there are no dependencies
     # on the model_fn or preprocessor anymore.
-    feed_predictor_fn = tf.contrib.predictor.from_saved_model(
+    feed_predictor_fn = contrib_predictor.from_saved_model(
         exported_savedmodel_path)
     mock_input_generator = mocks.MockInputGenerator(batch_size=BATCH_SIZE)
     features, labels = mock_input_generator.create_numpy_data()

@@ -30,8 +30,9 @@ import gin
 import numpy as np
 from six.moves import range
 import tensorflow as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def GetDiscreteBins(num_bins, output_min, output_max):

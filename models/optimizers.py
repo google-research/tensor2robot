@@ -23,6 +23,7 @@ from __future__ import print_function
 import gin
 import tensorflow as tf  # tf
 from typing import Callable
+from tensorflow.contrib import opt as contrib_opt
 
 
 gin_configurable_adam_optimizer = gin.external_configurable(
@@ -149,7 +150,7 @@ def create_moving_average_optimizer(optimizer,
   Returns:
     A parameterless function that returns the configured Momentum Optimizer.
   """
-  return tf.contrib.opt.MovingAverageOptimizer(
+  return contrib_opt.MovingAverageOptimizer(
       optimizer, average_decay=average_decay)
 
 

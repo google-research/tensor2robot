@@ -39,6 +39,8 @@ from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
 
 from typing import Any, Callable, Dict, List, Optional, Text
+from tensorflow.contrib import tpu as contrib_tpu
+from tensorflow.contrib import training as contrib_training
 
 EXPORTER_FN = Callable[[
     model_interface.ModelInterface, abstract_export_generator
@@ -160,7 +162,7 @@ def create_tpu_estimator(t2r_model,
     An instance of tf.contrib.tpu.TPUEstimator.
   """
   del kwargs
-  return tf.contrib.tpu.TPUEstimator(
+  return contrib_tpu.TPUEstimator(
       model_fn=t2r_model.model_fn,
       model_dir=model_dir,
       config=t2r_model.get_tpu_run_config(),
@@ -550,7 +552,7 @@ def train_eval_model(
 
     # This will start with the latest checkpoint and wait afterwards for a new
     # checkpoint for the next evaluation.
-    for checkpoint_path in tf.contrib.training.checkpoints_iterator(
+    for checkpoint_path in contrib_training.checkpoints_iterator(
         estimator.model_dir):
       backup_checkpoint_path = create_backup_checkpoint_for_eval(
           checkpoint_path)

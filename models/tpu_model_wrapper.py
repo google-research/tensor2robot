@@ -33,6 +33,7 @@ from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import tpu_preprocessor_wrapper
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf
+from tensorflow.contrib import tpu as contrib_tpu
 
 FLAGS = flags.FLAGS
 TRAIN = tf.estimator.ModeKeys.TRAIN
@@ -50,7 +51,7 @@ ExportOutputType = abstract_model.ExportOutputType
 def get_cross_shard_optimizer(optimizer, disable_for_cpu_debugging=False):
   if disable_for_cpu_debugging:
     return optimizer
-  return tf.contrib.tpu.CrossShardOptimizer(optimizer)
+  return contrib_tpu.CrossShardOptimizer(optimizer)
 
 
 @gin.configurable
@@ -205,7 +206,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
         raise ValueError('The create_export_outputs_fn should return a '
                          'tuple(predictions, export_outputs) or predictions.')
 
-      return tf.contrib.tpu.TPUEstimatorSpec(
+      return contrib_tpu.TPUEstimatorSpec(
           mode=mode, predictions=predictions, export_outputs=export_outputs)
 
     train_fn_result = self._t2r_model.model_train_fn(features, labels,
@@ -275,7 +276,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
             gin_utils.GinConfigSaverHook(
                 config.model_dir, summarize_config=True))
 
-      return tf.contrib.tpu.TPUEstimatorSpec(
+      return contrib_tpu.TPUEstimatorSpec(
           mode=mode,
           loss=train_loss,
           train_op=train_op,
@@ -298,7 +299,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
                 os.path.join(config.model_dir, eval_name),
                 summarize_config=True))
 
-      return tf.contrib.tpu.TPUEstimatorSpec(
+      return contrib_tpu.TPUEstimatorSpec(
           mode=mode,
           loss=train_loss,
           eval_metrics=eval_metrics,

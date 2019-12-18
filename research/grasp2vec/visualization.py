@@ -29,6 +29,7 @@ import six
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
+from tensorflow.contrib import layers as contrib_layers
 
 try:
   from cvx2 import latest as cv2  # pylint: disable=g-import-not-at-top
@@ -100,7 +101,7 @@ def add_heatmap_summary(feature_query, feature_map, name):
 
 
 def add_spatial_softmax(heatmaps, images):
-  locations_ij = tf.contrib.layers.spatial_softmax(
+  locations_ij = contrib_layers.spatial_softmax(
       heatmaps, temperature=0.1, trainable=False)
   # spatial_softmax.BuildSpatialSoftmax returns [x1, ..., xN, y1, ..., yN] in
   # the inner dimension while layers.spatial_softmax returns
