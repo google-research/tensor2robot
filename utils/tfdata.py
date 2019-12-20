@@ -506,7 +506,7 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None):
 
 
 @gin.configurable
-def grasping_input_fn_tmpl(
+def default_input_fn_tmpl(
     file_patterns,
     batch_size,
     feature_spec,
@@ -517,7 +517,7 @@ def grasping_input_fn_tmpl(
     shuffle_buffer_size = 1000,
     prefetch_buffer_size = (tf.data.experimental.AUTOTUNE),
     parallel_shards = 10):
-  """Near-compatibility with grasping_data.py input pipeline."""
+  """Generic gin-configurable tf.data input pipeline."""
   if isinstance(file_patterns, dict):
     file_patterns_map = file_patterns
   else:
@@ -575,7 +575,7 @@ def get_input_fn(feature_spec, label_spec, file_patterns, mode, batch_size,
       features, labels tensor expected by `model_fn`.
     """
     used_batch_size = get_batch_size(params, batch_size)
-    dataset = grasping_input_fn_tmpl(
+    dataset = default_input_fn_tmpl(
         file_patterns=file_patterns,
         batch_size=used_batch_size,
         feature_spec=feature_spec,
