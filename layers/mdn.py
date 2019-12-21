@@ -23,7 +23,7 @@ from __future__ import print_function
 import gin
 import numpy as np
 from tensor2robot.meta_learning import meta_tfdata
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from typing import Optional, Tuple, Union
 from tensorflow.contrib import slim as contrib_slim

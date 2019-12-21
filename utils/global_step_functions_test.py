@@ -22,7 +22,7 @@ from __future__ import print_function
 
 from absl.testing import parameterized
 from tensor2robot.utils import global_step_functions
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class GlobalStepFunctionsTest(parameterized.TestCase, tf.test.TestCase):

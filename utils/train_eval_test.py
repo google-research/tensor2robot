@@ -33,7 +33,7 @@ from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import train_eval
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import predictor as contrib_predictor
 
 FLAGS = flags.FLAGS

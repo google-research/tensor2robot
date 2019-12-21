@@ -27,7 +27,7 @@ from typing import List, Optional
 import gin
 from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import slim as contrib_slim
 

@@ -30,7 +30,7 @@ from absl.testing import parameterized
 import numpy as np
 from six.moves import zip
 from tensor2robot.utils import tensorspec_utils as utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import framework as contrib_framework
 nest = contrib_framework.nest
 

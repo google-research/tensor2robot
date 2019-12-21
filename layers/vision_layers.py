@@ -24,7 +24,7 @@ from __future__ import print_function
 import gin
 from six.moves import range
 from tensor2robot.layers import spatial_softmax
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
 
 slim = contrib_slim

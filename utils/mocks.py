@@ -29,7 +29,7 @@ from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 SEED = 1234
 POSITIVE_SIZE = 64

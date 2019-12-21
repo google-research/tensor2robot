@@ -25,7 +25,7 @@ import os
 from typing import Callable, Optional, Text, List
 import gin
 from tensor2robot.utils import train_eval
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 DEFAULT_TRAIN_FILENAME_PATTERNS = [
     'operative_config-0.gin', 'model.ckpt-0.data-*', 'model.ckpt-0.meta',

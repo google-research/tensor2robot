@@ -28,7 +28,7 @@ from typing import Text
 
 import numpy as np
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import layers
 
 

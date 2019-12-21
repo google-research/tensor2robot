@@ -24,7 +24,7 @@ import os
 import time
 import gin
 import gym
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf
 from typing import Text
 
 

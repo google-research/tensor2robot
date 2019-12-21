@@ -24,7 +24,7 @@ from __future__ import print_function
 import numpy as np
 from six.moves import range
 from tensor2robot.layers import snail
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class SNAILTest(tf.test.TestCase):

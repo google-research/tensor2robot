@@ -29,7 +29,7 @@ import numpy as np
 from six.moves import cPickle
 from six.moves import zip
 from tensor2robot.proto import t2r_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from google.protobuf import text_format
 from tensorflow.contrib import framework as contrib_framework

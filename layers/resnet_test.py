@@ -24,7 +24,7 @@ import functools
 from absl.testing import parameterized
 from six.moves import range
 from tensor2robot.layers import resnet
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class ResnetTest(tf.test.TestCase, parameterized.TestCase):
