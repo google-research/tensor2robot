@@ -24,9 +24,7 @@ from __future__ import print_function
 import gin
 
 import tensorflow as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
+from tensorflow.contrib import slim
 
 
 @gin.configurable

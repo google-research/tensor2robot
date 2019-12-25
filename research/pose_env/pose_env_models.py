@@ -33,13 +33,9 @@ from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.research.dql_grasping_lib import tf_modules
 from tensor2robot.utils import tensorspec_utils
 import tensorflow as tf  # tf
-from tensorflow.contrib import framework as contrib_framework
-from tensorflow.contrib import layers as contrib_layers
-from tensorflow.contrib import slim as contrib_slim
+from tensorflow.contrib import framework
+from tensorflow.contrib import layers
 
-framework = contrib_framework
-layers = contrib_layers
-slim = contrib_slim
 TensorSpec = tensorspec_utils.ExtendedTensorSpec  # pylint: disable=invalid-name
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
@@ -316,7 +312,7 @@ class PoseEnvRegressionModel(regression_model.RegressionModel):
         feature_points, end_points = vision_layers.BuildImagesToFeaturesModel(
             image,
             is_training=is_training,
-            normalizer_fn=contrib_layers.layer_norm)
+            normalizer_fn=layers.layer_norm)
       del end_points
       if context_fn:
         feature_points = context_fn(feature_points)

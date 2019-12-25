@@ -159,7 +159,7 @@ class CriticModel(abstract_model.AbstractT2RModel):
         requirements of the self.get_feature_specification.
       scope: String specifying variable scope.
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-      config: (Optional tf.estimator.RunConfig or tf.contrib.tpu.RunConfig) Will
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
         receive what is passed to Estimator in config parameter, or the default
         config (tf.estimator.RunConfig). Allows updating things in your model_fn
         based on  configuration such as num_ps_replicas, or model_dir.

@@ -31,8 +31,6 @@ import tensorflow as tf
 from typing import Dict, List, Optional, Text, Tuple, Union
 
 
-nest = tf.contrib.framework.nest
-
 DATA_FORMAT = {
     'tfrecord': tf.data.TFRecordDataset
 }
@@ -45,7 +43,7 @@ def get_batch_size(params, batch_size):
   """Get the correct batch size to use in an input_fn.
 
   TPUEstimator may provide different batch sizes if using it in
-  tf.contrib.tpu.InputPipelineConfig.PER_HOST_V2 setting.
+  contrib_tpu.InputPipelineConfig.PER_HOST_V2 setting.
   See comments about `per_host_input_for_training` in
   //third_party/tensorflow/python/tpu/tpu_config.py.
 
@@ -533,7 +531,7 @@ def default_input_fn_tmpl(
     else:
       cycle_length = 1
     dataset = filenames_dataset.apply(
-        tf.contrib.data.parallel_interleave(
+        tf.data.experimental.parallel_interleave(
             DATA_FORMAT[data_format],
             cycle_length=cycle_length,
             sloppy=is_training))

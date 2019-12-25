@@ -22,9 +22,6 @@ from __future__ import print_function
 
 from tensor2robot.research.grasp2vec import resnet
 import tensorflow as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
 
 
 def Embedding(image, mode, params, reuse=tf.AUTO_REUSE, scope='scene'):

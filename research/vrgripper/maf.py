@@ -26,11 +26,9 @@ import numpy as np
 from six.moves import range
 import tensorflow as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import slim as contrib_slim
+from tensorflow.contrib import slim
 tfd = tfp.distributions
 tfb = tfp.bijectors
-
-slim = contrib_slim
 
 
 def init_once(x, name):

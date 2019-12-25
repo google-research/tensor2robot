@@ -159,7 +159,7 @@ def create_tpu_estimator(t2r_model,
       tpu estimator and estimator.
 
   Returns:
-    An instance of tf.contrib.tpu.TPUEstimator.
+    An instance of contrib_tpu.TPUEstimator.
   """
   del kwargs
   return contrib_tpu.TPUEstimator(

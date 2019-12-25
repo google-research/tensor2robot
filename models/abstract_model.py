@@ -412,7 +412,7 @@ class AbstractT2RModel(
         tensorspec_utils.validate_and_pack. A spec_structure which fulfills the
         requirements of the self.get_feature_specification.
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-      config: (Optional tf.estimator.RunConfig or tf.contrib.tpu.RunConfig) Will
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
         receive what is passed to Estimator in config parameter, or the default
         config (tf.estimator.RunConfig). Allows updating things in your model_fn
         based on  configuration such as num_ps_replicas, or model_dir.
@@ -462,7 +462,7 @@ class AbstractT2RModel(
       inference_outputs: A dict containing the output tensors of
         model_inference_fn.
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-      config: (Optional tf.estimator.RunConfig or tf.contrib.tpu.RunConfig) Will
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
         receive what is passed to Estimator in config parameter, or the default
         config (tf.estimator.RunConfig). Allows updating things in your model_fn
         based on  configuration such as num_ps_replicas, or model_dir.
@@ -518,7 +518,7 @@ class AbstractT2RModel(
       train_outputs: A dict containing the output tensors (dict) of
         model_train_fn.
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-      config: (Optional tf.estimator.RunConfig or tf.contrib.tpu.RunConfig) Will
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
         receive what is passed to Estimator in config parameter, or the default
         config (tf.estimator.RunConfig). Allows updating things in your model_fn
         based on  configuration such as num_ps_replicas, or model_dir.
@@ -568,7 +568,7 @@ class AbstractT2RModel(
       train_outputs: A dict containing the output tensors (dict) of
         model_train_fn.
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-      config: (Optional tf.estimator.RunConfig or tf.contrib.tpu.RunConfig) Will
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
         receive what is passed to Estimator in config parameter, or the default
         config (tf.estimator.RunConfig). Allows updating things in your model_fn
         based on  configuration such as num_ps_replicas, or model_dir.
@@ -611,7 +611,7 @@ class AbstractT2RModel(
       inference_outputs: A dict containing the output tensors of
         model_inference_fn.
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-      config: (Optional tf.estimator.RunConfig or tf.contrib.tpu.RunConfig) Will
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
         receive what is passed to Estimator in config parameter, or the default
         config (tf.estimator.RunConfig). Allows updating things in your model_fn
         based on  configuration such as num_ps_replicas, or model_dir.
@@ -650,7 +650,7 @@ class AbstractT2RModel(
         tensorspec_utils.validate_and_pack. A spec_structure which fulfills the
         requirements of the self.get_feature_specification.
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-      config: (Optional tf.estimator.RunConfig or tf.contrib.tpu.RunConfig) Will
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
         receive what is passed to Estimator in config parameter, or the default
         config (tf.estimator.RunConfig). Allows updating things in your model_fn
         based on  configuration such as num_ps_replicas, or model_dir.
@@ -872,7 +872,7 @@ class AbstractT2RModel(
     """Get the TPU RunConfig for Estimator model.
 
     Returns:
-      tf.contrib.tpu.RunConfig() for this model.
+      contrib_tpu.RunConfig() for this model.
     """
     return gin_configurable_tpu_run_config_cls(
         master=FLAGS.master, tpu_config=gin_configurable_tpu_config_cls())
