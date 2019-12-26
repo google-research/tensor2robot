@@ -25,7 +25,7 @@ import collections
 import gin
 from tensor2robot.utils import tensorspec_utils as utils
 from tensor2robot.utils import tfdata
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import framework as contrib_framework
 
 nest = contrib_framework.nest

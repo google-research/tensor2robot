@@ -22,7 +22,7 @@ from __future__ import print_function
 
 from six.moves import range
 from tensor2robot.research.vrgripper import episode_to_transitions
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class EpisodeToTransitionsTest(tf.test.TestCase):

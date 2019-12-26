@@ -25,7 +25,7 @@ from typing import List, Sequence
 
 import gin
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def RandomCropImages(images, input_shape,

@@ -24,7 +24,7 @@ import gin
 import numpy as np
 from tensor2robot.meta_learning import maml_model
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import framework as contrib_framework
 nest = contrib_framework.nest
 

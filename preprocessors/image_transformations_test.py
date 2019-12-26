@@ -24,7 +24,7 @@ from absl.testing import parameterized
 import numpy as np
 from six.moves import range
 from tensor2robot.preprocessors import image_transformations
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 
 class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):

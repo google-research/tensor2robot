@@ -23,7 +23,7 @@ from absl import app
 from absl import flags
 import gin
 from tensor2robot.utils import train_eval
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 FLAGS = flags.FLAGS

@@ -27,7 +27,7 @@ from tensor2robot.predictors import checkpoint_predictor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import train_eval
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

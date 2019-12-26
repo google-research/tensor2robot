@@ -26,7 +26,7 @@ from typing import Any, Callable, Optional, Tuple
 
 import six
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 ModeKeys = tf.estimator.ModeKeys
 

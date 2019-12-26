@@ -29,7 +29,7 @@ import six
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 MODE = tf.estimator.ModeKeys.PREDICT
 

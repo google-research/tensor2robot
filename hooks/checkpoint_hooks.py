@@ -27,7 +27,7 @@ import os
 from absl import logging
 import distutils.dir_util
 import six
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from typing import Text, Callable, Optional, List
 
 copy_fn = distutils.dir_util.copy_tree

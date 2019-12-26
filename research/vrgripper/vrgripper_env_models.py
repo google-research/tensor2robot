@@ -30,7 +30,7 @@ from tensor2robot.models import abstract_model
 from tensor2robot.models import regression_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 import tensorflow_probability as tfp
 from typing import Callable, Dict, List, Optional, Text, Tuple
 

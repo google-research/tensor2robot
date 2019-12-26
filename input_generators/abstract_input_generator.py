@@ -30,7 +30,7 @@ import gin
 import six
 from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 

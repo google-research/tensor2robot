@@ -22,7 +22,7 @@ from __future__ import print_function
 from absl.testing import parameterized
 import numpy as np
 from tensor2robot.research.grasp2vec import losses
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 
 EMBEDDING = 512

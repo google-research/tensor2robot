@@ -31,7 +31,7 @@ import numpy as np
 import PIL.Image as Image
 import six
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tf_agents.trajectories import time_step as ts
 
 

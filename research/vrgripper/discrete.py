@@ -29,7 +29,7 @@ from typing import List, Optional
 import gin
 import numpy as np
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim
 
 

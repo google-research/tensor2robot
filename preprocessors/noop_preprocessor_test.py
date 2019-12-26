@@ -26,7 +26,7 @@ from absl.testing import parameterized
 import numpy as np
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 MockFeatures = collections.namedtuple(
     'MockFeatures', ['images', 'actions', 'optional_hierarchy'])

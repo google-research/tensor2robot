@@ -32,7 +32,7 @@ import six
 from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 _TF_CONFIG_ENV = 'TF_CONFIG'

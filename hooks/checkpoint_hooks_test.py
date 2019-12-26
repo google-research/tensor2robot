@@ -23,7 +23,7 @@ from absl import flags
 from absl import logging
 from six.moves import range
 from tensor2robot.hooks import checkpoint_hooks
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 FLAGS = flags.FLAGS
 

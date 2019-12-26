@@ -35,7 +35,7 @@ from tensor2robot.models import abstract_model
 from tensor2robot.research.vrgripper import episode_to_transitions
 from tensor2robot.research.vrgripper import vrgripper_env_models
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
 PREDICT = tf.estimator.ModeKeys.PREDICT

@@ -25,7 +25,7 @@ import numpy as np
 from tensor2robot.export_generators import default_export_generator
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import predictor as contrib_predictor
 from tensorflow.contrib import tpu as contrib_tpu
 

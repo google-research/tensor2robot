@@ -26,7 +26,7 @@ from typing import List
 
 import six
 from tensor2robot.models import model_interface
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 
 class HookBuilder(six.with_metaclass(abc.ABCMeta, object)):

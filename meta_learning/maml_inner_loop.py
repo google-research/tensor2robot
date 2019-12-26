@@ -26,7 +26,7 @@ from typing import List, Mapping, Optional, Text, Tuple
 import gin
 import six
 from six.moves import zip
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 @gin.configurable

@@ -25,7 +25,7 @@ from absl import flags
 from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 FLAGS = flags.FLAGS

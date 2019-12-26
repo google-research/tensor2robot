@@ -23,7 +23,7 @@ from absl import flags
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.preprocessors import tpu_preprocessor_wrapper
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 

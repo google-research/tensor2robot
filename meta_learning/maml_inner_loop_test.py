@@ -23,7 +23,7 @@ from __future__ import print_function
 from absl.testing import parameterized
 from six.moves import range
 from tensor2robot.meta_learning import maml_inner_loop
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import graph_editor as contrib_graph_editor
 
 LEARNING_RATE = 0.001

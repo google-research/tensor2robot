@@ -30,7 +30,7 @@ from tensor2robot.research.grasp2vec import losses
 from tensor2robot.research.grasp2vec import networks
 from tensor2robot.research.grasp2vec import visualization
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 TRAIN = tf.estimator.ModeKeys.TRAIN
 EVAL = tf.estimator.ModeKeys.EVAL

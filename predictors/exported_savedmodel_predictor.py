@@ -30,7 +30,7 @@ import gin
 import numpy as np
 from tensor2robot.predictors import abstract_predictor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 
 _BUSY_WAITING_SLEEP_TIME_IN_SECS = 10

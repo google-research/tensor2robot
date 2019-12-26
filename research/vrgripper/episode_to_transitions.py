@@ -27,7 +27,7 @@ import numpy as np
 from PIL import Image
 import six
 from six.moves import range
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 

@@ -24,7 +24,7 @@ from six.moves import zip
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow_serving.apis import prediction_log_pb2
 
 

@@ -30,7 +30,7 @@ from tensor2robot.hooks import hook_builder
 from tensor2robot.models import model_interface
 from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 from typing import Text, List, Optional
 from tensorflow.contrib import tpu as contrib_tpu

@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2robot.preprocessors import abstract_preprocessor
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class AbstractPreprocessorTest(tf.test.TestCase):

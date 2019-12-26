@@ -29,7 +29,7 @@ import six
 from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
 from tensor2robot.layers import resnet
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 _BATCH_NORM_DECAY = 0.997

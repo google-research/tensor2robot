@@ -27,7 +27,7 @@ from __future__ import print_function
 import gin
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from typing import Optional, Tuple
 
 ModeKeys = tf.estimator.ModeKeys

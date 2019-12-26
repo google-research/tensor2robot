@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2robot.research.grasp2vec import resnet
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def Embedding(image, mode, params, reuse=tf.AUTO_REUSE, scope='scene'):

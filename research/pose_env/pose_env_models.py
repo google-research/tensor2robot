@@ -32,7 +32,7 @@ from tensor2robot.models import regression_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.research.dql_grasping_lib import tf_modules
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import framework
 from tensorflow.contrib import layers
 
