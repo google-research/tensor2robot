@@ -7,3 +7,4 @@ pybullet==2.5.0
 Pillow==5.3.0
 gym>=0.10.9
 tensorflow-probability>=0.6.0
+tf-slim>=1.0
