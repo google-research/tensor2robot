@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Tensor2Robot Authors.
+# Copyright 2020 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -194,10 +194,12 @@ def flatten_batch_examples(
     if x.shape.ndims == 1:
       return x
     if x.shape.as_list()[1] is None:
-      return tf.reshape(x, [-1] + x.shape.as_list()[2:])
+      new_shape = tf.concat([[-1], tf.shape(x)[2:]], axis=0)
+      return tf.reshape(x, new_shape)
     else:
       s = tf.shape(x)
-      return tf.reshape(x, [s[0] * s[1]] + x.shape.as_list()[2:])
+      new_shape = tf.concat([[s[0] * s[1]], s[2:]], axis=0)
+      return tf.reshape(x, new_shape)
   return nest.map_structure(reshape_batch, tensor_collection)
 
 

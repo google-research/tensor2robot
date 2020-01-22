@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2019 The Tensor2Robot Authors.
+# Copyright 2020 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -250,12 +250,16 @@ def _get_sstable_proto_dict(*input_values):
   return dict_extracted
 
 
-def create_parse_tf_example_fn(feature_tspec, label_tspec=None):
+@gin.configurable
+def create_parse_tf_example_fn(feature_tspec, label_tspec=None,
+                               decode_images=True):
   """Create a parse function for serialized tf.Example protos.
 
   Args:
     feature_tspec: A valid tensor_spec structure for features.
     label_tspec: Optional a valid tensor_spec structure for labels.
+    decode_images: If True, decodes tf.string tensors representing images into
+      a 3D image array. Otherwise, leaves the tensor as-is.
 
   Returns:
     parse_tf_example_fn: A callable function which can take serialized
@@ -345,7 +349,9 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None):
       if sequence_features:
         # Filter out '_length' context features; don't parse them from records.
         for parse_name in sequence_features:
-          del context_features[parse_name + '_length']
+          # Sometimes, the '_length' context feature doesn't exist.
+          if parse_name + '_length' in context_features:
+            del context_features[parse_name + '_length']
         result, sequence_result, feature_lengths = tf.io.parse_sequence_example(
             example,
             context_features=context_features,
@@ -379,14 +385,16 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None):
       sub_feature_tspec = tensorspec_utils.filter_spec_structure_by_dataset(
           feature_tspec, dataset_key)
       feature_dict, feature_tspec_dict = (
-          tensorspec_utils.tensorspec_to_feature_dict(sub_feature_tspec))
+          tensorspec_utils.tensorspec_to_feature_dict(
+              sub_feature_tspec, decode_images=decode_images))
       tensor_dict.update(feature_dict)
       tensor_spec_dict.update(prepend_keys(feature_tspec_dict, dataset_key))
       if label_tspec is not None:
         sub_label_tspec = tensorspec_utils.filter_spec_structure_by_dataset(
             label_tspec, dataset_key)
         label_dict, label_tspec_dict = (
-            tensorspec_utils.tensorspec_to_feature_dict(sub_label_tspec))
+            tensorspec_utils.tensorspec_to_feature_dict(
+                sub_label_tspec, decode_images=decode_images))
         tensor_dict.update(label_dict)
         tensor_spec_dict.update(prepend_keys(label_tspec_dict, dataset_key))
       for key, parsed in parse_wrapper(example_proto, tensor_dict).items():
@@ -459,7 +467,7 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None):
     # Ensure that all images are properly decoded.
     for key, val in parsed_tensors.items():
       tensor_spec = tensor_spec_dict[key]
-      if tensorspec_utils.is_encoded_image_spec(tensor_spec):
+      if tensorspec_utils.is_encoded_image_spec(tensor_spec) and decode_images:
         parsed_tensors[key] = decode_image(key, val)
         if tensor_spec.dtype != tf.uint8:
           raise ValueError('Encoded images with key {} must be '
