@@ -26,8 +26,9 @@ from __future__ import print_function
 import gin
 from six.moves import range
 import tensorflow as tf  # tf
+from tf_slim import losses as slim_losses
+
 from tensorflow.contrib import layers as contrib_layers
-from tensorflow.contrib import losses as contrib_losses
 
 
 def L2ArithmeticLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding,
@@ -76,7 +77,7 @@ def TripletLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding):
   labels = tf.range(pregrasp_embedding.shape[0], dtype=tf.int32)
   labels = tf.tile(labels, [2])
   pairs = tf.concat([pair_a, pair_b], axis=0)
-  loss = contrib_losses.metric_learning.triplet_semihard_loss(
+  loss = slim_losses.metric_learning.triplet_semihard_loss(
       labels, pairs, margin=3.0)
   return loss, pairs, labels
 
@@ -182,8 +183,8 @@ def NPairsLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding,
 
   pair_b = goal_embedding
   labels = tf.range(pregrasp_embedding.shape[0], dtype=tf.int32)
-  loss_1 = contrib_losses.metric_learning.npairs_loss(labels, pair_a, pair_b)
-  loss_2 = contrib_losses.metric_learning.npairs_loss(labels, pair_b, pair_a)
+  loss_1 = slim_losses.metric_learning.npairs_loss(labels, pair_a, pair_b)
+  loss_2 = slim_losses.metric_learning.npairs_loss(labels, pair_b, pair_a)
   tf.summary.scalar('npairs_loss1', loss_1)
   tf.summary.scalar('npairs_loss2', loss_2)
   return loss_1+loss_2
@@ -213,9 +214,9 @@ def NPairsLossMultilabel(pregrasp_embedding, goal_embedding,
   sparse_labels = [
       contrib_layers.dense_to_sparse(labels[i]) for i in range(labels.shape[0])
   ]
-  loss_1 = contrib_losses.metric_learning.npairs_loss_multilabel(
+  loss_1 = slim_losses.metric_learning.npairs_loss_multilabel(
       sparse_labels, pair_a, pair_b)
-  loss_2 = contrib_losses.metric_learning.npairs_loss_multilabel(
+  loss_2 = slim_losses.metric_learning.npairs_loss_multilabel(
       sparse_labels, pair_b, pair_a)
 
   tf.summary.scalar('npairs_loss1', loss_1)

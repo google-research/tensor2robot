@@ -22,9 +22,9 @@ from __future__ import print_function
 import gin
 from tensor2robot.layers import vision_layers
 import tensorflow as tf  # tf
+from tf_slim import losses as slim_losses
 from typing import Optional, Text, Tuple
 from tensorflow.contrib import layers
-from tensorflow.contrib import losses as contrib_losses
 
 
 def embed_fullstate(
@@ -166,6 +166,5 @@ def compute_embedding_contrastive_loss(
     inference_success = tf.math.equal(tf.reduce_mean(successes, axis=1), 1.0)
     labels = tf.logical_and(labels, inference_success)
   # Unlike TEC paper, use standard contrastive loss.
-  embed_loss = contrib_losses.metric_learning.contrastive_loss(
-      labels, anchor, avg_con_embedding)
+  embed_loss = slim_losses.metric_learning.contrastive_loss(labels, anchor, avg_con_embedding)
   return embed_loss
