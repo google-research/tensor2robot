@@ -50,8 +50,12 @@ class T2RModelFixture(object):
         gin.bind_parameter(parameter, binding)
 
   def random_train(self, module_name, model_name, **module_kwargs):
-    """Trains a T2R model with random inputs."""
+    """Instantiates and trains a T2R model with random inputs."""
     tf_model = getattr(module_name, model_name)(**module_kwargs)
+    self.random_train_model(tf_model, **module_kwargs)
+
+  def random_train_model(self, tf_model, **module_kwargs):
+    """Trains a T2R model with random inputs."""
     params = self._get_params(
         model_dir=self._test_case.create_tempdir().full_path, **module_kwargs)
     input_generator = default_input_generator.DefaultRandomInputGenerator(
