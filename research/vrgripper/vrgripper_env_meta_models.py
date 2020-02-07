@@ -126,8 +126,8 @@ class VRGripperEnvRegressionModelMAML(maml_model.MAMLModel):
   def _select_inference_output(self, predictions):
     """Inference output selection for regression models."""
     # We select our output for inference.
-    predictions.condition_output = predictions.full_condition_output.action
-    predictions.inference_output = predictions.full_inference_output.action
+    predictions.condition_output = predictions.full_condition_output.inference_output
+    predictions.inference_output = predictions.full_inference_output.inference_output
     return predictions
 
   def pack_features(self, state, prev_episode_data, timestep):
