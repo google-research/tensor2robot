@@ -25,7 +25,7 @@ from __future__ import print_function
 
 import gin
 from six.moves import range
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from tf_slim import losses as slim_losses
 
 from tensorflow.contrib import layers as contrib_layers

@@ -29,7 +29,7 @@ from six.moves import range
 from tensor2robot.utils import image
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 

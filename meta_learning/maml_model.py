@@ -35,7 +35,7 @@ from tensor2robot.meta_learning import preprocessors
 from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import training as contrib_training
 
 

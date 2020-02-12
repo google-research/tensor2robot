@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import gin
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from typing import Callable
 from tensorflow.contrib import opt as contrib_opt
 

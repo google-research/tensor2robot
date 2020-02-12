@@ -38,7 +38,7 @@ from typing import Any, Dict, Optional, Text, Union
 import six
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import tpu as contrib_tpu
 
 TRAIN = tf.estimator.ModeKeys.TRAIN

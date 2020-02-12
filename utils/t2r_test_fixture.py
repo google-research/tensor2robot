@@ -24,7 +24,7 @@ import mock
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.utils import train_eval
 from tensor2robot.utils import train_eval_test_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 from tensorflow.python.tpu import tpu  # pylint: disable=g-direct-tensorflow-import
 

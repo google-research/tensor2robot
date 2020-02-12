@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import gin
 from tensor2robot.layers import vision_layers
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 from tf_slim import losses as slim_losses
 from typing import Optional, Text, Tuple
 from tensorflow.contrib import layers

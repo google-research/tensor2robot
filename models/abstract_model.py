@@ -36,7 +36,7 @@ from tensor2robot.models import optimizers
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import tpu as contrib_tpu
 from tensorflow.contrib import training as contrib_training

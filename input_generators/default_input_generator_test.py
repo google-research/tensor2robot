@@ -26,7 +26,7 @@ import os
 import six
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 

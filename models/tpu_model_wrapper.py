@@ -32,7 +32,7 @@ from tensor2robot.models import model_interface
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import tpu_preprocessor_wrapper
 from tensor2robot.utils import tensorspec_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import tpu as contrib_tpu
 
 FLAGS = flags.FLAGS

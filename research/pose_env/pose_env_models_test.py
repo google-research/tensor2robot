@@ -34,7 +34,7 @@ from tensor2robot.research.pose_env import pose_env_maml_models
 from tensor2robot.research.pose_env import pose_env_models
 from tensor2robot.utils import train_eval
 from tensor2robot.utils import train_eval_test_utils
-import tensorflow as tf  # tf
+import tensorflow.compat.v1 as tf  # tf
 
 
 BATCH_SIZE = 1
