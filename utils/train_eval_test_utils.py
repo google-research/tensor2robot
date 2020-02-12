@@ -55,9 +55,11 @@ def assert_output_files(
   # Check that expected files have been written.
   for pattern in expected_output_filename_patterns:
     filename_pattern = os.path.join(model_dir, pattern)
-    print('file_pattern', filename_pattern)
+    tf.logging.info('file_pattern: %s', filename_pattern)
     filenames = tf.io.gfile.glob(filename_pattern)
-    print('filenames', filenames)
+    tf.logging.info('filenames: %s', filenames)
+    filenames_dir = tf.io.gfile.listdir(model_dir)
+    tf.logging.info('filenames_dir: %s', filenames_dir)
     test_case.assertNotEmpty(
         filenames, msg='No files found with pattern "%s"' % filename_pattern)
     for filename in filenames:
