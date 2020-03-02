@@ -318,10 +318,12 @@ class PoseEnvRegressionModel(regression_model.RegressionModel):
         feature_points = context_fn(feature_points)
       estimated_pose, _ = vision_layers.BuildImageFeaturesToPoseModel(
           feature_points, num_outputs=self._action_size)
-    return {'action': estimated_pose, 'state_features': feature_points}
+    return {'inference_output': estimated_pose,
+            'state_features': feature_points}
 
   def loss_fn(self, labels, inference_outputs, mode, params=None):
     del mode
     return tf.losses.mean_squared_error(
-        labels=labels.target_pose, predictions=inference_outputs['action'],
+        labels=labels.target_pose,
+        predictions=inference_outputs['inference_output'],
         weights=labels.reward)
