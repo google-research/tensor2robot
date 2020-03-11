@@ -78,3 +78,81 @@ def get_subsample_indices(sequence_lengths,
   batch_size = sequence_lengths.shape[0]
   indices.set_shape((batch_size, min_length))
   return indices
+
+
+def get_subsample_indices_randomized_boundary(sequence_lengths,
+                                              min_length,
+                                              min_delta_t,
+                                              max_delta_t):
+  """Generates random indices for sequence subsampling with random boundaries.
+
+  Args:
+    sequence_lengths: An int tensor of shape [B], for the length of each
+      sequence. Since the provided tensors are padded to the length of the
+      longest sequence in the batch, sequence_lengths is needed to avoid
+      sampling from the padding.
+    min_length: The min_length to subsample. The sampling always includes the
+      first and last frame. If the sequence is long enough, timesteps are
+      sampled without replacement. Otherwise, they are sampled with
+      replacement. If min_length = 1, the example is picked randomly from
+      the entire sequence.
+    min_delta_t: smallest range of time-steps that can be sampled,
+     if sampled length smaller sequence_length,
+     then we use sequence_length instead
+    max_delta_t: largest range of time-steps that can be sampled
+
+  Returns:
+    An int tensor of shape [B, min_length], for how to index into the seuqence.
+  """
+
+  def get_indices(sequence_length):
+    """Generates indices for single sequence."""
+    episode_delta_t = tf.random.uniform(shape=[], minval=min_delta_t,
+                                        maxval=max_delta_t + 1,
+                                        dtype=tf.dtypes.int64)
+    episode_delta_t = tf.math.reduce_min(tf.concat([sequence_length[None],
+                                                    episode_delta_t[None]],
+                                                   axis=0))
+    episode_start = tf.random.uniform(shape=[], minval=0,
+                                      maxval=(sequence_length -
+                                              episode_delta_t + 1),
+                                      dtype=tf.dtypes.int64)
+    episode_end = episode_start + episode_delta_t - 1
+
+    def without_replacement():
+      # sample integers from [episode_start, episode_end)
+      indices = tf.random.shuffle(tf.range(episode_start + 1,
+                                           episode_end))
+      middle = indices[:min_length - 2]
+      middle = tf.reshape(middle, [min_length - 2])
+      return tf.sort(tf.concat([[episode_start],
+                                middle, [episode_end]], axis=0))
+
+    def with_replacement():
+      # sample integers from [episode_start, episode_end)
+      indices = tf.random.uniform(shape=[min_length - 2]) * \
+        tf.cast(episode_delta_t, float)
+      middle = episode_start + tf.cast(tf.math.floor(indices), tf.int64)
+      return tf.sort(tf.concat([[episode_start], middle,
+                                [episode_end]], axis=0))
+
+    def random_frame():
+      # Used when min_length == 1.
+      return tf.random.uniform([1], minval=episode_start,
+                               maxval=episode_end, dtype=tf.dtypes.int64)
+
+    # pylint: disable=g-long-lambda
+    samples = tf.cond(
+        tf.equal(min_length, 1),
+        random_frame,
+        lambda: tf.cond(
+            episode_delta_t >= min_length,
+            without_replacement,
+            with_replacement))
+    # pylint: enable=g-long-lambda
+    return samples
+
+  indices = tf.map_fn(get_indices, sequence_lengths)
+  batch_size = sequence_lengths.shape[0]
+  indices.set_shape((batch_size, min_length))
+  return indices
