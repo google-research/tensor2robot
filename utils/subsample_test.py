@@ -68,6 +68,41 @@ class SubsampleTest(parameterized.TestCase, tf.test.TestCase):
         self.assertAllEqual(samp1.min(axis=1), np.ones(4))
         self.assertAllEqual(samp1.max(axis=1), seq_len)
 
+  @parameterized.named_parameters({
+      'testcase_name': 'length1',
+      'min_length': 1,
+  }, {
+      'testcase_name': 'length_shorter',
+      'min_length': 4,
+  }, {
+      'testcase_name': 'length_longer',
+      'min_length': 10,
+  })
+  def test_np_subsampling(self, min_length):
+    sequence_lengths = np.array([7, 6, 5, 4])
+    input1 = np.array([[1, 2, 3, 4, 5, 6, 7],
+                       [1, 2, 3, 4, 5, 6, 0],
+                       [1, 2, 3, 4, 5, 0, 0],
+                       [1, 2, 3, 4, 0, 0, 0]])
+    input2 = -input1
+    indices = subsample.get_np_subsample_indices(sequence_lengths, min_length)
+    samp1 = np.take(input1, indices)
+    samp2 = np.take(input2, indices)
+
+    # Verify we never sample the padding.
+    self.assertGreater(np.min(np.abs(samp1)), 0)
+    self.assertGreater(np.min(np.abs(samp2)), 0)
+    # Verify indices are the same for both tensors, should sum to array of all
+    # zeros.
+    total = samp1 + samp2
+    self.assertEqual(total.min(), 0)
+    self.assertEqual(total.max(), 0)
+    if min_length > 1:
+      # Verify first and last always included. In test tensor final entry
+      # matches sequence length.
+      self.assertAllEqual(samp1.min(axis=1), np.ones(4))
+      self.assertAllEqual(samp1.max(axis=1), sequence_lengths)
+
 
 class SubsampleTestRandomizedBoundary(parameterized.TestCase,
                                       tf.test.TestCase):

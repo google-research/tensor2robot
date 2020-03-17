@@ -18,6 +18,7 @@
 
 
 
+import numpy as np
 import tensorflow.compat.v1 as tf
 
 
@@ -155,4 +156,32 @@ def get_subsample_indices_randomized_boundary(sequence_lengths,
   indices = tf.map_fn(get_indices, sequence_lengths)
   batch_size = sequence_lengths.shape[0]
   indices.set_shape((batch_size, min_length))
+  return indices
+
+
+def get_np_subsample_indices(sequence_lengths,
+                             min_length):
+  """Same behavior as get_subsample_indices, but in numpy format."""
+  def get_indices(sequence_length):
+    """Generates indices for single sequence."""
+    if min_length == 1:
+      return np.random.randint(0, sequence_length, size=(1,))
+    elif sequence_length >= min_length:
+      # without replacement.
+      arr = np.arange(1, sequence_length - 1)
+      np.random.shuffle(arr)
+      middle = arr[:min_length - 2]
+      return np.sort(
+          np.concatenate([[0], middle, [sequence_length-1]], axis=0))
+    else:
+      # with replacement.
+      middle = np.random.randint(0, sequence_length, size=[min_length - 2])
+      return np.sort(
+          np.concatenate([[0], middle, [sequence_length-1]], axis=0))
+
+  # Should do better than for loop at a later time....
+  batch_size = sequence_lengths.shape[0]
+  indices = np.zeros((batch_size, min_length), dtype=np.int64)
+  for i in range(batch_size):
+    indices[i] = get_indices(sequence_lengths[i])
   return indices
