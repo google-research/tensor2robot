@@ -296,13 +296,17 @@ def create_valid_result_larger(result_key = 'loss'):
 def create_default_exporters(
     t2r_model,
     export_generator,
-    compare_fn=create_valid_result_smaller):
+    compare_fn=create_valid_result_smaller,
+    use_numpy_exporters = True,
+    use_tfexample_exporters = True):
   """Creates a list of Exporter to export saved models during evaluation.
 
   Args:
     t2r_model: The model to be exported.
     export_generator: An export_generator.AbstractExportGenerator.
     compare_fn: The function used to deterimne the best model to export.
+    use_numpy_exporters: If True, includes numpy exporters.
+    use_tfexample_exporters: If True, includes TFExample exporters.
 
   Returns:
     A list containing two exporters, one for numpy and another one for
@@ -326,32 +330,34 @@ def create_default_exporters(
   export_generator.set_specification_from_model(t2r_model)
 
   exporters = []
-  exporters.append(
-      tf.estimator.BestExporter(
-          name='best_exporter_numpy',
-          compare_fn=compare_fn(),
-          serving_input_receiver_fn=export_generator
-          .create_serving_input_receiver_numpy_fn(),
-          assets_extra=assets))
-  exporters.append(
-      tf.estimator.BestExporter(
-          name='best_exporter_tf_example',
-          compare_fn=compare_fn(),
-          serving_input_receiver_fn=export_generator
-          .create_serving_input_receiver_tf_example_fn(),
-          assets_extra=assets))
-  exporters.append(
-      tf.estimator.LatestExporter(
-          name='latest_exporter_numpy',
-          serving_input_receiver_fn=export_generator
-          .create_serving_input_receiver_numpy_fn(),
-          assets_extra=assets))
-  exporters.append(
-      tf.estimator.LatestExporter(
-          name='latest_exporter_tf_example',
-          serving_input_receiver_fn=export_generator
-          .create_serving_input_receiver_tf_example_fn(),
-          assets_extra=assets))
+  if use_numpy_exporters:
+    exporters.append(
+        tf.estimator.BestExporter(
+            name='best_exporter_numpy',
+            compare_fn=compare_fn(),
+            serving_input_receiver_fn=export_generator
+            .create_serving_input_receiver_numpy_fn(),
+            assets_extra=assets))
+    exporters.append(
+        tf.estimator.LatestExporter(
+            name='latest_exporter_numpy',
+            serving_input_receiver_fn=export_generator
+            .create_serving_input_receiver_numpy_fn(),
+            assets_extra=assets))
+  if use_tfexample_exporters:
+    exporters.append(
+        tf.estimator.BestExporter(
+            name='best_exporter_tf_example',
+            compare_fn=compare_fn(),
+            serving_input_receiver_fn=export_generator
+            .create_serving_input_receiver_tf_example_fn(),
+            assets_extra=assets))
+    exporters.append(
+        tf.estimator.LatestExporter(
+            name='latest_exporter_tf_example',
+            serving_input_receiver_fn=export_generator
+            .create_serving_input_receiver_tf_example_fn(),
+            assets_extra=assets))
   return exporters
 
 
