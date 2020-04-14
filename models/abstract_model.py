@@ -324,12 +324,14 @@ class AbstractT2RModel(
       mode: The mode for feature specifications
     """
 
+  @gin.configurable
   def create_train_op(
       self,
       loss,
       optimizer,
       update_ops = None,
-      train_outputs = None):
+      train_outputs = None,
+      filter_trainables_fn = None):  # pylint: disable=line-too-long
     """Create the train_op of from the loss obtained from model_train_fn.
 
     Args:
@@ -338,6 +340,9 @@ class AbstractT2RModel(
       update_ops: List of update ops to execute alongside the training op.
       train_outputs: (Optional) A dict with additional tensors the training
         model generates.
+      filter_trainables_fn: (Optional) A function that takes a trainable
+        TensorFlow variable and returns whether it should be updated or not.
+        By default, all trainable variables are updated.
 
     Returns:
       train_op: Op for the training step.
@@ -349,11 +354,20 @@ class AbstractT2RModel(
       if self._summarize_gradients:
         logging.info('We cannot use summarize_gradients on TPUs.')
       summarize_gradients = False
+    variables_to_train = None
+    if filter_trainables_fn is not None:
+      logging.info('Filtering trainable variables')
+      variables_to_train = [
+          var for var in tf.trainable_variables() if filter_trainables_fn(var)]
+      logging.info('Only updating the following trainables:')
+      for var in variables_to_train:
+        logging.info('  %s', var.name)
     return contrib_training.create_train_op(
         loss,
         optimizer,
         summarize_gradients=summarize_gradients,
-        update_ops=update_ops)
+        update_ops=update_ops,
+        variables_to_train=variables_to_train)
 
   def maybe_init_from_checkpoint(self):
     """Optionally initialize the model from a checkpoint.

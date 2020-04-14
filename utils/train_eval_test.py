@@ -74,6 +74,10 @@ class FakeHookBuilder(hook_builder.HookBuilder):
 
 class TrainEvalTest(tf.test.TestCase):
 
+  def tearDown(self):
+    gin.clear_config()
+    super(TrainEvalTest, self).tearDown()
+
   def _compute_total_loss(self, labels, logits):
     """Summation of the categorical hinge loss for labels and logits."""
     error = 0.
@@ -349,6 +353,49 @@ class TrainEvalTest(tf.test.TestCase):
     ]
     self.assertFalse(
         np.allclose(initial_predictions, random_predictions, atol=1e-2))
+
+  def test_freezing_some_variables(self):
+    """Tests we can freeze training for parts of the network."""
+    def freeze_biases(var):
+      # Update all variables except bias variables.
+      return 'bias' not in var.name
+
+    gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 100)
+    gin.bind_parameter('create_train_op.filter_trainables_fn', freeze_biases)
+    model_dir = self.create_tempdir().full_path
+    mock_t2r_model = mocks.MockT2RModel(
+        preprocessor_cls=noop_preprocessor.NoOpPreprocessor)
+    mock_input_generator_train = mocks.MockInputGenerator(
+        batch_size=_BATCH_SIZE)
+
+    train_eval.train_eval_model(
+        t2r_model=mock_t2r_model,
+        input_generator_train=mock_input_generator_train,
+        max_train_steps=_MAX_TRAIN_STEPS,
+        model_dir=model_dir)
+
+    start_checkpoint = tf.train.NewCheckpointReader(
+        os.path.join(model_dir, 'model.ckpt-0'))
+    last_checkpoint = tf.train.NewCheckpointReader(
+        tf.train.latest_checkpoint(model_dir))
+    for var_name, _ in tf.train.list_variables(model_dir):
+      # Some of the batch norm moving averages are constant over training on the
+      # mock data used.
+      if 'batch_norm' in var_name:
+        continue
+      if 'bias' not in var_name:
+        # Should update.
+        self.assertNotAllClose(
+            start_checkpoint.get_tensor(var_name),
+            last_checkpoint.get_tensor(var_name),
+            atol=1e-3)
+      else:
+        # Should not update.
+        self.assertAllClose(
+            start_checkpoint.get_tensor(var_name),
+            last_checkpoint.get_tensor(var_name),
+            atol=1e-3)
+
 
 if __name__ == '__main__':
   tf.test.main()
