@@ -246,21 +246,22 @@ def get_softmax_viz(image, softmax, nrows=None):
   return img
 
 
-def _put_text(imgs, texts):
-  """Python function that renders text onto a image."""
-  result = np.empty_like(imgs)
-  for i in range(imgs.shape[0]):
-    text = texts[i]
-    if isinstance(text, bytes):
-      text = six.ensure_text(text)
-    # You may need to adjust text size and position and size.
-    # If your images are in [0, 255] range replace (0, 0, 1) with (0, 0, 255)
-    result[i, :, :, :] = cv2.putText(
-        imgs[i, :, :, :], str(text), (0, 30),
-        cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 1), 2)
-  return result
-
-
-def tf_put_text(imgs, texts):
+def tf_put_text(imgs, texts, text_size=1, text_pos=(0, 30),
+                text_color=(0, 0, 1)):
   """Adds text to an image tensor."""
+
+  def _put_text(imgs, texts):
+    """Python function that renders text onto a image."""
+    result = np.empty_like(imgs)
+    for i in range(imgs.shape[0]):
+      text = texts[i]
+      if isinstance(text, bytes):
+        text = six.ensure_text(text)
+      # You may need to adjust text size and position and size.
+      # If your images are in [0, 255] range replace (0, 0, 1) with (0, 0, 255)
+      result[i, :, :, :] = cv2.putText(
+          imgs[i, :, :, :], str(text), text_pos,
+          cv2.FONT_HERSHEY_COMPLEX, text_size, text_color, 1)
+    return result
+
   return tf.py_func(_put_text, [imgs, texts], Tout=imgs.dtype)
