@@ -19,8 +19,8 @@
 import os
 import time
 from typing import Dict, Optional, Text
-
 from absl import logging
+import gin
 import numpy as np
 
 from tensor2robot.predictors import abstract_predictor
@@ -158,6 +158,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
     return self._saved_model_path
 
 
+@gin.configurable
 class SavedModelTF2Predictor(SavedModelPredictorBase):
   """SavedModelTF2Predictor compatible with TF2.x and Eager execution.
 
@@ -177,6 +178,7 @@ class SavedModelTF2Predictor(SavedModelPredictorBase):
     return self._model.global_step().numpy()
 
 
+@gin.configurable
 class SavedModelTF1Predictor(SavedModelPredictorBase):
   """SavedModel predictor that works with graph mode and TF1.x.
 
