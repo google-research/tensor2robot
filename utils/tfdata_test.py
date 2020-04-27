@@ -92,6 +92,77 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
       self.assertAllEqual([1, 2], features_.action.shape)
       self.assertAllEqual((1,), labels_.reward.shape)
 
+  def _write_test_images_examples(self, batch_of_list_of_encoded_images,
+                                  file_path):
+    with tf.python_io.TFRecordWriter(file_path) as writer:
+      for list_of_encoded_images in batch_of_list_of_encoded_images:
+        example = tf.train.Example()
+        for encoded_image in list_of_encoded_images:
+          example.features.feature['image/encoded'].bytes_list.value.append(
+              encoded_image)
+        writer.write(example.SerializeToString())
+
+  @parameterized.named_parameters(
+      ('uint8', np.uint8, tf.uint8),
+      ('uint16', np.uint16, tf.uint16),
+  )
+  def test_images_decoding(self, np_data_type, tf_data_type):
+    file_pattern = os.path.join(self.create_tempdir().full_path,
+                                'test.tfrecord')
+    image_width = 640
+    image_height = 512
+    maxval = np.iinfo(np_data_type).max  # Maximum value for byte-encoded image.
+    image_np = np.random.uniform(
+        size=(image_height, image_width), high=maxval).astype(np.int32)
+    png_encoded_image = image.numpy_to_image_string(image_np, 'png',
+                                                    np_data_type)
+    test_data = [[png_encoded_image]]
+    self._write_test_images_examples(test_data, file_pattern)
+    feature_spec = tensorspec_utils.TensorSpecStruct()
+    feature_spec.images = tensorspec_utils.ExtendedTensorSpec(
+        shape=(image_height, image_width, 1),
+        dtype=tf_data_type,
+        name='image/encoded',
+        data_format='png')
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    dataset = dataset.batch(1, drop_remainder=True)
+    if np_data_type == np.uint32:
+      with self.assertRaises(tf.errors.InvalidArgumentError):
+        dataset = tfdata.serialized_to_parsed(dataset, feature_spec, None)
+    else:
+      dataset = tfdata.serialized_to_parsed(dataset, feature_spec, None)
+    features = dataset.make_one_shot_iterator().get_next()
+    # Check tensor shapes.
+    self.assertAllEqual(
+        [1, image_height, image_width, 1],
+        features.images.get_shape().as_list())
+    with self.session() as session:
+      np_features = session.run(features)
+      self.assertEqual(np_features['images'].dtype, np_data_type)
+
+  def test_images_decoding_raises(self):
+    file_pattern = os.path.join(self.create_tempdir().full_path,
+                                'test.tfrecord')
+    image_width = 640
+    image_height = 512
+    maxval = np.iinfo(np.uint32).max  # Maximum value for byte-encoded image.
+    image_np = np.random.uniform(
+        size=(image_height, image_width), high=maxval).astype(np.int32)
+    png_encoded_image = image.numpy_to_image_string(image_np, 'png',
+                                                    np.uint32)
+    test_data = [[png_encoded_image]]
+    self._write_test_images_examples(test_data, file_pattern)
+    feature_spec = tensorspec_utils.TensorSpecStruct()
+    feature_spec.images = tensorspec_utils.ExtendedTensorSpec(
+        shape=(image_height, image_width, 1),
+        dtype=tf.uint32,
+        name='image/encoded',
+        data_format='png')
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    dataset = dataset.batch(1, drop_remainder=True)
+    with self.assertRaises(ValueError):
+      tfdata.serialized_to_parsed(dataset, feature_spec, None)
+
   def _write_test_sequence_examples(self, sequence_length, tfrecord_path):
     example = tf.train.SequenceExample()
     context_key = 'context_feature'

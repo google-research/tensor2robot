@@ -46,8 +46,9 @@ def jpeg_string(image, jpeg_quality = 90):
   return output_jpeg.getvalue()
 
 
-def numpy_to_image_string(image_array, image_format='jpeg'):
-  image = Image.fromarray(image_array.astype(np.uint8))
+def numpy_to_image_string(image_array, image_format='jpeg',
+                          data_type=np.uint8):
+  image = Image.fromarray(image_array.astype(data_type))
   output_jpeg = io.BytesIO()
   image.save(output_jpeg, image_format)
   return output_jpeg.getvalue()

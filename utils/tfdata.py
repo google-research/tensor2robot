@@ -37,6 +37,7 @@ DATA_FORMAT = {
 RECORD_READER = {
     'tfrecord': tf.TFRecordReader
 }
+SUPPORTED_PIXEL_ENCODINGS = [tf.uint8, tf.uint16]
 
 
 def get_batch_size(params, batch_size):
@@ -283,7 +284,8 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None,
       features: Collection of tensors conforming to feature_tspec.
       labels: Collection of tensors conforming to label_tspec.
     Raises:
-        ValueError: If dtype other than uint8 is supplied for image specs.
+        ValueError: If dtype other than uint8 or uint16 is supplied for image
+        specs.
     """
     dict_extracted = _get_sstable_proto_dict(*input_values)
 
@@ -412,7 +414,8 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None,
       Returns:
         Decoded image tensor with shape specified by tensor spec.
       Raises:
-        ValueError: If dtype other than uint8 is supplied for image specs.
+        ValueError: If dtype other than uint8 or uint16 is supplied for image
+        specs.
       """
       img_batch_dims = tf.shape(raw_bytes)
       # The spatial + channel dimensions of a single image, assumed to be the
@@ -433,17 +436,27 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None,
       # Collapse (possibly multiple) batch dims to a single batch dim for
       # decoding purposes.
       raw_bytes = tf.reshape(raw_bytes, [-1])
+      data_type = tensor_spec_dict[key].dtype
+      if data_type not in SUPPORTED_PIXEL_ENCODINGS:
+        raise ValueError('Decoding an image requires tensorspec.data_type '
+                         'to be uint8 or uint16.')
 
       def _decode_images(image_bytes):
+        """Decode single image."""
+        def _zero_image():
+          return tf.zeros(single_img_dims, dtype=data_type)
+
+        def _tf_decode_image():
+          return tf.image.decode_image(
+              image_bytes, channels=num_channels, dtype=data_type)
+
         image = tf.cond(
-            tf.equal(image_bytes,
-                     ''), lambda: tf.zeros(single_img_dims, dtype=tf.uint8),
-            lambda: tf.image.decode_image(image_bytes, channels=num_channels))
-        image.set_shape([None, None, None])
+            tf.equal(image_bytes, ''), _zero_image, _tf_decode_image)
+        image.set_shape(single_img_dims)
         return image
 
       img = tf.map_fn(
-          _decode_images, raw_bytes, dtype=tf.uint8, back_prop=False)
+          _decode_images, raw_bytes, dtype=data_type, back_prop=False)
       img.set_shape(raw_bytes.shape.concatenate(single_img_dims))
 
       # Expand the collapsed batch dim back to the original img_batch_dims.
@@ -469,9 +482,9 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None,
       tensor_spec = tensor_spec_dict[key]
       if tensorspec_utils.is_encoded_image_spec(tensor_spec) and decode_images:
         parsed_tensors[key] = decode_image(key, val)
-        if tensor_spec.dtype != tf.uint8:
+        if tensor_spec.dtype not in SUPPORTED_PIXEL_ENCODINGS:
           raise ValueError('Encoded images with key {} must be '
-                           'specified with uint8 dtype.'.format(key))
+                           'specified with uint8 or uint16 dtype.'.format(key))
 
     # Pad all varlen features to the corrensponding spec.
     for key, val in parsed_tensors.items():
