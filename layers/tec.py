@@ -136,7 +136,7 @@ def reduce_temporal_embeddings(
 def compute_embedding_contrastive_loss(
     inf_embedding,
     con_embedding,
-    successes = None):
+    positives = None):
   """Compute triplet loss between inference and condition_embeddings.
 
   Expects embeddings to be L2-normalized.
@@ -144,10 +144,11 @@ def compute_embedding_contrastive_loss(
   Args:
     inf_embedding: A rank 3 tensor: [num_tasks, num_inf_episodes, K].
     con_embedding: A rank 3 tensor: [num_tasks, num_con_episodes, K].
-    successes: (Optional). A rank 2 tensor: [num_tasks, num_inf_episodes]. If
-      provided, only con_embedding with corresponding successes=1.0 are assigned
-      as positives (all failures are negatives). When not provided,
-      con_embedding is always treated as a positive example.
+    positives: (Optional). A rank 1 bool tensor: [num_tasks]. If provided, instead
+      of assigning positives to just the 1st task in the batch, it uses the positives
+      given. Positives should be defined as if the 1st task was the anchor. When not
+      provided, the 1st con_embedding is positive and every other con_embedding is
+      negatives.
   Returns:
     The contrastive loss computed using the task zero inf_embedding and
     each of the `num_tasks` con_embeddings.
@@ -161,10 +162,11 @@ def compute_embedding_contrastive_loss(
   avg_inf_embedding = tf.reduce_mean(inf_embedding, axis=1)
   avg_con_embedding = tf.reduce_mean(con_embedding, axis=1)
   anchor = avg_inf_embedding[0:1]
-  labels = tf.math.equal(tf.range(tf.shape(avg_con_embedding)[0]), 0)
-  if successes is not None:
-    inference_success = tf.math.equal(tf.reduce_mean(successes, axis=1), 1.0)
-    labels = tf.logical_and(labels, inference_success)
+  if positives is not None:
+    labels = positives
+  else:
+    labels = tf.math.equal(tf.range(tf.shape(avg_con_embedding)[0]), 0)
   # Unlike TEC paper, use standard contrastive loss.
-  embed_loss = slim_losses.metric_learning.contrastive_loss(labels, anchor, avg_con_embedding)
+  embed_loss = slim_losses.metric_learning.contrastive_loss(
+      labels, anchor, avg_con_embedding)
   return embed_loss
