@@ -154,6 +154,7 @@ def resnet_model(images,
                  is_training,
                  num_classes,
                  resnet_size=50,
+                 weight_decay=None,
                  return_intermediate_values=False,
                  film_generator_fn=None,
                  film_generator_input=None,
@@ -166,6 +167,7 @@ def resnet_model(images,
       training the classifier.
     num_classes: Dimensionality of output logits emitted by final dense layer.
     resnet_size: Size of resnet. One of [18, 34, 50, 101, 152, 200].
+    weight_decay: L2 weight regularizer.
     return_intermediate_values: If True, returns a dictionary of output and
       intermediate activation values.
     film_generator_fn: Callable that returns a List (for each block layer) of
@@ -180,7 +182,6 @@ def resnet_model(images,
     bottleneck = False
   else:
     bottleneck = True
-
   model = resnet_lib.Model(
       resnet_size=resnet_size,
       bottleneck=bottleneck,
@@ -194,6 +195,7 @@ def resnet_model(images,
       block_strides=[1, 2, 2, 2],
       resnet_version=resnet_lib.DEFAULT_VERSION,
       data_format='channels_last',
+      weight_decay=weight_decay,
       dtype=resnet_lib.DEFAULT_DTYPE
   )
   final_dense = model(images, is_training,

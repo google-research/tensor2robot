@@ -39,6 +39,7 @@ from __future__ import print_function
 
 from six.moves import range
 import tensorflow.compat.v1 as tf
+from tensorflow.contrib import layers as contrib_layers
 
 _BATCH_NORM_DECAY = 0.997
 _BATCH_NORM_EPSILON = 1e-5
@@ -90,17 +91,22 @@ def fixed_padding(inputs, kernel_size, data_format):
   return padded_inputs
 
 
-def conv2d_fixed_padding(inputs, filters, kernel_size, strides, data_format):
+def conv2d_fixed_padding(inputs, filters, kernel_size, strides, data_format,
+                         weight_decay):
   """Strided 2-D convolution with explicit padding."""
   # The padding is consistent and is based only on `kernel_size`, not on the
   # dimensions of `inputs` (as opposed to using `tf.layers.conv2d` alone).
   if strides > 1:
     inputs = fixed_padding(inputs, kernel_size, data_format)
 
+  if weight_decay is not None:
+    weight_decay = contrib_layers.l2_regularizer(weight_decay)
+
   return tf.compat.v1.layers.conv2d(
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
       kernel_initializer=tf.compat.v1.variance_scaling_initializer(),
+      kernel_regularizer=weight_decay,
       data_format=data_format)
 
 
@@ -118,7 +124,7 @@ def _apply_film(inputs, film_gamma_beta):
 # ResNet block definitions.
 ################################################################################
 def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
-                       data_format, film_gamma_beta=None):
+                       data_format, weight_decay, film_gamma_beta=None):
   """A single block for ResNet v1, without a bottleneck.
 
   Convolution then batch normalization then ReLU as described by:
@@ -137,6 +143,7 @@ def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    weight_decay: L2 weight decay.
     film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
 
   Returns:
@@ -151,13 +158,13 @@ def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=strides,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
   inputs = batch_norm(inputs, training, data_format)
   inputs = tf.nn.relu(inputs)
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=1,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
   inputs = batch_norm(inputs, training, data_format)
   inputs = _apply_film(inputs, film_gamma_beta)
   inputs += shortcut
@@ -167,7 +174,7 @@ def _building_block_v1(inputs, filters, training, projection_shortcut, strides,
 
 
 def _building_block_v2(inputs, filters, training, projection_shortcut, strides,
-                       data_format, film_gamma_beta=None):
+                       data_format, weight_decay, film_gamma_beta=None):
   """A single block for ResNet v2, without a bottleneck.
 
   Batch normalization then ReLu then convolution as described by:
@@ -186,6 +193,7 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    weight_decay: L2 weight decay.
     film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
 
   Returns:
@@ -202,20 +210,21 @@ def _building_block_v2(inputs, filters, training, projection_shortcut, strides,
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=strides,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
 
   inputs = batch_norm(inputs, training, data_format)
   inputs = _apply_film(inputs, film_gamma_beta)
   inputs = tf.nn.relu(inputs)
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=1,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
 
   return inputs + shortcut
 
 
 def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
-                         strides, data_format, film_gamma_beta=None):
+                         strides, data_format, weight_decay,
+                         film_gamma_beta=None):
   """A single block for ResNet v1, with a bottleneck.
 
   Similar to _building_block_v1(), except using the "bottleneck" blocks
@@ -236,6 +245,7 @@ def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    weight_decay: L2 weight regularizer.
     film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
 
   Returns:
@@ -250,19 +260,19 @@ def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=1, strides=1,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
   inputs = batch_norm(inputs, training, data_format)
   inputs = tf.nn.relu(inputs)
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=strides,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
   inputs = batch_norm(inputs, training, data_format)
   inputs = tf.nn.relu(inputs)
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
   inputs = batch_norm(inputs, training, data_format)
   inputs = _apply_film(inputs, film_gamma_beta)
   inputs += shortcut
@@ -272,7 +282,8 @@ def _bottleneck_block_v1(inputs, filters, training, projection_shortcut,
 
 
 def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
-                         strides, data_format, film_gamma_beta=None):
+                         strides, data_format, weight_decay,
+                         film_gamma_beta=None):
   """A single block for ResNet v2, with a bottleneck.
 
   Similar to _building_block_v2(), except using the "bottleneck" blocks
@@ -299,6 +310,7 @@ def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
     strides: The block's stride. If greater than 1, this block will ultimately
       downsample the input.
     data_format: The input format ('channels_last' or 'channels_first').
+    weight_decay: L2 weight regularizer.
     film_gamma_beta: [batch, 2*filters] Tensor corresponding to FiLM params.
 
   Returns:
@@ -315,26 +327,26 @@ def _bottleneck_block_v2(inputs, filters, training, projection_shortcut,
 
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=1, strides=1,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
 
   inputs = batch_norm(inputs, training, data_format)
   inputs = tf.nn.relu(inputs)
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=filters, kernel_size=3, strides=strides,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
 
   inputs = batch_norm(inputs, training, data_format)
   inputs = _apply_film(inputs, film_gamma_beta)
   inputs = tf.nn.relu(inputs)
   inputs = conv2d_fixed_padding(
       inputs=inputs, filters=4 * filters, kernel_size=1, strides=1,
-      data_format=data_format)
+      data_format=data_format, weight_decay=weight_decay)
 
   return inputs + shortcut
 
 
 def block_layer(inputs, filters, bottleneck, block_fn, blocks, strides,
-                training, name, data_format, film_gamma_betas):
+                training, name, data_format, weight_decay, film_gamma_betas):
   """Creates one layer of blocks for the ResNet model.
 
   Args:
@@ -351,6 +363,7 @@ def block_layer(inputs, filters, bottleneck, block_fn, blocks, strides,
       model. Needed for batch norm.
     name: A string name for the tensor output of the block layer.
     data_format: The input format ('channels_last' or 'channels_first').
+    weight_decay: L2 weight regularizer.
     film_gamma_betas: List of FiLM parameters for each ResNet block in this
       block layer. Parameters can be None or a tf.Tensor.
 
@@ -367,15 +380,15 @@ def block_layer(inputs, filters, bottleneck, block_fn, blocks, strides,
   def projection_shortcut(inputs):
     return conv2d_fixed_padding(
         inputs=inputs, filters=filters_out, kernel_size=1, strides=strides,
-        data_format=data_format)
+        data_format=data_format, weight_decay=weight_decay)
 
   # Only the first block per block_layer uses projection_shortcut and strides
   inputs = block_fn(inputs, filters, training, projection_shortcut, strides,
-                    data_format, film_gamma_betas[0])
+                    data_format, weight_decay, film_gamma_betas[0])
 
   for i in range(1, blocks):
     inputs = block_fn(inputs, filters, training, None, 1, data_format,
-                      film_gamma_betas[i])
+                      weight_decay, film_gamma_betas[i])
 
   return tf.identity(inputs, name)
 
@@ -387,6 +400,7 @@ class Model(object):
                kernel_size,
                conv_stride, first_pool_size, first_pool_stride,
                block_sizes, block_strides,
+               weight_decay,
                resnet_version=DEFAULT_VERSION, data_format=None,
                dtype=DEFAULT_DTYPE):
     """Creates a model for classifying an image.
@@ -409,6 +423,7 @@ class Model(object):
         i-th set.
       block_strides: List of integers representing the desired stride size for
         each of the sets of block layers. Should be same length as block_sizes.
+      weight_decay: L2 weight regularizer.
       resnet_version: Integer representing which version of the ResNet network
         to use. See README for details. Valid values: [1, 2]
       data_format: Input format ('channels_last', 'channels_first', or None).
@@ -454,6 +469,7 @@ class Model(object):
     self.first_pool_stride = first_pool_stride
     self.block_sizes = block_sizes
     self.block_strides = block_strides
+    self.weight_decay = weight_decay
     self.dtype = dtype
     self.pre_activation = resnet_version == 2
 
@@ -549,7 +565,8 @@ class Model(object):
 
       inputs = conv2d_fixed_padding(
           inputs=inputs, filters=self.num_filters, kernel_size=self.kernel_size,
-          strides=self.conv_stride, data_format=self.data_format)
+          strides=self.conv_stride, data_format=self.data_format,
+          weight_decay=self.weight_decay)
       inputs = tf.identity(inputs, 'initial_conv')
 
       # We do not include batch normalization or activation functions in V2
@@ -593,6 +610,7 @@ class Model(object):
             block_fn=self.block_fn, blocks=num_blocks,
             strides=self.block_strides[i], training=training,
             name='block_layer{}'.format(i + 1), data_format=self.data_format,
+            weight_decay=self.weight_decay,
             film_gamma_betas=film_gamma_betas[i])
 
       # Only apply the BN and ReLU for model that does pre_activation in each
