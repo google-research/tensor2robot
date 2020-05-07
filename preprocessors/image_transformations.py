@@ -72,7 +72,7 @@ def CenterCropImages(images, input_shape,
   Args:
     images: List of tensors of shape [batch_size, h, w, c].
     input_shape: Shape [h, w, c] of the input images.
-    target_shape: Shape [h, w, c] of the cropped output.
+    target_shape: Shape [h, w] of the cropped output.
 
   Returns:
     crops: List of cropped tensors of shape [batch_size] + target_shape.
