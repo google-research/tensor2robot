@@ -293,8 +293,8 @@ class MAMLModelTest(parameterized.TestCase):
         export_generator=mock_export_generator,
         create_exporters_fn=train_eval.create_default_exporters)
     export_dir = os.path.join(model_dir, 'export')
-    # best_exporter_numpy, best_exporter_tf_example.
-    self.assertLen(tf.io.gfile.glob(os.path.join(export_dir, '*')), 4)
+    # (best|latest)_exporter_(numpy|tf_example), servo
+    self.assertLen(tf.io.gfile.glob(os.path.join(export_dir, '*')), 5)
     numpy_predictor_fn = contrib_predictor.from_saved_model(
         tf.io.gfile.glob(os.path.join(export_dir, 'best_exporter_numpy',
                                       '*'))[-1])

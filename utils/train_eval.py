@@ -298,7 +298,8 @@ def create_default_exporters(
     export_generator,
     compare_fn=create_valid_result_smaller,
     use_numpy_exporters = True,
-    use_tfexample_exporters = True):
+    use_tfexample_exporters = True,
+    use_servo_exporter = True):
   """Creates a list of Exporter to export saved models during evaluation.
 
   Args:
@@ -307,6 +308,7 @@ def create_default_exporters(
     compare_fn: The function used to deterimne the best model to export.
     use_numpy_exporters: If True, includes numpy exporters.
     use_tfexample_exporters: If True, includes TFExample exporters.
+    use_servo_exporter: If true, add the a Servo export for use with TFX.
 
   Returns:
     A list containing two exporters, one for numpy and another one for
@@ -357,6 +359,13 @@ def create_default_exporters(
             name='latest_exporter_tf_example',
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_tf_example_fn(),
+            assets_extra=assets))
+  if use_servo_exporter:
+    exporters.append(
+        tf.estimator.LatestExporter(
+            name='Servo',
+            serving_input_receiver_fn=export_generator
+            .create_serving_input_receiver_numpy_fn(),
             assets_extra=assets))
   return exporters
 
