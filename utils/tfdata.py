@@ -533,7 +533,7 @@ def default_input_fn_tmpl(
     num_parallel_calls = 4,
     is_training = False,
     preprocess_fn=None,
-    shuffle_buffer_size = 1000,
+    shuffle_buffer_size = 500,
     prefetch_buffer_size = (tf.data.experimental.AUTOTUNE),
     parallel_shards = 10):
   """Generic gin-configurable tf.data input pipeline."""
