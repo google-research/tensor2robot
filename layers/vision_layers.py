@@ -39,7 +39,8 @@ def BuildImagesToFeaturesModel(images,
                                normalizer_fn=slim.layer_norm,
                                normalizer_params=None,
                                weight_regularization=0.00001,
-                               film_output_params=None):
+                               film_output_params=None,
+                               use_spatial_softmax=True):
   """Builds the pose regression model.
 
   Args:
@@ -57,12 +58,19 @@ def BuildImagesToFeaturesModel(images,
         recommended by the paper, instead of doing gamma * x + beta, this does
         (1 + gamma) * x + beta, to better handle the initial zero-centered
         gamma.
+    use_spatial_softmax: If True, adds a spatial softmax layer on top of the
+      final convnet features.
 
   Returns:
-    expected_feature_points: A tensor of size
-      [batch_size, num_features * 2]. These are the expected feature
+    expected_feature_points: If spatial_softmax is True, a tensor of size
+      [batch_size, num_output_maps * 2]. These are the expected feature
       locations, i.e., the spatial softmax of feature_maps. The inner
       dimension is arranged as [x1, x2, x3 ... xN, y1, y2, y3, ... yN].
+
+      If spatial_softmax is False, a tensor of size [batch_size, height, width,
+      num_output_maps], where height / width will depend on the input size.
+    extra: A dict containing the softmax if use_spatial_softmax is True,
+      otherwise an empty dict.
   """
 
   if normalizer_params is None and normalizer_fn == slim.batch_norm:
@@ -147,8 +155,11 @@ def BuildImagesToFeaturesModel(images,
           num_output_maps, [1, 1],
           scope='final_conv_1x1',
           normalizer_params=batch_norm_params_with_scaling)
-      net, softmax = spatial_softmax.BuildSpatialSoftmax(net)
-      return net, {'softmax': softmax}
+      if use_spatial_softmax:
+        net, softmax = spatial_softmax.BuildSpatialSoftmax(net)
+        return net, {'softmax': softmax}
+      else:
+        return net, {}
 
 
 @gin.configurable
