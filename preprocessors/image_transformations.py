@@ -273,6 +273,29 @@ def ApplyPhotometricImageDistortions(
 
 
 @gin.configurable
+def ApplyPhotometricImageDistortionsCheap(
+    images):
+  """Apply photometric distortions to the input images.
+
+  Args:
+    images: Tensor of shape [batch_size, h, w, 3] containing a batch of images
+      to apply the random photometric distortions to. Assumed to be normalized
+      to range (0, 1), float32 encoding.
+  Returns:
+    images: Tensor of shape [batch_size, h, w, 3] containing a batch of images
+      resulting from applying random photometric distortions to the inputs.
+  """
+  with tf.name_scope('photometric_distortion'):
+    channels = tf.unstack(images, axis=-1)
+    # Per-channel random gamma correction.
+    # Lower gamma = brighter image, decreased contrast.
+    # Higher gamma = dark image, increased contrast.
+    gamma_corrected = [c**tf.random_uniform([], 0.5, 1.5) for c in channels]
+    images = tf.stack(gamma_corrected, axis=-1)
+    return images
+
+
+@gin.configurable
 def ApplyDepthImageDistortions(depth_images,
                                random_noise_level = 0.05,
                                random_noise_apply_probability = 0.5,
