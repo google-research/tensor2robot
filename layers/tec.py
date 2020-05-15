@@ -234,8 +234,11 @@ def compute_embedding_contrastive_loss(
         labels, temperature * cosine_sim_2, from_logits=True)
     embed_loss = loss1 + loss2
   elif contrastive_loss_mode == 'triplet':
-    # Triplet loss
-    labels = tf.tile(labels, [2])
+    if positives is None:
+      # Triplet loss requires a different labeling scheme than the other losses.
+      # Assume unique-task pairing scheme [0, 1, 2, ..., N, 0, 1, 2, ..., N].
+      positives = tf.range(avg_inf_embedding.shape[0], dtype=tf.int32)
+    labels = tf.tile(positives, [2])
     embeds = tf.concat([avg_inf_embedding, avg_con_embedding], axis=0)
     embed_loss = slim_losses.metric_learning.triplet_semihard_loss(
         labels, embeds, margin=3.0)
