@@ -19,3 +19,10 @@ source ~/venv/bin/activate
 pip install -r tensor2robot/requirements.txt
 python -m tensor2robot.research.qtopt.t2r_models_test
 ```
+
+## PCGrad
+
+This directory also contains a multi-task optimization method
+[PCGrad](https://arxiv.org/pdf/2001.06782.pdf) that is implemented in the form
+of a optimization wrapper. This is based on the open-source implementation
+[here](https://github.com/tianheyu927/PCGrad/blob/master/PCGrad_tf.py).
