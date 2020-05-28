@@ -34,6 +34,7 @@ from tensorflow.contrib import layers as contrib_layers
 try:
   from cvx2 import latest as cv2  # pylint: disable=g-import-not-at-top
 except ImportError:
+  pass  # pylint: disable=unnecessary-pass
 
 
 def plot_labels(labels, max_label=1, predictions=None, name=''):

@@ -31,6 +31,7 @@ from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf  # tf
 from typing import Dict, Optional, Text
 
+from tensorflow.contrib import framework as contrib_framework
 
 _BUSY_WAITING_SLEEP_TIME_IN_SECS = 1
 
