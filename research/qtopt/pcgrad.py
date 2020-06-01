@@ -22,6 +22,7 @@ import tensorflow.compat.v1 as tf
 
 FLAGS = flags.FLAGS
 GATE_OP = 1
+PCGRAD_LOSSES_COLLECTION = "pcgrad_losses"
 
 
 class PCGrad(tf.train.Optimizer):
@@ -32,15 +33,21 @@ class PCGrad(tf.train.Optimizer):
   https://github.com/tianheyu927/PCGrad/blob/master/PCGrad_tf.py.
   """
 
-  def __init__(self, optimizer_to_wrap, use_locking=False):
+  def __init__(self,
+               optimizer_to_wrap,
+               use_collection_losses=False,
+               use_locking=False):
     """Initializes the PCGrad class.
 
     Args:
       optimizer_to_wrap: The optimizer that is being wrapped with PCGrad.
+      use_collection_losses: Whether to query collections pcgrad_losses for
+        losses list.
       use_locking: A boolean flag.
     """
     super(PCGrad, self).__init__(use_locking, self.__class__.__name__)
     self._optimizer = optimizer_to_wrap
+    self._use_collection_losses = use_collection_losses
 
   def compute_gradients(self,
                         loss,
@@ -49,6 +56,8 @@ class PCGrad(tf.train.Optimizer):
                         aggregation_method=None,
                         colocate_gradients_with_ops=False,
                         grad_loss=None):
+    if self._use_collection_losses:
+      loss = tf.get_collection(PCGRAD_LOSSES_COLLECTION)
     assert isinstance(loss, list), "The loss is not a list: %s" % type(loss)
     num_tasks = len(loss)
     loss = tf.stack(loss)
@@ -56,11 +65,13 @@ class PCGrad(tf.train.Optimizer):
 
     # Compute per-task gradients.
     def compute_per_task_grads(task):
-      grad_list = [
-          tf.reshape(grad, [
-              -1,
-          ]) for grad in tf.gradients(task, var_list) if grad is not None
-      ]
+      grad_list = []
+      for grad in tf.gradients(task, var_list):
+        if grad is None:
+          continue
+        grad_list.append(tf.reshape(grad, [
+            -1,
+        ]))
       return tf.concat(grad_list, axis=0)
 
     grads_task = tf.vectorized_map(compute_per_task_grads, loss)
@@ -94,12 +105,19 @@ class PCGrad(tf.train.Optimizer):
     grads_and_vars = list(zip(proj_grads, var_list))
     return grads_and_vars
 
+  def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+    return self._optimizer.apply_gradients(grads_and_vars, global_step, name)
+
 # pylint: disable=protected-access
+  def __getattr__(self, name):
+    """Forward all other calls to the base optimizer."""
+    return getattr(self._optimizer, name)
+
   def _create_slots(self, var_list):
-    self._optimizer._create_slots(var_list)
+    return self._optimizer._create_slots(var_list)
 
   def _prepare(self):
-    self._optimizer._prepare()
+    return self._optimizer._prepare()
 
   def _apply_dense(self, grad, var):
     return self._optimizer._apply_dense(grad, var)
