@@ -15,14 +15,10 @@
 
 """Library for offline training TFModels with Estimator API."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import os
 import tempfile
 import time
+from typing import Any, Callable, Dict, List, Optional, Text
 
 from absl import flags
 from absl import logging
@@ -38,11 +34,10 @@ from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf  # tf
 
-from typing import Any, Callable, Dict, List, Optional, Text
 from tensorflow.contrib import tpu as contrib_tpu
 from tensorflow.contrib import training as contrib_training
 
-EXPORTER_FN = Callable[[
+ExporterFn = Callable[[
     model_interface.ModelInterface, abstract_export_generator
     .AbstractExportGenerator
 ], List[tf.estimator.Exporter]]

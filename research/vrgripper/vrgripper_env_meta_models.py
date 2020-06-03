@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """T2R Meta-learning models for VRGripper env tasks."""
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
 
 from typing import Any, Dict, Optional, Tuple
 

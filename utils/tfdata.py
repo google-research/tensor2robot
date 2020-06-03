@@ -15,12 +15,9 @@
 
 """Automatic tf.data.Dataset input pipeline from TensorSpec collections."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import itertools
+from typing import Dict, List, Optional, Text, Tuple, Union
+
 from absl import logging
 import gin
 import six
@@ -28,7 +25,6 @@ import six
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
 
-from typing import Dict, List, Optional, Text, Tuple, Union
 
 
 DATA_FORMAT = {

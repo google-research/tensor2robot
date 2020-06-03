@@ -15,10 +15,6 @@
 
 """Tests for TD3 Hooks."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import mock
 from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.hooks import checkpoint_hooks

@@ -13,22 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Functions for building Task-Embedded Control Networks: https://arxiv.org/abs/1810.03237."""  # pylint: disable=line-too-long
-from __future__ import absolute_import
-from __future__ import division
+"""Functions for building Task-Embedded Control Networks.
 
-from __future__ import print_function
+See https://arxiv.org/abs/1810.03237.
+"""
+
+from typing import Optional, Text, Tuple
 
 import gin
 from tensor2robot.layers import vision_layers
 import tensorflow.compat.v1 as tf  # tf
 from tf_slim import losses as slim_losses
-from typing import Optional, Text, Tuple
 from tensorflow.contrib import layers
 
 
-def embed_fullstate(
-    fullstate, embed_size, scope, reuse=tf.AUTO_REUSE, fc_layers=(100,)):
+def embed_fullstate(fullstate,
+                    embed_size,
+                    scope,
+                    reuse=tf.AUTO_REUSE,
+                    fc_layers=(100,)):
   """Embed full state pose (non-image) observations.
 
   Args:
@@ -38,25 +41,28 @@ def embed_fullstate(
     reuse: The variable_scope reuse setting.
     fc_layers: A tuple of ints describing the number of units in each hidden
       layer.
+
   Returns:
     A rank 2 tensor: [N, embed_size].
   """
   with tf.variable_scope(scope, reuse=reuse, use_resource=True):
     embedding = layers.stack(
-        fullstate, layers.fully_connected, fc_layers,
-        activation_fn=tf.nn.relu, normalizer_fn=layers.layer_norm)
+        fullstate,
+        layers.fully_connected,
+        fc_layers,
+        activation_fn=tf.nn.relu,
+        normalizer_fn=layers.layer_norm)
     embedding = layers.fully_connected(
         embedding, embed_size, activation_fn=None)
   return embedding
 
 
 @gin.configurable
-def embed_condition_images(
-    condition_image,
-    scope,
-    reuse=tf.AUTO_REUSE,
-    fc_layers = None,
-    use_spatial_softmax = True):
+def embed_condition_images(condition_image,
+                           scope,
+                           reuse=tf.AUTO_REUSE,
+                           fc_layers = None,
+                           use_spatial_softmax = True):
   """Independently embed a (meta)-batch of images.
 
   Args:
@@ -67,15 +73,17 @@ def embed_condition_images(
       fully-connected hidden layer, or 1x1 conv layer when excluding spatial
       softmax.
     use_spatial_softmax: Whether to use a spatial softmax or not.
+
   Returns:
     A rank 2 tensor of embeddings: [N, embedding size] if spatial_softmax is
-    True. Otherwise, a rank 4 tensor of visual features [N, H, W, embedding size]
+    True. Otherwise, a rank 4 tensor of visual features [N, H, W, embedding
+    size]
   Raises:
     ValueError if `condition_image` has incorrect rank.
   """
   if len(condition_image.shape) != 4:
-    raise ValueError(
-        'Image has unexpected shape {}.'.format(condition_image.shape))
+    raise ValueError('Image has unexpected shape {}.'.format(
+        condition_image.shape))
   with tf.variable_scope(scope, reuse=reuse, use_resource=True):
     image_embedding, _ = vision_layers.BuildImagesToFeaturesModel(
         condition_image, use_spatial_softmax=use_spatial_softmax)
@@ -123,6 +131,7 @@ def reduce_temporal_embeddings(
     fc_hidden_layers: A tuple of ints describing the number of units in each
       fully-connected hidden layer.
     combine_mode: How to reduce across time to get a fixed length vector.
+
   Returns:
     A rank 2 tensor: [N, output_size].
   Raises:
@@ -173,22 +182,23 @@ def compute_embedding_contrastive_loss(
   Args:
     inf_embedding: A rank 3 tensor: [num_tasks, num_inf_episodes, K].
     con_embedding: A rank 3 tensor: [num_tasks, num_con_episodes, K].
-    positives: (Optional). A rank 1 bool tensor: [num_tasks]. If provided, instead
-      of assigning positives to just the 1st task in the batch, it uses the positives
-      given. Positives should be defined as if the 1st task was the anchor. When not
-      provided, the 1st con_embedding is positive and every other con_embedding is
-      negatives.
+    positives: (Optional). A rank 1 bool tensor: [num_tasks]. If provided,
+      instead of assigning positives to just the 1st task in the batch, it uses
+      the positives given. Positives should be defined as if the 1st task was
+      the anchor. When not provided, the 1st con_embedding is positive and every
+      other con_embedding is negatives.
     contrastive_loss_mode: Which contrastive loss function to use.
+
   Returns:
     The contrastive loss computed using the task zero inf_embedding and
     each of the `num_tasks` con_embeddings.
   """
   if len(inf_embedding.shape) != 3:
-    raise ValueError(
-        'Unexpected inf_embedding shape: {}.'.format(inf_embedding.shape))
+    raise ValueError('Unexpected inf_embedding shape: {}.'.format(
+        inf_embedding.shape))
   if len(con_embedding.shape) != 3:
-    raise ValueError(
-        'Unexpected con_embedding shape: {}.'.format(con_embedding.shape))
+    raise ValueError('Unexpected con_embedding shape: {}.'.format(
+        con_embedding.shape))
   avg_inf_embedding = tf.reduce_mean(inf_embedding, axis=1)
   avg_con_embedding = tf.reduce_mean(con_embedding, axis=1)
   anchor = avg_inf_embedding[0:1]

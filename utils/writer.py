@@ -18,10 +18,6 @@
 TODO(T2R_CONTRIBUTORS) - re-base class using tf.python_io.TFRecordWriter.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import gin
 import tensorflow.compat.v1 as tf

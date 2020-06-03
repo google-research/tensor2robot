@@ -15,16 +15,11 @@
 
 """A convenience preprocessor which allows to easily transform specs."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
+from typing import Text
 
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
-
-from typing import Text
 
 
 class SpecTransformationPreprocessor(

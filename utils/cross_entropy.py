@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """Cross-entropy method for continuous optimization.
 
 Given some parametric family of sampling densities, the cross-entropy method
@@ -21,10 +21,6 @@ will adaptively select a set of parameters that minimizes the KL divergence
 (cross-entropy) between the sampling distribution and points with high objective
 function value.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import operator
 import numpy as np

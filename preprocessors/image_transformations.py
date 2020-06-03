@@ -13,13 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """Common configurable image manipulation methods for use in preprocessors."""
-
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
 
 from typing import List, Sequence
 

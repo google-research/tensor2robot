@@ -16,10 +16,6 @@
 # Lint as: python3
 """Tests for tensor2robot.utils.global_step_functions."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl.testing import parameterized
 from tensor2robot.utils import global_step_functions
 import tensorflow.compat.v1 as tf

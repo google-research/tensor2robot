@@ -15,17 +15,12 @@
 
 """A simple no operation preprocessor."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
+from typing import Optional, Tuple
 
 import gin
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
-
-from typing import Optional, Tuple
 
 
 @gin.configurable

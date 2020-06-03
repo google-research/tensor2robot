@@ -16,8 +16,6 @@
 # Lint as: python3
 """Generates random subsampling indices."""
 
-
-
 import numpy as np
 import tensorflow.compat.v1 as tf
 

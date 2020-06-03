@@ -15,10 +15,6 @@
 
 """Tests for learning.estimator_models.preprocessor.tpu_preprocessor_wrapper."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl import flags
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.preprocessors import tpu_preprocessor_wrapper

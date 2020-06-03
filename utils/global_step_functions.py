@@ -17,11 +17,6 @@
 """Gin configurable functions returning tf.Tensors based on the global_step.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 from typing import Optional, Sequence, Text, Union
 
 import gin

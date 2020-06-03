@@ -15,12 +15,8 @@
 
 """Predictor which instantiates a model from a checkpoint."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import time
+from typing import Dict, Optional, Text
 
 from absl import logging
 import gin
@@ -29,7 +25,6 @@ from tensor2robot.models import abstract_model
 from tensor2robot.predictors import abstract_predictor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf  # tf
-from typing import Dict, Optional, Text
 
 from tensorflow.contrib import framework as contrib_framework
 

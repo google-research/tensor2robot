@@ -13,13 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """TFModel abstract subclasses."""
-
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
 
 import abc
 import os
@@ -802,9 +797,9 @@ class AbstractT2RModel(
       self.add_summaries(features, labels, inference_outputs, train_loss,
                          train_outputs, mode, config, params)
 
-      eval_metrics = self.model_eval_fn(features, labels, inference_outputs,
-                                        train_loss, train_outputs, mode, config,
-                                        params)
+      eval_metrics = self.model_eval_fn(  # pylint: disable=assignment-from-none
+          features, labels, inference_outputs, train_loss, train_outputs, mode,
+          config, params)
       evaluation_hooks = self.get_eval_hooks(config, params)
       if config and config.is_chief:  # pytype: disable=attribute-error
         eval_name = params.get('eval_name', 'eval')  # pytype: disable=attribute-error

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """Contains definitions for Residual Networks with/without FiLM conditioning.
 
 Residual networks ('v1' ResNets) were originally proposed in:
@@ -32,10 +32,6 @@ The key difference of the full preactivation 'v2' variant compared to the
 'v1' variant in [1] is the use of batch normalization before every weight layer
 rather than after.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from six.moves import range
 import tensorflow.compat.v1 as tf

@@ -13,12 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as python3
 """Runs data collection and policy evaluation for RL experiments.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from absl import app
 from absl import flags

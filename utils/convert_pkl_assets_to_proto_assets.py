@@ -15,12 +15,8 @@
 
 """Convert existing pickle based assets to t2r_pb2 based assets."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import os
+from typing import Text
 
 from absl import app
 from absl import flags
@@ -29,7 +25,6 @@ from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
 
-from typing import Text
 
 FLAGS = flags.FLAGS
 

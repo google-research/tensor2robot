@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """Meta-Learning TFModels.
 
 A standard TFModel encapsulates an `InputGenerator`, a `Preprocessor`, and a
@@ -23,11 +23,6 @@ a `MetaModel`. The `Meta`-classes wrap instances of base classes and
 allow us to turn models into their meta-learning equivalents.
 
 """
-
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
 
 from typing import Optional, Text
 

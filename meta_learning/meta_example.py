@@ -13,17 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """Utility function for dealing with meta-examples.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
-from typing import List
-from typing import Union
+from typing import List, Union
 
 import six
 import tensorflow.compat.v1 as tf  # tf

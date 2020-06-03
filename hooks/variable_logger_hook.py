@@ -16,11 +16,6 @@
 # Lint as: python3
 """A hook to log all variables."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 from typing import Optional
 
 from absl import logging

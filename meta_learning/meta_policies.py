@@ -15,11 +15,6 @@
 
 """Policy abstraction for TFModels."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import abc
 import gin
 import numpy as np

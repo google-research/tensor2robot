@@ -15,20 +15,15 @@
 
 """CheckpointSaverListener hooks for exporting SavedModels."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import collections
+import distutils.dir_util
 import functools
 import os
+from typing import Text, Callable, Optional, List
 
 from absl import logging
-import distutils.dir_util
 import six
 import tensorflow.compat.v1 as tf  # tf
-from typing import Text, Callable, Optional, List
 
 copy_fn = distutils.dir_util.copy_tree
 

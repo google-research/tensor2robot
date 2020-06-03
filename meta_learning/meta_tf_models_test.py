@@ -15,9 +15,6 @@
 
 """Tests for learning.estimator_models.meta_learning.meta_tf_models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from tensor2robot.meta_learning import meta_tf_models
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils

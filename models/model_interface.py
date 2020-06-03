@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """The minimal T2RModel interface required by T2R infrastructure.
 
 # TODO(T2R_CONTRIBUTORS): Sunset this interface in favor of AbstractT2RModel.
@@ -26,11 +26,6 @@ contain our best practices to write composable models by introducing additional
 abstractions and re-usable functionality such as inference_network_fn and
 model_train_fn etc.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
 
 import abc
 from typing import Any, Dict, Optional, Text, Union

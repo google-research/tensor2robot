@@ -15,17 +15,13 @@
 
 """Collect/Eval a policy on the live environment."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import os
 import time
+from typing import Text
+
 import gin
 import gym
 import tensorflow.compat.v1 as tf
-from typing import Text
 
 
 @gin.configurable

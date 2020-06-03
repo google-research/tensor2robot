@@ -15,10 +15,6 @@
 
 """Tests for py.tensor2robot.predictors.checkpoint_predictor_test."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl import flags
 import gin
 import numpy as np

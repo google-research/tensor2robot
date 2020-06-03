@@ -15,10 +15,7 @@
 
 """T2RModels for VRGripper env tasks."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
+from typing import Callable, Dict, List, Optional, Text, Tuple
 
 import gin
 import numpy as np
@@ -32,7 +29,6 @@ from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf  # tf
 import tensorflow_probability as tfp
-from typing import Callable, Dict, List, Optional, Text, Tuple
 
 from tensorflow.contrib import layers as contrib_layers
 

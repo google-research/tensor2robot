@@ -15,12 +15,8 @@
 
 """T2R Model for QT-Opt. Reference OSS implementation ONLY."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import abc
+from typing import Optional, Tuple, Text
 
 from absl import logging
 import gin
@@ -35,7 +31,6 @@ from tensor2robot.research.qtopt import networks
 from tensor2robot.research.qtopt import optimizer_builder
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
-from typing import Optional, Tuple, Text
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import training as contrib_training
 from tensorflow_estimator.contrib.estimator.python.estimator import replicate_model_fn

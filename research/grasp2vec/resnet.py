@@ -13,17 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """Modified ResNet for Grasp2Vec.
 
 Note: for future uses of Grasp2Vec, please use `get_resnet50_spatial` instead
 of `get_resnet_model`, which has been kept around for backwards compatibility
 with old checkpoints.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import six
 from six.moves import range

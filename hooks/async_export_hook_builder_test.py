@@ -15,10 +15,6 @@
 
 """Tests for TD3 Hooks."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 from tensor2robot.hooks import async_export_hook_builder
 from tensor2robot.predictors import exported_savedmodel_predictor

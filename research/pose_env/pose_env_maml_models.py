@@ -13,13 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """MAML-based meta-learning models for the duck task."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
 import gin
 import numpy as np
 from tensor2robot.meta_learning import maml_model

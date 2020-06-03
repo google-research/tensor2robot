@@ -13,12 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as python3
 """Tests for tensor2robot.utils.tensorspec_utils."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import copy
@@ -100,7 +96,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     utils.assert_equal(mock_nested_spec, mock_nested_spec_copy)
 
   def test_assert_not_equal(self):
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_equal(mock_nested_spec, mock_nested_subset_spec)
 
   def test_assert_required(self):
@@ -109,7 +105,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     # We would like to have more, but all additional specs are optional.
     utils.assert_required(mock_nested_optional_spec, mock_nested_spec)
     # We ask for more required tensor_specs than we actually have.
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_required(mock_nested_spec, mock_nested_subset_spec)
 
   def test_init_with_attributes(self):
@@ -350,21 +346,21 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
             T1, tf.constant(value=np.zeros((224, 224, 3), dtype=np.float32))))
 
     # Should raise because of wrong shape.
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_equal_spec_or_tensor(T1, T2)
 
     # Should raise because of wrong shape.
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_equal_spec_or_tensor(
           T1, TSPEC(shape=(224, 223, 3), dtype=tf.float32))
 
     # Should raise because of wrong dtype.
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_equal_spec_or_tensor(
           T1, TSPEC(shape=(224, 224, 3), dtype=tf.uint8))
 
     # Should raise because of wrong dtype.
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_equal_spec_or_tensor(
           T1, tf.constant(value=np.zeros((224, 224, 3), dtype=np.uint8)))
 
@@ -484,7 +480,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
 
   @parameterized.named_parameters(*INVALID_SPEC_STRUCTURES)
   def test_assert_valid_spec_structure_invalid(self, spec_or_tensors):
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_valid_spec_structure(spec_or_tensors)
 
   def test_accepts_numpy_dtype(self):
@@ -677,7 +673,7 @@ class TensorspecUtilsTest(parameterized.TestCase, tf.test.TestCase):
     placeholder_spec = utils.tensorspec_from_tensors(placeholders)
     utils.assert_equal(
         spec, placeholder_spec, ignore_batch=True)
-    with self.assertRaises(ValueError):
+    with self.assertRaises(ValueError):  # pylint: disable=g-error-prone-assert-raises
       utils.assert_equal(spec, placeholder_spec, ignore_batch=False)
 
   def _make_tensorspec_collection(self, collection_type):

@@ -15,13 +15,9 @@
 
 """Hook builders for TD3 distributed training with SavedModels."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import os
 import tempfile
+from typing import Text, List, Callable, Optional
 
 import gin
 from tensor2robot.export_generators import abstract_export_generator
@@ -33,7 +29,6 @@ from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf  # tf
 
-from typing import Text, List, Callable, Optional
 from tensorflow.contrib import tpu as contrib_tpu
 
 CreateExportFnType = Callable[[

@@ -15,11 +15,6 @@
 
 """Tests for estimator_models.input_generators.abstract_input_generator."""
 
-from __future__ import absolute_import
-from __future__ import division
-
-from __future__ import print_function
-
 import functools
 from absl import flags
 from tensor2robot.input_generators import abstract_input_generator

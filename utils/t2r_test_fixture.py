@@ -15,10 +15,6 @@
 
 """Test fixture for T2R models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import gin
 import mock
 from tensor2robot.input_generators import default_input_generator
