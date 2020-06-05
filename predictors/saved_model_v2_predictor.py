@@ -88,6 +88,8 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
   def restore(self):
     """Restores the model parameters from the latest available data."""
 
+    logging.info('Trying to restore saved model from %s',
+                 self._saved_model_path)
     # Get the expected assets filename.
     t2r_assets_dir = os.path.join(self._saved_model_path,
                                   tensorspec_utils.EXTRA_ASSETS_DIRECTORY)
