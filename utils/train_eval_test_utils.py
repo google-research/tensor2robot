@@ -116,7 +116,7 @@ def test_train_eval_gin(test_case,
   # function sequentially for all parameterized tests.
   gin.clear_config(clear_constants=True)
 
-  gin.parse_config_file(full_gin_path)
+  gin.parse_config_file(full_gin_path, print_includes_and_imports=True)
   gin.bind_parameter('train_eval_model.model_dir', model_dir)
 
   if gin_overwrites_fn is not None:
