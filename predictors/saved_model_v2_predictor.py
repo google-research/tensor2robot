@@ -104,7 +104,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
         break
 
       logging.info('Waiting for a saved model to become available at %s.',
-                   self._saved_model_dir)
+                   self._saved_model_path)
       time.sleep(_BUSY_WAITING_SLEEP_TIME_IN_SECS)
     else:
       logging.warning('No saved_model found after %s seconds.',
