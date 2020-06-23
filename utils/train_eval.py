@@ -142,8 +142,9 @@ def create_tpu_estimator(t2r_model,
       from.
     train_batch_size: The batch size for training.
     eval_batch_size: The batch size for evaluation.
-    use_tpu_hardware: If False, the TPUEstimator is used but executed on CPU.
-      This is valuable for debugging, otherwise this parameter can be ignored.
+    use_tpu_hardware: If False, the TPUEstimator is used but executed on CPU or
+      GPU, depending on availability. This is valuable for debugging, otherwise
+      this parameter can be ignored.
     params: An optional dict of hyper parameters that will be passed into
       input_fn and model_fn. Keys are names of parameters, values are basic
       python types. There are reserved keys for TPUEstimator, including
