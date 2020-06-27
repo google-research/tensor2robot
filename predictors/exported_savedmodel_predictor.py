@@ -55,7 +55,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       export_dir: A path to a directory containing exported saved models in
         their respective directories. All directories are assumed to contain a
         saved model and the last (lexicographical sorting) represents the best
-        model.
+        model. Alternatively, if export_dir is points to a specific
+        lexicographic subdirectory it will restore from there.
       timeout: (defaults to 600 seconds) If no checkpoint has been found after
         timeout seconds restore fails.
       tf_config: The tf.ConfigProto used to configure the TensorFlow session.
@@ -124,8 +125,11 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     """
     start_time = time.time()
     while time.time() - start_time < self._timeout:
-      model_dir = self._latest_valid_model_dirs(
-          tf.io.gfile.glob(os.path.join(self._export_dir, '*')))
+      if os.path.basename(self._export_dir).isdigit():
+        model_dir = self._export_dir
+      else:
+        model_dir = self._latest_valid_model_dirs(
+            tf.io.gfile.glob(os.path.join(self._export_dir, '*')))
 
       if model_dir is not None:
         logging.info('Found latest model at %s. ', model_dir)
