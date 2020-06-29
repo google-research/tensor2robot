@@ -1679,7 +1679,7 @@ def write_t2r_assets_to_file(t2r_assets, filename):
 
 
 def load_t2r_assets_to_file(filename):
-  """Writes feature and label specifications to file."""
+  """Reads feature and label specifications from file."""
   try:
     with tf.io.gfile.GFile(filename, 'r') as f:
       t2r_assets = t2r_pb2.T2RAssets()
