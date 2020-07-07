@@ -125,7 +125,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     """
     start_time = time.time()
     while time.time() - start_time < self._timeout:
-      if os.path.basename(self._export_dir).isdigit():
+      if os.path.basename(os.path.normpath(self._export_dir)).isdigit():
         model_dir = self._export_dir
       else:
         model_dir = self._latest_valid_model_dirs(
