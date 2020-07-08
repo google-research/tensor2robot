@@ -18,24 +18,9 @@
 from typing import Callable
 
 import gin
+import gin.tf
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import opt as contrib_opt
-
-
-gin_configurable_adam_optimizer = gin.external_configurable(
-    tf.train.AdamOptimizer,
-    name='tf.train.AdamOptimizer',
-    blacklist=['learning_rate'])
-
-gin_configurable_gradient_descent_optimizer = gin.external_configurable(
-    tf.train.GradientDescentOptimizer,
-    name='tf.train.GradientDescentOptimizer',
-    blacklist=['learning_rate'])
-
-gin_configurable_momentum_optimizer = gin.external_configurable(
-    tf.train.MomentumOptimizer,
-    name='tf.train.MomentumOptimizer',
-    blacklist=['learning_rate'])
 
 
 @gin.configurable
@@ -85,7 +70,7 @@ def create_adam_optimizer(
   def create_optimizer_fn():
     """Creates an Adam optimizer with an optional learning rate schedule."""
     learning_rate = learning_rate_fn()
-    return gin_configurable_adam_optimizer(learning_rate=learning_rate)
+    return tf.train.AdamOptimizer(learning_rate=learning_rate)
 
   return create_optimizer_fn
 
@@ -107,7 +92,7 @@ def create_gradient_descent_optimizer(
   def create_optimizer_fn():
     """Creates a gradient descent optimizer with an optional lr schedule."""
     learning_rate = learning_rate_fn()
-    return gin_configurable_gradient_descent_optimizer(
+    return tf.train.GradientDescentOptimizer(
         learning_rate=learning_rate)
 
   return create_optimizer_fn
@@ -115,12 +100,14 @@ def create_gradient_descent_optimizer(
 
 @gin.configurable
 def create_momentum_optimizer(
-    learning_rate_fn = create_constant_learning_rate):
+    learning_rate_fn = create_constant_learning_rate,
+    momentum=0.9):
   """Creates a function that returns a configured Momentum Optimizer.
 
   Args:
     learning_rate_fn: Callable that returns a scalar Tensor evaluating to the
       current learning rate.
+    momentum: Momentum for Momentum Optimizer.
 
   Returns:
     A parameterless function that returns the configured Momentum Optimizer.
@@ -128,7 +115,8 @@ def create_momentum_optimizer(
   def create_optimizer_fn():
     """Creates a momentum optimizer with an optional learning rate schedule."""
     learning_rate = learning_rate_fn()
-    return gin_configurable_momentum_optimizer(learning_rate=learning_rate)
+    return tf.train.MomentumOptimizer(learning_rate=learning_rate,
+                                      momentum=momentum)
 
   return create_optimizer_fn
 
