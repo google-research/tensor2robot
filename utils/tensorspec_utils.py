@@ -20,6 +20,7 @@ import collections
 from typing import Any, Dict, List, Optional, Text, Union
 
 from absl import logging
+import gin
 import numpy as np
 from six.moves import cPickle
 from six.moves import zip
@@ -675,6 +676,11 @@ class TensorSpecStruct(collections.OrderedDict):
   def values(self):
     """D.values() -> an object providing a view on D's values."""
     return list(_OrderedDictValuesView(self))  # pytype: disable=wrong-arg-count
+
+
+@gin.configurable
+def convert_to_tensorspecstruct(inputs):
+  return TensorSpecStruct(inputs)
 
 
 def replace_dtype(tensor_spec_struct, from_dtype,
