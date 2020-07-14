@@ -16,7 +16,9 @@
 # Lint as python3
 """A predictor based on exported saved models."""
 
+import enum
 import os
+import threading
 import time
 from typing import Callable, Dict, List, Optional, Text
 
@@ -42,13 +44,22 @@ def create_tf_config(per_process_gpu_memory_fraction):
 
 
 @gin.configurable
+class RestoreOptions(enum.Enum):
+  DO_NOT_RESTORE = 0
+  RESTORE_SYNCHRONOUSLY = 1
+  RESTORE_ASYNCHRONOUSLY = 2
+
+
+@gin.configurable
 class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
   """A predictor loading from exported saved models."""
 
-  def __init__(self,
-               export_dir,
-               timeout = 600,
-               tf_config = None):
+  def __init__(
+      self,
+      export_dir,
+      timeout = 600,
+      tf_config = None,
+      restore_model_option = RestoreOptions.DO_NOT_RESTORE):
     """Creates an instance.
 
     Args:
@@ -60,6 +71,11 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       timeout: (defaults to 600 seconds) If no checkpoint has been found after
         timeout seconds restore fails.
       tf_config: The tf.ConfigProto used to configure the TensorFlow session.
+      restore_model_option: If set to RestoreOptions.DO_NOT_RESTORE, the model
+        is not restored in the constructor. If set to
+        RestoreOptions.RESTORE_SYNCHRONOUSLY, the model is restored in this
+        thread, if set to RestoreOptions.RESTORE_ASYNCHRONOUSLY, the model is
+        restored in a separate thread.
     """
     super(ExportedSavedModelPredictor, self).__init__()
     self._export_dir = export_dir
@@ -70,6 +86,10 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     self._label_spec = None
     self._tf_config = tf_config
     self._global_step = -1
+    self._restore_thread = None  # type: threading.Thread
+    if restore_model_option is not RestoreOptions.DO_NOT_RESTORE:
+      is_async = restore_model_option is RestoreOptions.RESTORE_ASYNCHRONOUSLY
+      self.restore(is_async=is_async)
 
   def predict(self, features):
     """Predicts based on feature input using the loaded model.
@@ -113,7 +133,35 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     raise ValueError('Random initialization is not supported '
                      'for ExportedSavedModelPredictors.')
 
-  def restore(self):
+  def restore(self, is_async = False):
+    """Restores the model parameters from the latest available data.
+
+    Note, if this function was called previously with is_async set to True, this
+    function will wait until that finished before restoring model parameters.
+
+    Args:
+      is_async: If set, the model parameters are restored in a separate thread.
+
+    Raises:
+      ValueError: If no checkpoint can be found or loaded within the user
+        defined timeout.
+
+    Returns:
+      True if a exported saved model has been loaded and False otherwise.
+    """
+    if is_async:
+      logging.info('Restoring model parameters in a separate thread.')
+      self._restore_thread = threading.Thread(
+          target=self._restore,
+          daemon=True,
+          name='ExportedSavedModelPredictor.restore')
+      self._restore_thread.start()
+      return True
+
+    self._maybe_join_restore_thread()
+    return self._restore()
+
+  def _restore(self):
     """Restores the model parameters from the latest available data.
 
     Raises:
@@ -205,6 +253,12 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     # NoOp for this predictor.
 
   def assert_is_loaded(self):
+    """Raises a ValueError if model parameters haven't been loaded.
+
+    If restore() has been called with is_async=True, the thread will be joined
+    before the check is performed.
+    """
+    self._maybe_join_restore_thread()
     if self._predict_fn is None:
       raise ValueError('The predictor has not yet been successfully restored.')
 
@@ -271,3 +325,9 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     for model_dir in sorted(model_dirs, key=os.path.basename, reverse=True):
       if _isvalid(model_dir):
         return model_dir
+
+  def _maybe_join_restore_thread(self):
+    if self._restore_thread:
+      logging.info('Joining thread that restores model parameters.')
+      self._restore_thread.join()
+      self._restore_thread = None
