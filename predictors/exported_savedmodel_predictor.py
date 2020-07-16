@@ -43,7 +43,7 @@ def create_tf_config(per_process_gpu_memory_fraction):
   return tf_config
 
 
-@gin.configurable
+@gin.constants_from_enum
 class RestoreOptions(enum.Enum):
   DO_NOT_RESTORE = 0
   RESTORE_SYNCHRONOUSLY = 1
