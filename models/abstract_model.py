@@ -153,10 +153,9 @@ class AbstractT2RModel(
   The `T2RModel` abstraction defines a `model_fn` method that can be constructed
   using inputs coming from a tf.data.Dataset, or placeholders. We generate
   these automatically for tf.Example using an input_generator and preprocessor
-  if no custom version is provided. Note, in order to work with task_explore
-  episode.proto and state.proto, a custom input_generator has to be provided.
-  The model_fn should not do any preprocessing. If any preprocessing besides
-  the raw input tensors is necessary please use a custom preprocessor.
+  if no custom version is provided. The model_fn should not do any
+  preprocessing. If any preprocessing besides the raw input tensors is necessary
+  please use a custom preprocessor.
 
   """
 
