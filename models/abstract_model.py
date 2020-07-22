@@ -81,14 +81,23 @@ gin_configurable_saver = gin.external_configurable(
 
 
 @gin.configurable
-def default_init_from_checkpoint_fn(checkpoint,
-                                    allow_partial_restore = False):
+def default_init_from_checkpoint_fn(
+    checkpoint,
+    allow_partial_restore = False,
+    filter_restorables_fn = None):
   """init_from_checkpoint_fn that can be used to init a model from a checkpoint.
 
   Args:
     checkpoint: String pointing to path of TF checkpoint.
     allow_partial_restore: If True, we allow partial restore, otherwise we raise
       an error if a variable cannot be restored.
+    filter_restorables_fn: (Optional) A function that takes a restorable
+      TensorFlow variable and returns whether it should be restored or not.
+      By default, all restorable variables are updated. Note that
+      allow_partial_restore is about how to handle variables are in the
+      checkpoint, but not in the graph. The filter_restorables_fn argument
+      is about variables that are in the checkpoint and the graph, which we
+      don't want to restore into the graph.
 
   Raises:
     A ValueError if a variable(s) is missing and partial restore is not
@@ -99,6 +108,8 @@ def default_init_from_checkpoint_fn(checkpoint,
   variables_to_restore = contrib_framework.get_variables()
   assignment_map = {}
   for v in variables_to_restore:
+    if filter_restorables_fn is not None and not filter_restorables_fn(v):
+      continue
     op_name = v.op.name
     if reader.has_tensor(op_name):
       logging.info('Loading variable %s from checkpoint', op_name)
@@ -109,7 +120,6 @@ def default_init_from_checkpoint_fn(checkpoint,
     else:
       raise ValueError('Attempting to restore variable {} which is '
                        'not in the checkpoint.'.format(op_name))
-
   tf.train.init_from_checkpoint(checkpoint, assignment_map)
 
 
