@@ -295,7 +295,8 @@ def create_default_exporters(
     compare_fn=create_valid_result_smaller,
     use_numpy_exporters = True,
     use_tfexample_exporters = True,
-    use_servo_exporter = True):
+    use_servo_exporter = True,
+    exports_to_keep = 5):
   """Creates a list of Exporter to export saved models during evaluation.
 
   Args:
@@ -305,6 +306,8 @@ def create_default_exporters(
     use_numpy_exporters: If True, includes numpy exporters.
     use_tfexample_exporters: If True, includes TFExample exporters.
     use_servo_exporter: If true, add the a Servo export for use with TFX.
+    exports_to_keep: Number of latest_exporter_numpy ckpts to keep. If None,
+      saves all ckpts (needed for sim eval on borg).
 
   Returns:
     A list containing two exporters, one for numpy and another one for
@@ -341,6 +344,7 @@ def create_default_exporters(
             name='latest_exporter_numpy',
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_numpy_fn(),
+            exports_to_keep=exports_to_keep,
             assets_extra=assets))
   if use_tfexample_exporters:
     exporters.append(
