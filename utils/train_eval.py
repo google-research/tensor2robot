@@ -546,9 +546,6 @@ def train_eval_model(
       # estimator unless we do the following hack!
       estimator._params['eval_name'] = params['eval_name']  # pylint: disable=protected-access
 
-  logging.info('gin operative configuration:')
-  logging.info(gin.operative_config_str())
-
   if (train_spec is not None and eval_spec is not None):
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
   elif train_spec is not None:
