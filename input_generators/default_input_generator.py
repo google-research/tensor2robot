@@ -19,7 +19,7 @@
 import abc
 import json
 import os
-from typing import Dict, Optional, Text
+from typing import Dict, Optional, Text, Union, Sequence
 
 from absl import logging
 import gin
@@ -231,3 +231,88 @@ class DefaultConstantInputGenerator(GeneratorInputGenerator):
           self._label_spec, self._constant_value, batch_size,
           self._sequence_length)
       yield features, labels
+
+
+@gin.configurable
+class WeightedRecordInputGenerator(DefaultRecordInputGenerator):
+  """An input generator sampling multiple datasets with weighting."""
+
+  def __init__(
+      self,
+      file_patterns,
+      num_parallel_calls = 4,
+      shuffle_buffer_size = 500,
+      prefetch_buffer_size = (tf.data.experimental.AUTOTUNE),
+      parallel_shards = 10,
+      weights = None,
+      seed = None,
+      **parent_kwargs):
+    """Create an instance.
+
+    Args:
+      file_patterns: Comma-separated string of file patterns, where each
+        individual file contains data for one task.
+      num_parallel_calls: The number elements to process in parallel.
+      shuffle_buffer_size: How many examples to shuffle within each file.
+      prefetch_buffer_size: How many examples to prefetch.
+      parallel_shards: Shards for applying preprocess_fn.
+      weights: Weight to sampling each file pattern with. Should be equal in
+        length to number of file_patterns.
+      seed: Seed for weighted dataset sampling.
+      **parent_kwargs: All parent arguments.
+    """
+    super(WeightedRecordInputGenerator, self).__init__(**parent_kwargs)
+    self._file_patterns = file_patterns
+    self._num_parallel_calls = num_parallel_calls
+    self._shuffle_buffer_size = shuffle_buffer_size
+    self._prefetch_buffer_size = prefetch_buffer_size
+    self._parallel_shards = parallel_shards
+    self._weights = weights
+    self._seed = seed
+
+  def _create_dataset(self, mode, params, **unused_kwargs):
+    """This abstract function is not required for default input generators."""
+    batch_size = tfdata.get_batch_size(params, self.batch_size)
+    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    data_format, filenames_list = tfdata.get_data_format_and_filenames_list(
+        self._file_patterns)
+    datasets = []
+    if len(filenames_list) != len(self._weights):
+      raise ValueError('Weights need to be same length as number of filenames.')
+    for filenames in filenames_list:
+      filenames_dataset = tf.data.Dataset.list_files(
+          filenames, shuffle=is_training)
+      if is_training:
+        cycle_length = min(self._parallel_shards, len(filenames))
+      else:
+        cycle_length = 1
+      dataset = filenames_dataset.apply(
+          tf.data.experimental.parallel_interleave(
+              tfdata.DATA_FORMAT[data_format],
+              cycle_length=cycle_length,
+              sloppy=is_training))
+      if is_training:
+        dataset = dataset.shuffle(
+            buffer_size=self._shuffle_buffer_size).repeat()
+      else:
+        dataset = dataset.repeat()
+      dataset = dataset.batch(batch_size, drop_remainder=True)
+      datasets.append(dataset)
+    if self._weights is None:
+      weights = [float(1) for _ in range(len(datasets))]
+    else:
+      weights = [float(w) for w in self._weights]
+    dataset = tf.data.experimental.sample_from_datasets(
+        datasets=datasets, weights=weights, seed=self._seed)
+    # Parse all datasets together.
+    dataset = tfdata.serialized_to_parsed(
+        dataset,
+        self._feature_spec,
+        self._label_spec,
+        num_parallel_calls=self._num_parallel_calls)
+    if self._preprocess_fn is not None:
+      dataset = dataset.map(
+          self._preprocess_fn, num_parallel_calls=self._parallel_shards)
+    if self._prefetch_buffer_size is not None:
+      dataset = dataset.prefetch(self._prefetch_buffer_size)
+    return dataset

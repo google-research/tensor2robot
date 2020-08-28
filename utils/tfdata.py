@@ -26,7 +26,6 @@ from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
 
 
-
 DATA_FORMAT = {
     'tfrecord': tf.data.TFRecordDataset
 }
@@ -90,6 +89,34 @@ def infer_data_format(file_patterns):
   return data_format
 
 
+def get_data_format_and_filenames_list(
+    file_patterns):
+  """Obtain data format and list of filenames from comma-separated patterns.
+
+  Args:
+    file_patterns: A comma-separated string of file patterns [recordio, sstable,
+      tfrecord] we will load the data from.
+
+  Raises:
+    ValueError: In case no files can be found that matches the file patterns.
+
+  Returns:
+    data_format: A valid key for DATA_FORMAT inferred from the file patterns.
+    filenames_list: List of globbed file patterns that match each of the
+    comma-separated file patterns.
+  """
+  data_format = infer_data_format(file_patterns)
+  file_patterns = file_patterns.replace('{}:'.format(data_format), '')
+  filenames_list = [
+      tf.io.gfile.glob(pattern) for pattern in file_patterns.split(',')
+  ]
+  for filenames in filenames_list:
+    if not filenames:
+      raise ValueError(
+          'File list for some pattern in {} is empty'.format(file_patterns))
+  return data_format, filenames_list
+
+
 def get_data_format_and_filenames(
     file_patterns):
   """Obtain the data format and filenames from comma-separated file patterns.
@@ -105,13 +132,9 @@ def get_data_format_and_filenames(
     data_format: A valid key for DATA_FORMAT inferred from the file patterns.
     filenames: All files that match the comma-separated file patterns.
   """
-  data_format = infer_data_format(file_patterns)
-  file_patterns = file_patterns.replace('{}:'.format(data_format), '')
-  filenames = list(
-      itertools.chain.from_iterable(
-          tf.io.gfile.glob(pattern) for pattern in file_patterns.split(',')))
-  if not filenames:
-    raise ValueError('File list for pattern {} is empty'.format(file_patterns))
+  data_format, filenames_list = get_data_format_and_filenames_list(
+      file_patterns)
+  filenames = list(itertools.chain.from_iterable(filenames_list))
   return data_format, filenames
 
 
