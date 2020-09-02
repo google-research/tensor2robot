@@ -80,9 +80,13 @@ python3 -m venv ~/venv
 source ~/venv/bin/activate
 pip install -r tensor2robot/requirements.txt
 python -m tensor2robot.research.pose_env.pose_env_test
+
+# Install protoc and compile the protobufs.
+pip install protobuf
+cd tensor2robot/proto
+protoc -I=./ --python_out=`pwd` tensor2robot/t2r.proto
 python -m tensor2robot.research.pose_env.pose_env_models_test
 ```
-
 
 ## T2RModel
 
