@@ -17,7 +17,7 @@
 
 import tensor2robot.input_generators.default_input_generator
 
-include 'tensor2robot/google/vrgripper/configs/common_imports.gin'
+include 'tensor2robot/research/vrgripper/configs/common_imports.gin'
 
 # Input Generation.
 TRAIN_DATA = ''

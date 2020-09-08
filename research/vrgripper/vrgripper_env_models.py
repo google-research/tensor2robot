@@ -16,20 +16,18 @@
 """T2RModels for VRGripper env tasks."""
 
 from typing import Callable, Dict, List, Optional, Text, Tuple
-
 import gin
 import numpy as np
-from tensor2robot.google import distortion
 from tensor2robot.layers import mdn
 from tensor2robot.layers import vision_layers
 from tensor2robot.meta_learning import meta_tfdata
 from tensor2robot.models import abstract_model
 from tensor2robot.models import regression_model
 from tensor2robot.preprocessors import abstract_preprocessor
+from tensor2robot.preprocessors import distortion
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf  # tf
 import tensorflow_probability as tfp
-
 from tensorflow.contrib import layers as contrib_layers
 
 TensorSpec = tensorspec_utils.ExtendedTensorSpec

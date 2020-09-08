@@ -14,7 +14,6 @@
 # limitations under the License.
 
 import tensor2robot.utils.continuous_collect_eval
-import tensor2robot.hooks.google.xm_hooks
 import tensor2robot.input_generators.default_input_generator
 import tensor2robot.meta_learning.meta_policies
 import tensor2robot.meta_learning.run_meta_env
