@@ -296,7 +296,7 @@ def create_default_exporters(
     use_numpy_exporters = True,
     use_tfexample_exporters = True,
     use_servo_exporter = True,
-    exports_to_keep = 5):
+    exports_to_keep = None):
   """Creates a list of Exporter to export saved models during evaluation.
 
   Args:
