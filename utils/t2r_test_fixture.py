@@ -90,6 +90,7 @@ class T2RModelFixture(object):
       train_eval.train_eval_model(
           t2r_model=tf_model,
           input_generator_train=input_generator,
+          input_generator_eval=input_generator,
           max_train_steps=params['max_train_steps'],
           model_dir=params['model_dir'],
           use_tpu_wrapper=params['use_tpu_wrapper'])
