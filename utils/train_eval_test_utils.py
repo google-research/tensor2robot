@@ -16,6 +16,7 @@
 # Lint as python3
 """Utility functions for train_eval tests for new models."""
 
+import errno
 import os
 from typing import Callable, Optional, Text, List
 import gin
@@ -24,7 +25,7 @@ import tensorflow.compat.v1 as tf
 
 DEFAULT_TRAIN_FILENAME_PATTERNS = [
     'operative_config-0.gin', 'model.ckpt-0.data-*', 'model.ckpt-0.meta',
-    'model.ckpt-0.index', 'checkpoint'
+    'model.ckpt-0.index', 'checkpoint', 'graph.pbtxt'
 ]
 DEFAULT_EVAL_FILENAME_PATTERNS = ['eval/events.*']
 
@@ -60,6 +61,8 @@ def assert_output_files(
     for filename in filenames:
       with tf.io.gfile.GFile(filename) as f:
         test_case.assertGreater(f.size(), 0, msg='%s is empty' % filename)
+
+
 
 
 def test_train_eval_gin(test_case,
