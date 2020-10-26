@@ -98,6 +98,49 @@ class TFDataTest(parameterized.TestCase, tf.test.TestCase):
               encoded_image)
         writer.write(example.SerializeToString())
 
+  def test_compress_decompress_fn(self):
+    batch_size = 5
+    base_dir = 'tensor2robot'
+    file_pattern = os.path.join(FLAGS.test_srcdir, base_dir,
+                                'test_data/pose_env_test_data.tfrecord')
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    state_spec = TSPEC(
+        shape=(64, 64, 3),
+        dtype=tf.uint8,
+        name='state/image',
+        data_format='jpeg')
+    action_spec = TSPEC(shape=(2), dtype=tf.bfloat16, name='pose')
+    reward_spec = TSPEC(shape=(), dtype=tf.float32, name='reward')
+    feature_spec = tensorspec_utils.TensorSpecStruct(
+        state=state_spec, action=action_spec)
+    label_spec = tensorspec_utils.TensorSpecStruct(reward=reward_spec)
+
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = tfdata.serialized_to_parsed(dataset, feature_spec, label_spec)
+    features, _ = dataset.make_one_shot_iterator().get_next()
+    # Check tensor shapes.
+    self.assertAllEqual((batch_size,) + feature_spec.state.shape,
+                        features.state.get_shape().as_list())
+    with self.session() as session:
+      original_features = session.run(features)
+
+    dataset = tfdata.parallel_read(file_patterns=file_pattern)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = tfdata.serialized_to_parsed(dataset, feature_spec, label_spec)
+    dataset = dataset.map(
+        tfdata.create_compress_fn(feature_spec, label_spec, quality=100))
+    dataset = dataset.map(tfdata.create_decompress_fn(feature_spec, label_spec))
+    features, _ = dataset.make_one_shot_iterator().get_next()
+    # Check tensor shapes.
+    self.assertAllEqual((batch_size,) + feature_spec.state.shape,
+                        features.state.get_shape().as_list())
+    with self.session() as session:
+      compressed_decompressed_features = session.run(features)
+    ref_state = original_features.state.astype(np.float32) / 255
+    state = compressed_decompressed_features.state.astype(np.float32) / 255
+    np.testing.assert_almost_equal(ref_state, state, decimal=1)
+
   @parameterized.named_parameters(
       ('uint8', np.uint8, tf.uint8),
       ('uint16', np.uint16, tf.uint16),

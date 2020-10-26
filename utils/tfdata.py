@@ -543,6 +543,89 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None,
   return parse_tf_example_fn
 
 
+def create_compress_fn(feature_spec,
+                       label_spec,
+                       quality=90):
+  """Creates a compress function callable by dataset.map.
+
+  Only features and/or labels which use the data format jpeg are compressed.
+
+  Args:
+    feature_spec: The feature spec allowing to identify features to be
+      compressed.
+    label_spec: The feature spec allowing to identify features to be compressed.
+    quality: An optional int. Defaults to 90. Quality of the compression from 0
+      to 100 (higher is better and slower).
+
+  Returns:
+    A function which can be used by dataset.map with feautures and labels.
+  """
+
+  def compress(tensor):
+    tensor_uint8 = tf.image.convert_image_dtype(tensor, tf.uint8)
+    return tf.map_fn(
+        lambda x: tf.io.encode_jpeg(x, quality=quality),
+        tensor_uint8,
+        dtype=tf.string,
+        parallel_iterations=tensor.shape[0])
+
+  def compress_fn(features, labels=None):
+    with tf.name_scope('compress_fn'):
+      for key, value in feature_spec.items():
+        if value.data_format == 'jpeg':
+          tf.logging.info('Compressing feature {}.', key)
+          features[key] = compress(features[key])
+      if labels is not None:
+        for key, value in label_spec.items():
+          if value.data_format == 'jpeg':
+            tf.logging.info('Compressing label {}.', key)
+            labels[key] = compress(labels[key])
+      return features, labels
+
+  return compress_fn
+
+
+def create_decompress_fn(feature_spec,
+                         label_spec):
+  """Creates a decompress function callable by dataset.map.
+
+  Only feature and/or labels which use hte data format jpeg are decompressed.
+
+  Args:
+    feature_spec: The feature spec allowing to identify features to be
+      compressed.
+    label_spec: The feature spec allowing to identify features to be compressed.
+
+  Returns:
+    A function which can be used by dataset.map with feautures and labels.
+  """
+
+  def decompress(tensor, tensorspec):
+    tensor_uint8 = tf.map_fn(
+        tf.io.decode_jpeg,
+        tensor,
+        dtype=tf.uint8,
+        parallel_iterations=tensor.shape[0])
+    return tf.reshape(
+        tf.image.convert_image_dtype(tensor_uint8, tensorspec.dtype),
+        (tensor.shape[0],) + tensorspec.shape)
+
+  def decompress_fn(features, labels=None):
+    with tf.name_scope('decompress_fn'):
+      for key, value in feature_spec.items():
+        if value.data_format == 'jpeg':
+          tf.logging.info('Decompressing feature {}.', key)
+          features[key] = decompress(features[key], value)
+      if labels is not None:
+        for key, value in label_spec.items():
+          if value.data_format == 'jpeg':
+            tf.logging.info('Decompressing label {}.', key)
+            labels[key] = decompress(labels[key], value)
+    return features, labels
+
+  return decompress_fn
+
+
 @gin.configurable
 def default_input_fn_tmpl(
     file_patterns,

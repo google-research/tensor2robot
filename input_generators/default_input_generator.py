@@ -98,6 +98,45 @@ class DefaultRecordInputGenerator(
         mode=mode,
         preprocess_fn=self._preprocess_fn)
 
+    if self._guzzler_server_address:
+      def dataguzzler_dataset_fn(params=None):
+
+        def compressed_dataset(params):
+          dataset = input_fn(params=params)
+          compress_fn = tfdata.create_compress_fn(
+              feature_spec=self._out_feature_spec,
+              label_spec=self._out_label_spec,
+              quality=self._guzzler_compression_quality)
+          dataset = dataset.map(compress_fn, num_parallel_calls=2)
+          return dataset
+
+        if self._guzzler_use_compression:
+          tf.logging.info('Use compressed dataset.')
+          dataset = guzzler_dataset.DataGuzzlerDataset(
+              dataset_fn=lambda: compressed_dataset(params=params),
+              guzzler_server_address=self._guzzler_server_address,
+              guzzler_timeout_ms=self._guzzler_timeout_ms,
+              guzzler_graph_key='')
+        else:
+          tf.logging.info('Use uncompressed dataset.')
+          dataset = guzzler_dataset.DataGuzzlerDataset(
+              dataset_fn=lambda: input_fn(params=params),
+              guzzler_server_address=self._guzzler_server_address,
+              guzzler_timeout_ms=self._guzzler_timeout_ms,
+              guzzler_graph_key='')
+        dataset.PublishGraphToModelDir(self._guzzler_output_dir)
+        if self._guzzler_use_compression:
+          tf.logging.info('Use decompression.')
+          decompress_fn = tfdata.create_decompress_fn(
+              feature_spec=self._out_feature_spec,
+              label_spec=self._out_label_spec)
+          dataset = dataset.map(
+              decompress_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+        else:
+          tf.logging.info('Use no decompression.')
+        return dataset.prefetch(2)
+
+      return dataguzzler_dataset_fn
 
     return input_fn
 

@@ -115,6 +115,9 @@ def provide_input_generator_with_model_information(
     input_generator_instance: The prepared instance which was passed in.
       Note it is not a copy but an in-place operation.
   """
+  tf.logging.info('!' * 80)
+  tf.logging.info('guzzler_use_compression %s', str(guzzler_use_compression))
+  tf.logging.info('!' * 80)
   if not isinstance(input_generator_instance,
                     abstract_input_generator.AbstractInputGenerator):
     raise ValueError('The input generator must be a subclass of '
