@@ -650,14 +650,16 @@ def default_input_fn_tmpl(
     filenames_dataset = tf.data.Dataset.list_files(
         filenames, shuffle=is_training)
     if is_training:
-      cycle_length = min(parallel_shards, len(filenames))
+      filenames_dataset.shuffle(buffer_size=len(filenames))
+      cycle_length = tf.data.experimental.AUTOTUNE
     else:
       cycle_length = 1
-    dataset = filenames_dataset.apply(
-        tf.data.experimental.parallel_interleave(
-            DATA_FORMAT[data_format],
-            cycle_length=cycle_length,
-            sloppy=is_training))
+
+    # AUTOTUNE works well here since it is aware of the cores.
+    dataset = filenames_dataset.interleave(
+        DATA_FORMAT[data_format],
+        cycle_length=cycle_length,
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
     if is_training:
       dataset = dataset.shuffle(buffer_size=shuffle_buffer_size).repeat()
@@ -674,6 +676,14 @@ def default_input_fn_tmpl(
   if preprocess_fn is not None:
     # TODO(psanketi): Consider adding num_parallel calls here.
     dataset = dataset.map(preprocess_fn, num_parallel_calls=parallel_shards)
+
+  options = tf.data.Options()
+  # Optimize for throughput not for latency.
+  options.experimental_threading.max_intra_op_parallelism = 1
+  if is_training:
+    # In the training case we don't need determinism.
+    options.experimental_deterministic = False
+  dataset = dataset.with_options(options)
   if prefetch_buffer_size is not None:
     dataset = dataset.prefetch(prefetch_buffer_size)
   return dataset
