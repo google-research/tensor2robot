@@ -268,6 +268,99 @@ def ApplyPhotometricImageDistortions(
 
 
 @gin.configurable
+def ApplyPhotometricImageDistortionsParallel(
+    images,
+    random_brightness = False,
+    max_delta_brightness = 0.125,
+    random_saturation = False,
+    lower_saturation = 0.5,
+    upper_saturation = 1.5,
+    random_hue = False,
+    max_delta_hue = 0.2,
+    random_contrast = False,
+    lower_contrast = 0.5,
+    upper_contrast = 1.5,
+    random_noise_level = 0.025,
+    random_noise_apply_probability = 0.5):
+  """Apply photometric distortions to the input images in parallel.
+
+  Args:
+    images: Tensor of shape [batch_size, h, w, 3] containing a batch of images
+      to apply the random photometric distortions to.
+    random_brightness: If True; randomly adjust the brightness.
+    max_delta_brightness: Float; maximum delta for the random value by which to
+      adjust the brightness.
+    random_saturation: If True; randomly adjust the saturation.
+    lower_saturation: Float; lower bound of the range from which to chose a
+      random value for the saturation.
+    upper_saturation: Float; upper bound of the range from which to chose a
+      random value for the saturation.
+    random_hue: If True; randomly adjust the hue.
+    max_delta_hue: Float; maximum delta for the random value by which to adjust
+      the hue.
+    random_contrast: If True; randomly adjust the contrast.
+    lower_contrast: Float; lower bound of the range from which to chose a random
+      value for the contrast.
+    upper_contrast: Float; upper bound of the range from which to chose a random
+      value for the contrast.
+    random_noise_level: Standard deviation of the gaussian from which to sample
+      random noise to be added to the images. If 0.0, no noise is added.
+    random_noise_apply_probability: Probability of applying additive random
+      noise to the images.
+
+  Returns:
+    images: Tensor of shape [batch_size, h, w, 3] containing a batch of images
+      resulting from applying random photometric distortions to the inputs.
+  """
+  with tf.variable_scope('photometric_distortions'):
+    def SingleImageDistortion(image):
+      # Adjust brightness to a random level.
+      if random_brightness:
+        delta = tf.random_uniform([], -max_delta_brightness,
+                                  max_delta_brightness)
+        image = tf.image.adjust_brightness(image, delta)
+
+      # Adjust saturation to a random level.
+      if random_saturation:
+        lower = lower_saturation
+        upper = upper_saturation
+        saturation_factor = tf.random_uniform([], lower, upper)
+        image = tf.image.adjust_saturation(image, saturation_factor)
+
+      # Randomly shift the hue.
+      if random_hue:
+        delta = tf.random_uniform([], -max_delta_hue, max_delta_hue)
+        image = tf.image.adjust_hue(image, delta)
+
+      # Adjust contrast to a random level.
+      if random_contrast:
+        lower = lower_contrast
+        upper = upper_contrast
+        contrast_factor = tf.random_uniform([], lower, upper)
+        image = tf.image.adjust_contrast(image, contrast_factor)
+
+      # Add random Gaussian noise.
+      if random_noise_level:
+        rnd_noise = tf.random_normal(tf.shape(image), stddev=random_noise_level)
+        img_shape = tf.shape(image)
+        def ImageClosure(value):
+          return lambda: value
+        image = tf.cond(
+            tf.reduce_all(
+                tf.greater(
+                    tf.random.uniform([1]), random_noise_apply_probability)),
+            ImageClosure(image), ImageClosure(image + rnd_noise))
+        image = tf.reshape(image, img_shape)
+
+      # Clip to valid range.
+      image = tf.clip_by_value(image, 0.0, 1.0)
+      return image
+
+    images = tf.map_fn(SingleImageDistortion, images)
+  return images
+
+
+@gin.configurable
 def ApplyPhotometricImageDistortionsCheap(
     images):
   """Apply photometric distortions to the input images.

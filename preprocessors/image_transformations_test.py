@@ -199,6 +199,21 @@ class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):
         self.assertGreater(images_delta, 0)
 
   @parameterized.parameters(([20, 20],), ([32, 32],))
+  def testPhotometricImageDistortionsParallel(self, input_shape):
+    input_shape = input_shape + [3]
+    with tf.Graph().as_default():
+      batch_size = 4
+      images = self._CreateRampTestImages(batch_size, input_shape[0],
+                                          input_shape[1])
+      distorted = image_transformations.ApplyPhotometricImageDistortionsParallel(
+          images, random_noise_apply_probability=1.0)
+      delta = tf.reduce_sum(tf.square(images - distorted))
+      with tf.Session() as sess:
+        images_delta = sess.run(delta)
+        # Check if any distortion applied.
+        self.assertGreater(images_delta, 0)
+
+  @parameterized.parameters(([20, 20],), ([32, 32],))
   def testDepthImageDistortions(self, input_shape):
     input_shape = input_shape + [1]
     with tf.Graph().as_default():
