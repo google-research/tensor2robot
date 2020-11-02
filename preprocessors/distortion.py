@@ -42,18 +42,21 @@ def preprocess_image(image, mode, is_sequence, input_size, target_size,
   """
   leading_shape = tf.shape(image)[:-3]
 
+  # Must be tf.float32 to distort.
+  image = tf.image.convert_image_dtype(image, tf.float32)
+
   if is_sequence:
     # Flatten batch dimension.
     image = tf.reshape(image, [-1] + image.shape[-3:].as_list())
-
-  # Convert dtype and distort.
-  image = maybe_distort_image_batch(image, mode=mode)
 
   crop_size = crop_size or target_size
   image = crop_image(
       image, mode, input_size=input_size, target_size=crop_size)
   # Reshape to target size.
   image = tf.image.resize_images(image, target_size)
+
+  # Convert dtype and distort.
+  image = maybe_distort_image_batch(image, mode=mode)
 
   # Flatten back into a sequence.
   if is_sequence:
@@ -108,8 +111,6 @@ def maybe_distort_image_batch(images, mode):
     Distorted images. Image distortion is identical for every image in the
       batch.
   """
-  # Must be tf.float32 to distort.
-  images = tf.image.convert_image_dtype(images, tf.float32)
   if mode == tf.estimator.ModeKeys.TRAIN:
     images = image_transformations.ApplyPhotometricImageDistortionsCheap(images)
   return images
