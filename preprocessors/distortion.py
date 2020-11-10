@@ -112,5 +112,5 @@ def maybe_distort_image_batch(images, mode):
       batch.
   """
   if mode == tf.estimator.ModeKeys.TRAIN:
-    images = image_transformations.ApplyPhotometricImageDistortionsCheap(images)
+    images = image_transformations.ApplyPhotometricImageDistortions([images])[0]
   return images

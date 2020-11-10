@@ -15,8 +15,16 @@
 
 """Test fixture for T2R models."""
 
+
+import glob
+import os
+import shutil
+from typing import List
+from absl import logging
 import gin
 import mock
+import numpy as np
+
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.utils import train_eval
 from tensor2robot.utils import train_eval_test_utils
@@ -101,6 +109,7 @@ class T2RModelFixture(object):
           model_dir=params['model_dir'],
           expected_output_filename_patterns=train_eval_test_utils
           .DEFAULT_TRAIN_FILENAME_PATTERNS)
+    return params['model_dir']
 
   def random_predict(self, module_name, model_name, **module_kwargs):
     """Runs predictions through a model with random inputs."""
@@ -123,3 +132,58 @@ class T2RModelFixture(object):
         model_dir=model_dir)
     default_params.update(params)
     return default_params
+
+  def train_and_check_golden_predictions(self,
+                                         module_name,
+                                         model_name,
+                                         file_patterns,
+                                         golden_data_filename,
+                                         generate_golden_data,
+                                         python2_data):
+    """Verify model predictions / train outputs have remained constant.
+
+    Args:
+      module_name: Module containing T2R model.
+      model_name: Name of T2R model.
+      file_patterns: List of data to train model on. Should contain 1 data
+        point for maximall determinism.
+      golden_data_filename: Name of cached golden data.
+      generate_golden_data: Re-generate golden golden data and checkpoint.
+      python2_data: Set True if golden data was generated in Python2.
+    """
+    # To get deterministic random preprocessing. Note that model init does
+    # not seem to respect this so initialize from the same checkpoint when
+    # using recordio_train.
+    tf.set_random_seed(123)
+    model_dir = self.recordio_train(
+        module_name, model_name, file_patterns)
+    model_data_arr = np.load(
+        os.path.join(model_dir, 'golden_values.npy'), allow_pickle=True)
+    if generate_golden_data:
+      with open(golden_data_filename, 'wb') as golden_data_file:
+        np.save(golden_data_file, model_data_arr)
+      # Update the golden checkpoint in the same directory as the golden
+      # predictions.
+      golden_dir = os.path.dirname(golden_data_filename)
+      for filename in glob.glob(os.path.join(model_dir, 'model.ckpt-0*')):
+        shutil.copy2(filename, os.path.join(
+            golden_dir, os.path.basename(filename)))
+    else:
+      # load from python2-generated data.
+      if python2_data:
+        encoding = 'latin1'
+      else:
+        encoding = 'ASCII'
+      golden_data_arr = np.load(
+          golden_data_filename, allow_pickle=True, encoding=encoding)
+      # For every value in the golden data, make sure that the model has not
+      # changed it.
+      golden_data = golden_data_arr[0]
+      model_data = model_data_arr[0]
+      for key, golden_value in golden_data.items():
+        if key not in model_data:
+          logging.info('key=%s, status=not in model dict', key)
+          continue
+        logging.info('key=%s', key)
+        np.testing.assert_almost_equal(
+            model_data[key], golden_value, decimal=5)
