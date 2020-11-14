@@ -27,7 +27,8 @@ FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
-  gin.parse_config_files_and_bindings(FLAGS.gin_configs, FLAGS.gin_bindings)
+  gin.parse_config_files_and_bindings(
+      FLAGS.gin_configs, FLAGS.gin_bindings, print_includes_and_imports=True)
   train_eval.train_eval_model()
 
 
