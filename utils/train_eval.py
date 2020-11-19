@@ -596,7 +596,7 @@ def train_eval_model(
     raise ValueError('Neither train nor eval was provided.')
 
 
-@gin.configurable(blacklist=['checkpoint_path'])
+@gin.configurable(denylist=['checkpoint_path'])
 def create_backup_checkpoint_for_eval(
     checkpoint_path,
     max_num_copy_attempts = 10,

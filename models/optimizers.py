@@ -138,7 +138,7 @@ def create_moving_average_optimizer(optimizer,
       optimizer, average_decay=average_decay)
 
 
-@gin.configurable(blacklist=['optimizer'])
+@gin.configurable(denylist=['optimizer'])
 def create_swapping_saver(
     optimizer,
     keep_checkpoint_every_n_hours = 1.0,

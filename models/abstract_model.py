@@ -65,19 +65,19 @@ DEVICE_TYPE_TPU = 'tpu'
 gin_configurable_run_config_cls = gin.external_configurable(
     tf.estimator.RunConfig,
     name='tf.estimator.RunConfig',
-    blacklist=['model_dir'])
+    denylist=['model_dir'])
 
 gin_configurable_tpu_run_config_cls = gin.external_configurable(
     contrib_tpu.RunConfig,
     name='tf.contrib.tpu.RunConfig',
-    blacklist=['model_dir', 'tpu_config'])
+    denylist=['model_dir', 'tpu_config'])
 
 gin_configurable_tpu_config_cls = gin.external_configurable(
     contrib_tpu.TPUConfig, name='tf.contrib.tpu.TPUConfig')
 
 # Expose the tf.train.Saver to gin.
 gin_configurable_saver = gin.external_configurable(
-    tf.train.Saver, name='tf.train.Saver', whitelist=['save_relative_paths'])
+    tf.train.Saver, name='tf.train.Saver', allowlist=['save_relative_paths'])
 
 
 @gin.configurable

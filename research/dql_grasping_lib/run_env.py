@@ -74,7 +74,7 @@ def _tfagents_env_step(env, action):
   return new_obs, rew, done, env_debug
 
 
-@gin.configurable(blacklist=['global_step', 'tag'])
+@gin.configurable(denylist=['global_step', 'tag'])
 def run_env(env,
             policy=None,
             explore_schedule=None,
@@ -102,7 +102,7 @@ def run_env(env,
       unpack_action=False)
 
 
-@gin.configurable(blacklist=['global_step', 'tag'])
+@gin.configurable(denylist=['global_step', 'tag'])
 def run_tfagents_env(env,
                      policy=None,
                      explore_schedule=None,

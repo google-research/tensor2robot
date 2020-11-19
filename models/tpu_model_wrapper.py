@@ -42,7 +42,7 @@ ModelTrainOutputType = abstract_model.ModelTrainOutputType
 ExportOutputType = abstract_model.ExportOutputType
 
 
-@gin.configurable(whitelist=['disable_for_cpu_debugging'])
+@gin.configurable(allowlist=['disable_for_cpu_debugging'])
 def get_cross_shard_optimizer(optimizer, disable_for_cpu_debugging=False):
   if disable_for_cpu_debugging:
     return optimizer
