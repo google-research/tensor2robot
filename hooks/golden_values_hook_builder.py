@@ -31,11 +31,12 @@ import tensorflow.compat.v1 as tf
 
 ModeKeys = tf.estimator.ModeKeys
 COLLECTION = 'golden'
+PREFIX = 'golden_'
 
 
 def add_golden_tensor(tensor, name):
   """Adds tensor to be tracked."""
-  tf.add_to_collection(COLLECTION, tf.identity(tensor, name=name))
+  tf.add_to_collection(COLLECTION, tf.identity(tensor, name=PREFIX + name))
 
 
 class GoldenValuesHook(tf.train.SessionRunHook):
@@ -59,7 +60,8 @@ class GoldenValuesHook(tf.train.SessionRunHook):
         fetches=tf.get_collection_ref(COLLECTION))
 
   def after_run(self, run_context, run_values):
-    golden_values = {t.name: v for t, v in
+    # Strip the 'golden_' prefix before saving the data.
+    golden_values = {t.name.split(PREFIX)[1]: v for t, v in
                      zip(tf.get_collection_ref(COLLECTION), run_values.results)}
     logging.info('Recorded golden values for %s', golden_values.keys())
     self._measurements.append(golden_values)
