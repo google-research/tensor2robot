@@ -17,6 +17,7 @@
 """Utility functions for train_eval tests for new models."""
 
 import errno
+import logging
 import os
 from typing import Callable, Optional, Text, List
 import gin

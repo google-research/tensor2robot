@@ -377,13 +377,16 @@ def create_default_exporters(
 def predict_from_model(
     t2r_model,
     input_generator_predict,
-    model_dir = '/tmp/estimator_models_log_dir/'):
+    model_dir = '/tmp/estimator_models_log_dir/',
+    yield_single_examples=True):
   """Use a TFModel for predictions.
 
   Args:
     t2r_model: An instance of the model we will use for predictions
     input_generator_predict: The input generator of data to predict.
     model_dir: A path containing checkpoints of the model to load.
+    yield_single_examples: Whether to yield predictions for individual samples
+      or the full batch.
 
   Returns:
     An iterator which yields predictions in the order of
@@ -400,7 +403,8 @@ def predict_from_model(
 
   estimator = create_estimator_fn(t2r_model=t2r_model, model_dir=model_dir)
 
-  return estimator.predict(input_fn)
+  return estimator.predict(
+      input_fn, yield_single_examples=yield_single_examples)
 
 
 @gin.configurable

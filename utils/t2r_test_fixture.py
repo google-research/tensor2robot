@@ -111,16 +111,22 @@ class T2RModelFixture(object):
           .DEFAULT_TRAIN_FILENAME_PATTERNS)
     return params['model_dir']
 
-  def random_predict(self, module_name, model_name, **module_kwargs):
+  def random_predict(self,
+                     module_name,
+                     model_name,
+                     batch_size=1,
+                     yield_single_examples=True,
+                     **module_kwargs):
     """Runs predictions through a model with random inputs."""
     tf_model = getattr(module_name, model_name)(**module_kwargs)
 
     input_generator = default_input_generator.DefaultRandomInputGenerator(
-        batch_size=1)
+        batch_size=batch_size)
     for prediction in train_eval.predict_from_model(
         t2r_model=tf_model,
         input_generator_predict=input_generator,
-        model_dir=self._test_case.create_tempdir().full_path):
+        model_dir=self._test_case.create_tempdir().full_path,
+        yield_single_examples=yield_single_examples):
       return prediction
     return None
 
