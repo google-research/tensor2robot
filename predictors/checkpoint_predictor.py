@@ -15,6 +15,7 @@
 
 """Predictor which instantiates a model from a checkpoint."""
 
+import os
 import time
 from typing import Dict, Optional, Text
 
@@ -50,7 +51,9 @@ class CheckpointPredictor(abstract_predictor.AbstractPredictor):
       checkpoint_dir: The directory to find the checkpoint. If set to `None`, no
         checkpoint will be loaded and if init_with_random_variables is set to
         True a random model is initialized. Note, either checkpoint_dir or
-        init_with_random_variable has to be set but not both.
+        init_with_random_variable has to be set but not both. Alternatively, if
+        checkpoint_dir points to a specific checkpoint, it will be restored from
+        there.
       use_gpu: If True, will attempt to use GPU for inference.
       timeout: (defaults to 600 seconds) If no checkpoint has been found after
         timeout seconds restore fails.
@@ -141,28 +144,31 @@ class CheckpointPredictor(abstract_predictor.AbstractPredictor):
       raise ValueError(
           'The predictor cannot be restored since no checkpoint_dir has been'
           'passed.')
-    # If we don't have any checkpoint and have not initialized with random
-    # weights, wait for checkpoint indefinitely, other just try to load the new
-    # checkpoint if it's currently available.
-    logging.info(
-        'About to wait_for_new_checkpoint with checkpoint_dir: %s '
-        'current checkpoint_path: %s and timeout: %s', self._checkpoint_dir,
-        self._current_checkpoint_path, self._timeout)
+    if '.ckpt-' in os.path.basename(self._checkpoint_dir):
+      latest_checkpoint = self._checkpoint_dir
+    else:
+      # If we don't have any checkpoint and have not initialized with random
+      # weights, wait for checkpoint indefinitely, other just try to load the
+      # new checkpoint if it's currently available.
+      logging.info(
+          'About to wait_for_new_checkpoint with checkpoint_dir: %s '
+          'current checkpoint_path: %s and timeout: %s', self._checkpoint_dir,
+          self._current_checkpoint_path, self._timeout)
 
-    start_time = time.time()
-    latest_checkpoint = None
-    while (time.time() - start_time < self._timeout and
-           latest_checkpoint is None):
-      latest_checkpoint = tf.train.latest_checkpoint(self._checkpoint_dir)
+      start_time = time.time()
+      latest_checkpoint = None
+      while (time.time() - start_time < self._timeout and
+             latest_checkpoint is None):
+        latest_checkpoint = tf.train.latest_checkpoint(self._checkpoint_dir)
+        if latest_checkpoint is None:
+          logging.warning(
+              'No checkpoint found at %s:\nThe next attempt to check for '
+              'latest model will be in %d seconds', self._checkpoint_dir,
+              _BUSY_WAITING_SLEEP_TIME_IN_SECS)
+          time.sleep(_BUSY_WAITING_SLEEP_TIME_IN_SECS)
+
       if latest_checkpoint is None:
-        logging.warning(
-            'No checkpoint found at %s:\nThe next attempt to check for '
-            'latest model will be in %d seconds', self._checkpoint_dir,
-            _BUSY_WAITING_SLEEP_TIME_IN_SECS)
-        time.sleep(_BUSY_WAITING_SLEEP_TIME_IN_SECS)
-
-    if latest_checkpoint is None:
-      return False
+        return False
 
     if latest_checkpoint == self._current_checkpoint_path:
       logging.info('Checkpoint \'%s\' wasn\'t updated.', latest_checkpoint)
