@@ -61,18 +61,25 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
   on CPU/GPU/TPU.
   """
 
-  def __init__(self, t2r_model):
+  def __init__(self,
+               t2r_model,
+               train_in_bfloat16 = False):
     if not t2r_model.is_device_tpu:
       raise ValueError('The TPUT2RModelWrapper only works with models '
                        'operating on TPU devices.')
     # Note, the model has to be set prior to calling the super constructor since
     # properties are used within the constructor call.
     self._t2r_model = t2r_model
+    self._train_in_bfloat16 = train_in_bfloat16
     super(TPUT2RModelWrapper, self).__init__()
 
   @property
   def t2r_model(self):
     return self._t2r_model
+
+  @property
+  def train_in_bfloat16(self):
+    return self._train_in_bfloat16
 
   def get_run_config(self):
     """Get the RunConfig for Estimator model."""
@@ -173,8 +180,13 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
     if labels is not None:
       labels = tensorspec_utils.cast_bfloat16_to_float32(labels)
 
-    inference_outputs = self._t2r_model.inference_network_fn(
-        features, labels, mode, config, params)
+    if self._train_in_bfloat16 and mode == tf.estimator.ModeKeys.TRAIN:
+      with contrib_tpu.bfloat16_scope():
+        inference_outputs = self._t2r_model.inference_network_fn(
+            features, labels, mode, config, params)
+    else:
+      inference_outputs = self._t2r_model.inference_network_fn(
+          features, labels, mode, config, params)
 
     update_ops = None
     if isinstance(inference_outputs, tuple):
