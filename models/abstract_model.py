@@ -742,7 +742,7 @@ class AbstractT2RModel(
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       # Create the tf.train.Optimizer.
-      optimizer = self.create_optimizer()
+      optimizer = self.create_optimizer(params)
 
       train_op = self.create_train_op(train_loss, optimizer, update_ops,
                                       train_outputs)
@@ -826,17 +826,24 @@ class AbstractT2RModel(
 
     raise ValueError('The mode {} is not supported yet.'.format(mode))
 
-  def create_optimizer(self):
+  def create_optimizer(self, params):
     """Create the optimizer used for training.
 
     This function optionally wraps the base optimizer with SyncReplicasOptimizer
     (aggregrate gradients across devices).
 
+    Args:
+      params: An optional dict of hyper parameters that will be passed into
+        input_fn and model_fn. Keys are names of parameters, values are basic
+        python types. There are reserved keys for TPUEstimator, including
+        'batch_size'.
+
     Returns:
       An instance of `tf.train.Optimizer`.
     """
+
     config = self.get_run_config()
-    optimizer = self._create_optimizer_fn()
+    optimizer = self._create_optimizer_fn(self.use_summaries(params))
     if self._use_avg_model_params:
       optimizer = optimizers.create_moving_average_optimizer(optimizer)
 

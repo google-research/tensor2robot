@@ -231,7 +231,8 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
 
     if mode == tf.estimator.ModeKeys.TRAIN:
       # Create the tf.train.Optimizer.
-      optimizer = get_cross_shard_optimizer(self._t2r_model.create_optimizer())
+      optimizer = get_cross_shard_optimizer(
+          self._t2r_model.create_optimizer(params))
 
       train_op = self._t2r_model.create_train_op(train_loss, optimizer,
                                                  update_ops, train_outputs)

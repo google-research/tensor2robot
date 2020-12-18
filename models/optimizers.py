@@ -59,7 +59,9 @@ def create_exp_decaying_learning_rate(initial_learning_rate = 0.0001,
 
 
 @gin.configurable
-def default_create_optimizer_fn(learning_rate=1e-4):
+def default_create_optimizer_fn(use_summaries, learning_rate=1e-4):
+  if use_summaries:
+    tf.summary.scalar('learning_rate', learning_rate)
   return tf.train.AdamOptimizer(learning_rate)
 
 
@@ -67,9 +69,11 @@ def default_create_optimizer_fn(learning_rate=1e-4):
 def create_adam_optimizer(
     learning_rate_fn = create_constant_learning_rate):
   """Creates a function that returns a configured Adam optimizer."""
-  def create_optimizer_fn():
+  def create_optimizer_fn(use_summaries):
     """Creates an Adam optimizer with an optional learning rate schedule."""
     learning_rate = learning_rate_fn()
+    if use_summaries:
+      tf.summary.scalar('learning_rate', learning_rate)
     return tf.train.AdamOptimizer(learning_rate=learning_rate)
 
   return create_optimizer_fn
@@ -89,9 +93,11 @@ def create_gradient_descent_optimizer(
     Optimizer.
   """
 
-  def create_optimizer_fn():
+  def create_optimizer_fn(use_summaries):
     """Creates a gradient descent optimizer with an optional lr schedule."""
     learning_rate = learning_rate_fn()
+    if use_summaries:
+      tf.summary.scalar('learning_rate', learning_rate)
     return tf.train.GradientDescentOptimizer(
         learning_rate=learning_rate)
 
@@ -112,9 +118,11 @@ def create_momentum_optimizer(
   Returns:
     A parameterless function that returns the configured Momentum Optimizer.
   """
-  def create_optimizer_fn():
+  def create_optimizer_fn(use_summaries):
     """Creates a momentum optimizer with an optional learning rate schedule."""
     learning_rate = learning_rate_fn()
+    if use_summaries:
+      tf.summary.scalar('learning_rate', learning_rate)
     return tf.train.MomentumOptimizer(learning_rate=learning_rate,
                                       momentum=momentum)
 

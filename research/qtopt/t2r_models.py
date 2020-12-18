@@ -92,7 +92,7 @@ class LegacyGraspingModelWrapper(critic_model.CriticModel):
     self.kwargs = kwargs
     super(LegacyGraspingModelWrapper, self).__init__(
         loss_function=loss_function,
-        create_optimizer_fn=lambda: optimizer_builder.BuildOpt(self.hparams),
+        create_optimizer_fn=lambda _: optimizer_builder.BuildOpt(self.hparams),
         action_batch_size=kwargs.get('action_batch_size'),
         use_avg_model_params=use_avg_model_params)
 
@@ -156,10 +156,10 @@ class LegacyGraspingModelWrapper(critic_model.CriticModel):
         'global_step': self.get_global_step()
     }
 
-  def create_optimizer(self):
+  def create_optimizer(self, params):
     """Create the optimizer and scaffold used for training."""
     config = self.get_run_config()
-    original_optimizer = self._create_optimizer_fn()
+    original_optimizer = self._create_optimizer_fn(self.use_summaries(params))
 
     # Override self.scaffold_fn with a custom scaffold_fn that uses the
     # swapping saver required for MovingAverageOptimizer.
