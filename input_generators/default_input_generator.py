@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2020 The Tensor2Robot Authors.
+# Copyright 2021 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,14 +21,12 @@ import json
 import os
 from typing import Dict, Optional, Text, Union, Sequence
 
-from absl import logging
 import gin
 import six
 from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
 import tensorflow.compat.v1 as tf
-
 
 _TF_CONFIG_ENV = 'TF_CONFIG'
 _MULTI_EVAL_NAME = 'multi_eval_name'
@@ -75,21 +73,23 @@ class DefaultRecordInputGenerator(
     self._dataset_map = dataset_map
     self._label = label
 
-  def create_dataset_input_fn(self, mode):
-    """Create the dataset input_fn used for train and eval.
+  def create_dataset(self,
+                     mode,
+                     params=None):
+    """Create the actual input_fn.
 
-    We simply wrap the existing tfdata implementation such that we have a
-    consistent input generator interface.
+    This is potentially wrapped in create_dataset_input_fn.
 
     Args:
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
+      params: Not used for this implementation but expected by callers. An
+        optional dict of hyper parameters that will be passed into input_fn and
+        model_fn. Keys are names of parameters, values are basic Python types.
+        There are reserved keys for TPUEstimator, including 'batch_size'.
 
     Returns:
       A valid input_fn for the estimator api.
     """
-    self._assert_specs_initialized()
-    logging.info('Creating InputGenerator %s with file patterns:\n%s',
-                 self._label, self._file_patterns)
     input_fn = tfdata.get_input_fn(
         file_patterns=self._file_patterns or self._dataset_map,
         batch_size=self.batch_size,
@@ -97,55 +97,7 @@ class DefaultRecordInputGenerator(
         label_spec=self._label_spec,
         mode=mode,
         preprocess_fn=self._preprocess_fn)
-
-    if self._guzzler_server_address:
-      def dataguzzler_dataset_fn(params=None):
-
-        def compressed_dataset(params):
-          dataset = input_fn(params=params)
-          compress_fn = tfdata.create_compress_fn(
-              feature_spec=self._out_feature_spec,
-              label_spec=self._out_label_spec,
-              quality=self._guzzler_compression_quality)
-          dataset = dataset.map(compress_fn, num_parallel_calls=2)
-          return dataset
-
-        if self._guzzler_use_compression:
-          tf.logging.info('Use compressed dataset.')
-          dataset = guzzler_dataset.DataGuzzlerDataset(
-              dataset_fn=lambda: compressed_dataset(params=params),
-              guzzler_server_address=self._guzzler_server_address,
-              guzzler_timeout_ms=self._guzzler_timeout_ms,
-              guzzler_graph_key='')
-        else:
-          tf.logging.info('Use uncompressed dataset.')
-          dataset = guzzler_dataset.DataGuzzlerDataset(
-              dataset_fn=lambda: input_fn(params=params),
-              guzzler_server_address=self._guzzler_server_address,
-              guzzler_timeout_ms=self._guzzler_timeout_ms,
-              guzzler_graph_key='')
-        dataset.PublishGraphToModelDir(self._guzzler_output_dir)
-        if self._guzzler_use_compression:
-          tf.logging.info('Use decompression.')
-          decompress_fn = tfdata.create_decompress_fn(
-              feature_spec=self._out_feature_spec,
-              label_spec=self._out_label_spec)
-          dataset = dataset.map(
-              decompress_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-        else:
-          tf.logging.info('Use no decompression.')
-        return dataset.prefetch(2)
-
-      return dataguzzler_dataset_fn
-
-    return input_fn
-
-  def _create_dataset(self, **unused_kwargs):
-    """This abstract function is not required for default input generators.
-
-    Since we directly create the input_fn from default implementations we do not
-    need to implement this method.
-    """
+    return input_fn(params)
 
 
 @gin.configurable
@@ -207,7 +159,7 @@ class GeneratorInputGenerator(
       training examples
     """
 
-  def _create_dataset(self, mode, params=None):
+  def create_dataset(self, mode, params=None):
     """Creates a dataset using _generator_fn.
 
     Args:
@@ -309,15 +261,17 @@ class WeightedRecordInputGenerator(DefaultRecordInputGenerator):
     self._weights = weights
     self._seed = seed
 
-  def _create_dataset(self, mode, params, **unused_kwargs):
+  def create_dataset(self, mode, params, **unused_kwargs):
     """This abstract function is not required for default input generators."""
     batch_size = tfdata.get_batch_size(params, self.batch_size)
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
     data_format, filenames_list = tfdata.get_data_format_and_filenames_list(
         self._file_patterns)
     datasets = []
-    if len(filenames_list) != len(self._weights):
-      raise ValueError('Weights need to be same length as number of filenames.')
+    if self._weights is not None:
+      if len(filenames_list) != len(self._weights):
+        raise ValueError(
+            'Weights need to be same length as number of filenames.')
     for filenames in filenames_list:
       filenames_dataset = tf.data.Dataset.list_files(
           filenames, shuffle=is_training)

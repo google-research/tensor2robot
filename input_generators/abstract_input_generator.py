@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2020 The Tensor2Robot Authors.
+# Copyright 2021 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -161,13 +161,16 @@ class AbstractInputGenerator(six.with_metaclass(abc.ABCMeta, object)):
         labels: All labels according to our
           preprocessor.get_out_label_specification().
       """
-      return self._create_dataset(mode=mode, params=params)
+      return self.create_dataset(mode=mode, params=params)
 
     return input_fn
 
   @abc.abstractmethod
-  def _create_dataset(self, mode, params=None):
-    """The actual implementation to create the dataset input_fn.
+  def create_dataset(self, mode, params=None):
+    """The actual implementation to create the tf.data.Dataset.
+
+    By default this is used in create_dataset_input_fn to create an input_fn
+    for the estimator API.
 
     Args:
       mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
@@ -177,7 +180,7 @@ class AbstractInputGenerator(six.with_metaclass(abc.ABCMeta, object)):
         'batch_size'.
 
     Returns:
-      A valid input_fn for the estimator api.
+      A tf.data.Dataset.
     """
 
   def _assert_specs_initialized(self):

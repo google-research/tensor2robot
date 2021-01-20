@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2020 The Tensor2Robot Authors.
+# Copyright 2021 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ class MockInputGenerator(abstract_input_generator.AbstractInputGenerator):
                             axis=0)
     return features, labels
 
-  def _create_dataset(self, mode, params=None):
+  def create_dataset(self, mode, params=None):
     """See base class documentation."""
     batch_size = tfdata.get_batch_size(params, self._batch_size)
 
