@@ -77,7 +77,9 @@ gin_configurable_tpu_config_cls = gin.external_configurable(
 
 # Expose the tf.train.Saver to gin.
 gin_configurable_saver = gin.external_configurable(
-    tf.train.Saver, name='tf.train.Saver', allowlist=['save_relative_paths'])
+    tf.train.Saver,
+    name='tf.train.Saver',
+    allowlist=['save_relative_paths', 'var_list', 'allow_empty'])
 
 
 @gin.configurable
