@@ -150,6 +150,8 @@ def resnet_model(images,
                  num_classes,
                  resnet_size=50,
                  weight_decay=None,
+                 kernel_size=7,
+                 num_filters=64,
                  return_intermediate_values=False,
                  film_generator_fn=None,
                  film_generator_input=None,
@@ -163,6 +165,8 @@ def resnet_model(images,
     num_classes: Dimensionality of output logits emitted by final dense layer.
     resnet_size: Size of resnet. One of [18, 34, 50, 101, 152, 200].
     weight_decay: L2 weight regularizer.
+    kernel_size: Size of the convolution kernels used in the resnet model.
+    num_filters: Number of filters used.
     return_intermediate_values: If True, returns a dictionary of output and
       intermediate activation values.
     film_generator_fn: Callable that returns a List (for each block layer) of
@@ -181,8 +185,8 @@ def resnet_model(images,
       resnet_size=resnet_size,
       bottleneck=bottleneck,
       num_classes=num_classes,
-      num_filters=64,
-      kernel_size=7,
+      num_filters=num_filters,
+      kernel_size=kernel_size,
       conv_stride=2,
       first_pool_size=3,
       first_pool_stride=2,
