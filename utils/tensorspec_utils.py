@@ -17,6 +17,7 @@
 """Manipulating (nested) collections of TensorSpec objects."""
 
 import collections
+import pprint
 from typing import Any, Dict, List, Optional, Text, Union
 
 from absl import logging
@@ -633,6 +634,9 @@ class TensorSpecStruct(collections.OrderedDict):
     if name.startswith('_'):
       return super(TensorSpecStruct, self).__setattr__(name, item)
     self[name] = item
+
+  def __repr__(self):
+    return 'TensorSpecStruct(\n' + pprint.pformat(self.to_dict()) + ')'
 
   def __getattr__(self, item):
     if item.startswith('_'):
