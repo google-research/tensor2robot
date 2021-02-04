@@ -17,6 +17,8 @@
 """Tests for tensor2robot image_transformations."""
 
 from absl.testing import parameterized
+import gin
+import gin.tf.external_configurables
 import numpy as np
 from six.moves import range
 from tensor2robot.preprocessors import image_transformations
@@ -268,6 +270,29 @@ class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):
           cropped = image_transformations.CustomCropImages(
               [images], input_shape, target_shape, [target_locations])[0]
           sess.run(cropped)
+
+  def testDeterminism(self):
+    """Get deterministic distortion by setting global seed and op-level seed."""
+    input_shape = [32, 32, 3]
+    gin.bind_parameter('tf.random.uniform.seed', 0)
+    gin.bind_parameter('tf.random.normal.seed', 0)
+    with tf.Graph().as_default():
+      tf.set_random_seed(123)
+      batch_size = 4
+      images = self._CreateRampTestImages(batch_size, input_shape[0],
+                                          input_shape[1])
+      tensor_list = []
+      for i in range(batch_size):
+        tensor_list.append(images[i])
+      distorted_1 = image_transformations.ApplyPhotometricImageDistortions(
+          tensor_list, random_noise_apply_probability=1.0)
+      distorted_2 = image_transformations.ApplyPhotometricImageDistortions(
+          tensor_list, random_noise_apply_probability=1.0)
+      with tf.Session() as sess:
+        images_1 = sess.run(distorted_1)
+        images_2 = sess.run(distorted_2)
+        for image_1, image_2 in zip(images_1, images_2):
+          self.assertAllClose(image_1, image_2)
 
 
 if __name__ == '__main__':
