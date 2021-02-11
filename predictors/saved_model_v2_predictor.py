@@ -36,13 +36,17 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
   See implementations for TF1 and TF2 below.
   """
 
-  def __init__(self, saved_model_path, timeout = 600):
+  def __init__(self,
+               saved_model_path,
+               timeout = 600,
+               model_serving_key = 'serving_default'):
     """Creates an instance.
 
     Args:
       saved_model_path: A path to a directory containing the saved_model.
       timeout: (defaults to 600 seconds) If no checkpoint has been found after
         timeout seconds restore fails.
+      model_serving_key: Serving key for tf2 model signature.
     """
     super(SavedModelPredictorBase, self).__init__()
     self._saved_model_path = saved_model_path
@@ -51,6 +55,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
 
     self._feature_spec = None  # type: tensorspec_utils.TensorSpecStruct
     self._label_spec = None
+    self._model_serving_key = model_serving_key
 
   def predict(self, features):
     """Predicts based on feature input using the loaded model.
@@ -70,7 +75,17 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
 
     expanded_features = tf.nest.map_structure(_maybe_expand_dims, features,
                                               self.get_feature_specification())
-    predictions = self._model.predict(expanded_features)
+    if hasattr(self._model, 'predict'):
+      predictions = self._model.predict(expanded_features)
+    else:
+      tensors = []
+      for v in expanded_features.values():
+        if not isinstance(v, tf.Tensor):
+          tensors.append(tf.constant(v))
+        else:
+          tensors.append(v)
+      predictions = self._model.signatures[self._model_serving_key](
+          *tensors)
 
     return predictions
 
