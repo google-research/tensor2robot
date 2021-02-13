@@ -612,8 +612,8 @@ class TensorSpecStruct(collections.OrderedDict):
     if isinstance(item, TensorSpecStruct):
       if not item:
         raise ValueError(
-            'We cannot assign an empty TensorSpecStruct.'
-            'Please, first fill another TensorSpecStruct and'
+            'We cannot assign an empty TensorSpecStruct. '
+            'Please, first fill another TensorSpecStruct and '
             'add it to this instance.')
     if isinstance(item, dict):
       if not item:
