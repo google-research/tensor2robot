@@ -845,7 +845,8 @@ class AbstractT2RModel(
     """
 
     config = self.get_run_config()
-    optimizer = self._create_optimizer_fn(self.use_summaries(params))
+    optimizer = self._create_optimizer_fn(
+        use_summaries=self.use_summaries(params))
     if self._use_avg_model_params:
       optimizer = optimizers.create_moving_average_optimizer(optimizer)
 
