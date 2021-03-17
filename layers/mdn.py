@@ -31,7 +31,8 @@ def get_mixture_distribution(
     params,
     num_alphas,
     sample_size,
-    output_mean = None
+    output_mean = None,
+    min_sigma = 1e-4
 ):
   """Construct a mixture of isotropic gaussians from tensor params.
 
@@ -40,6 +41,8 @@ def get_mixture_distribution(
     num_alphas: The number of mixture components.
     sample_size: Scalar, the size of a single distribution sample.
     output_mean: Optional translation for each component mean.
+    min_sigma: Minimum sigma for diagonal covariance to improve numerical
+      stability.
   Returns:
     A gaussian mixture distribution.
   """
@@ -63,7 +66,7 @@ def get_mixture_distribution(
     mus = mus + output_mean
   mix_dist = tfp.distributions.Categorical(logits=alphas)
   comp_dist = tfp.distributions.MultivariateNormalDiag(
-      loc=mus, scale_diag=tf.nn.softplus(sigmas))
+      loc=mus, scale_diag=tf.nn.softplus(sigmas) + min_sigma)
   gm = tfp.distributions.MixtureSameFamily(
       mixture_distribution=mix_dist, components_distribution=comp_dist)
   return gm
