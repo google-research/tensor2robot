@@ -20,7 +20,7 @@ import enum
 import os
 import threading
 import time
-from typing import Callable, Dict, List, Optional, Text
+from typing import Callable, Dict, List, Optional, Text  # pylint: disable=unused-import
 
 from absl import logging
 import gin
@@ -69,7 +69,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
         model. Alternatively, if export_dir is points to a specific
         lexicographic subdirectory it will restore from there.
       timeout: (defaults to 600 seconds) If no checkpoint has been found after
-        timeout seconds restore fails.
+        timeout seconds restore fails. At least attempt will be made to load
+        even with timeout 0 or -1.
       tf_config: The tf.ConfigProto used to configure the TensorFlow session.
       restore_model_option: If set to RestoreOptions.DO_NOT_RESTORE, the model
         is not restored in the constructor. If set to
@@ -172,7 +173,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       True if a exported saved model has been loaded and False otherwise.
     """
     start_time = time.time()
-    while time.time() - start_time < self._timeout:
+    while True:
       if os.path.basename(os.path.normpath(self._export_dir)).isdigit():
         model_dir = self._export_dir
       else:
@@ -185,6 +186,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
 
       logging.info('Waiting for an exported model to become available at %s.',
                    self._export_dir)
+      if time.time() - start_time < self._timeout:
+        break
       # Since a checkpoint might not be available and this is a busy waiting
       # loop, we throttle checking for checkpoints.
       time.sleep(_BUSY_WAITING_SLEEP_TIME_IN_SECS)
@@ -204,7 +207,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
 
     # Note, loading from a saved model might require several attempts if
     # the checkpoint gets written asynchronously.
-    while time.time() - start_time_loading < self._timeout:
+    while True:
       try:
         t2r_assets_file_path = os.path.join(
             model_dir, tensorspec_utils.EXTRA_ASSETS_DIRECTORY,
@@ -240,6 +243,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
             'Error loading model as %s:\n%s\nThe next attempt at loading the '
             'latest model will be in %d seconds', model_dir, err,
             _BUSY_WAITING_SLEEP_TIME_IN_SECS)
+      if time.time() - start_time_loading < self._timeout:
+        break
       # Since a checkpoint might be written by the tf model concurrently
       # this is a busy waiting loop.
       time.sleep(_BUSY_WAITING_SLEEP_TIME_IN_SECS)
