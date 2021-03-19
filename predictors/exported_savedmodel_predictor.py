@@ -162,6 +162,23 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     self._maybe_join_restore_thread()
     return self._restore()
 
+  def _is_final_export_dir(self, export_dir):
+    """Checks if the export directory is final one, which will not change.
+
+    Args:
+      export_dir: The export directory path. This is typically a directory
+        containing many directories encoding seconds since unix time 0 or the
+        final directory containing the saved_model.pb.
+
+    Returns:
+      True if the export directory ends with saved_model.py.
+    """
+    saved_model = os.path.join(export_dir, 'saved_model.pb')
+    t2r_assets = os.path.join(export_dir, 'assets.extra', 't2r_assets.pbtxt')
+    if tf.io.gfile.exists(saved_model) and tf.io.gfile.exists(t2r_assets):
+      return True
+    return False
+
   def _restore(self):
     """Restores the model parameters from the latest available data.
 
@@ -174,7 +191,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     """
     start_time = time.time()
     while True:
-      if os.path.basename(os.path.normpath(self._export_dir)).isdigit():
+      if self._is_final_export_dir(self._export_dir):
         model_dir = self._export_dir
       else:
         model_dir = self._latest_valid_model_dirs(

@@ -182,6 +182,32 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase, parameterized.TestCase):
     tensorspec_utils.assert_equal(predictor.get_feature_specification(),
                                   ref_feature_spec)
 
+  def test_predictor_load_final_model(self):
+    input_generator = default_input_generator.DefaultRandomInputGenerator(
+        batch_size=_BATCH_SIZE)
+    model_dir = self.create_tempdir().full_path
+    mock_model = mocks.MockT2RModel()
+    train_eval.train_eval_model(
+        t2r_model=mock_model,
+        input_generator_train=input_generator,
+        input_generator_eval=input_generator,
+        max_train_steps=_MAX_TRAIN_STEPS,
+        eval_steps=_MAX_EVAL_STEPS,
+        model_dir=model_dir,
+        create_exporters_fn=train_eval.create_default_exporters)
+    export_dir = os.path.join(model_dir, 'export', 'latest_exporter_numpy')
+    final_export_dir = sorted(
+        tf.io.gfile.glob(os.path.join(export_dir, '*')), reverse=True)[0]
+    predictor = exported_savedmodel_predictor.ExportedSavedModelPredictor(
+        export_dir=final_export_dir)
+    predictor.restore()
+    self.assertGreater(predictor.model_version, 0)
+    self.assertEqual(predictor.global_step, 3)
+    ref_feature_spec = mock_model.preprocessor.get_in_feature_specification(
+        tf.estimator.ModeKeys.PREDICT)
+    tensorspec_utils.assert_equal(predictor.get_feature_specification(),
+                                  ref_feature_spec)
+
 
 if __name__ == '__main__':
   tf.test.main()
