@@ -17,8 +17,8 @@
 """ResNet tower.
 """
 
-from typing import List, Optional
-
+from typing import List, Optional, Text
+from absl import logging
 import gin
 from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
@@ -202,16 +202,32 @@ def resnet_model(images,
   if pretrain_checkpoint:
     # Initialize variables in ResNet, excluding the final dense layer and any
     # optimization-specific variables (e.g. Momentum, Adam Beta).
-    assignment_map = {}
-    resnet_scope = _get_resnet_scope()
-    for var in contrib_framework.get_variables(
-        scope=resnet_scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
-      if 'dense' not in var.op.name:
-        # Remove the parent scope prefix.
-        name_in_ckpt = var.op.name.replace(resnet_scope, 'resnet_model/')
-        assignment_map[name_in_ckpt] = var
-    tf.train.init_from_checkpoint(pretrain_checkpoint, assignment_map)
+    # When initializing on TPUs, use AbstractT2RModel.init_from_checkpoint_fn.
+    resnet_init_from_checkpoint_fn(pretrain_checkpoint)
   if return_intermediate_values:
     return resnet_endpoints(model)
   else:
     return final_dense
+
+
+@gin.configurable
+def resnet_init_from_checkpoint_fn(checkpoint):
+  """init_from_checkpoint_fn that can be used to init a model from a checkpoint.
+
+  Args:
+    checkpoint: String pointing to path of TF checkpoint.
+
+  Raises:
+    A ValueError if a variable(s) is missing and partial restore is not
+    explicitly enabled.
+  """
+  logging.info('Initializing model weights from %s', checkpoint)
+  assignment_map = {}
+  resnet_scope = _get_resnet_scope()
+  for var in contrib_framework.get_variables(
+      scope=resnet_scope, collection=tf.GraphKeys.TRAINABLE_VARIABLES):
+    if 'dense' not in var.op.name:
+      # Remove the parent scope prefix.
+      name_in_ckpt = var.op.name.replace(resnet_scope, 'resnet_model/')
+      assignment_map[name_in_ckpt] = var
+  tf.train.init_from_checkpoint(checkpoint, assignment_map)
