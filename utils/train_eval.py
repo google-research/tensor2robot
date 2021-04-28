@@ -299,7 +299,8 @@ def create_default_exporters(
     use_numpy_exporters = True,
     use_tfexample_exporters = True,
     use_servo_exporter = True,
-    exports_to_keep = None):
+    exports_to_keep = None,
+    valid_eval_name = None):
   """Creates a list of Exporter to export saved models during evaluation.
 
   Args:
@@ -311,11 +312,21 @@ def create_default_exporters(
     use_servo_exporter: If true, add the a Servo export for use with TFX.
     exports_to_keep: Number of latest_exporter_numpy ckpts to keep. If None,
       saves all ckpts (needed for sim eval on borg).
+    valid_eval_name: When using MultiEvalRecordInputGenerator, filter so that
+      only one eval job writes the exported models.
 
   Returns:
     A list containing two exporters, one for numpy and another one for
       tf_example interface.
   """
+  multi_eval_name = default_input_generator.get_multi_eval_name()
+
+  if valid_eval_name and multi_eval_name != valid_eval_name:
+    # Another export process is responsible for writing the exported model.
+    logging.info('Skipping exporters for eval %s since it should be written by '
+                 'multi_eval_name %s', multi_eval_name, valid_eval_name)
+    return []
+
   if export_generator is None:
     export_generator = default_export_generator.DefaultExportGenerator()
   # Create pkl of the input to save alongside the exported models
@@ -362,6 +373,7 @@ def create_default_exporters(
             name='latest_exporter_tf_example',
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_tf_example_fn(),
+            exports_to_keep=exports_to_keep,
             assets_extra=assets))
   if use_servo_exporter:
     exporters.append(

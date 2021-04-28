@@ -124,6 +124,7 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
     input_generator = default_input_generator.MultiEvalRecordInputGenerator(
         eval_map=eval_map, batch_size=2)
     self.assertEqual(input_generator._file_patterns, 'fubar')
+    self.assertEqual(default_input_generator.get_multi_eval_name(), 'd2')
 
   def test_fractional_record_input_generator(self):
     base_dir = 'tensor2robot'
