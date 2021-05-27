@@ -16,7 +16,7 @@
 # Lint as python3
 """Common configurable image manipulation methods for use in preprocessors."""
 
-from typing import List, Sequence
+from typing import Callable, List, Optional, Sequence
 
 import gin
 from six.moves import zip
@@ -255,9 +255,7 @@ def ApplyPhotometricImageDistortions(
         def ImageClosure(value):
           return lambda: value
         image = tf.cond(
-            tf.reduce_all(
-                tf.greater(
-                    tf.random.uniform([1]), random_noise_apply_probability)),
+            tf.greater(tf.random.uniform(()), random_noise_apply_probability),
             ImageClosure(image), ImageClosure(image + rnd_noise))
         images[i] = tf.reshape(image, img_shape)
 
@@ -280,8 +278,9 @@ def ApplyPhotometricImageDistortionsParallel(
     random_contrast = False,
     lower_contrast = 0.5,
     upper_contrast = 1.5,
-    random_noise_level = 0.025,
-    random_noise_apply_probability = 0.5):
+    random_noise_level = 0.0,
+    random_noise_apply_probability = 0.5,
+    custom_distortion_fn = None):
   """Apply photometric distortions to the input images in parallel.
 
   Args:
@@ -307,6 +306,8 @@ def ApplyPhotometricImageDistortionsParallel(
       random noise to be added to the images. If 0.0, no noise is added.
     random_noise_apply_probability: Probability of applying additive random
       noise to the images.
+    custom_distortion_fn: A custom distortion fn that takes a tensor of shape
+      [h, w, 3] and returns a tensor of the same size.
 
   Returns:
     images: Tensor of shape [batch_size, h, w, 3] containing a batch of images
@@ -346,11 +347,12 @@ def ApplyPhotometricImageDistortionsParallel(
         def ImageClosure(value):
           return lambda: value
         image = tf.cond(
-            tf.reduce_all(
-                tf.greater(
-                    tf.random.uniform([1]), random_noise_apply_probability)),
+            tf.greater(tf.random.uniform(()), random_noise_apply_probability),
             ImageClosure(image), ImageClosure(image + rnd_noise))
         image = tf.reshape(image, img_shape)
+
+      if custom_distortion_fn:
+        image = custom_distortion_fn(image)
 
       # Clip to valid range.
       image = tf.clip_by_value(image, 0.0, 1.0)

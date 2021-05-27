@@ -19,8 +19,29 @@ from tensor2robot.preprocessors import image_transformations
 import tensorflow.compat.v1 as tf
 
 
-def preprocess_image(image, mode, is_sequence, input_size, target_size,
-                     crop_size=None):
+def maybe_distort_image_batch(images, mode):
+  """Applies data augmentation to given images.
+
+  Args:
+    images: 4D Tensor (batch images) or 5D Tensor (batch of image sequences).
+    mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
+
+  Returns:
+    Distorted images. Image distortion is identical for every image in the
+      batch.
+  """
+  if mode == tf.estimator.ModeKeys.TRAIN:
+    images = image_transformations.ApplyPhotometricImageDistortions([images])[0]
+  return images
+
+
+def preprocess_image(image,
+                     mode,
+                     is_sequence,
+                     input_size,
+                     target_size,
+                     crop_size=None,
+                     image_distortion_fn=maybe_distort_image_batch):
   """Shared preprocessing function for images.
 
   Args:
@@ -34,6 +55,8 @@ def preprocess_image(image, mode, is_sequence, input_size, target_size,
     target_size: [h, w] of the output image, expected to be equal or smaller
       than input size. If smaller, we do a crop of the image.
     crop_size: [h, w] of crop size. If None, defaults to target_size.
+    image_distortion_fn: A function that takes an image tensor and the training
+      mode as input and returns an image tensor of the same size as the input.
 
   Returns:
     A tf.Tensor for the batch of images / batch of sequences. If mode == TRAIN,
@@ -56,7 +79,7 @@ def preprocess_image(image, mode, is_sequence, input_size, target_size,
   image = tf.image.resize_images(image, target_size)
 
   # Convert dtype and distort.
-  image = maybe_distort_image_batch(image, mode=mode)
+  image = image_distortion_fn(image, mode=mode)
 
   # Flatten back into a sequence.
   if is_sequence:
@@ -98,19 +121,3 @@ def crop_image(img, mode, input_size=(512, 640), target_size=(472, 472)):
                                                    input_shape=input_shape,
                                                    target_shape=target_shape)[0]
   return crops
-
-
-def maybe_distort_image_batch(images, mode):
-  """Applies data augmentation to given images.
-
-  Args:
-    images: 4D Tensor (batch images) or 5D Tensor (batch of image sequences).
-    mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
-
-  Returns:
-    Distorted images. Image distortion is identical for every image in the
-      batch.
-  """
-  if mode == tf.estimator.ModeKeys.TRAIN:
-    images = image_transformations.ApplyPhotometricImageDistortions([images])[0]
-  return images

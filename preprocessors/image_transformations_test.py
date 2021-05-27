@@ -208,12 +208,47 @@ class ImageTransformationsTest(tf.test.TestCase, parameterized.TestCase):
       images = self._CreateRampTestImages(batch_size, input_shape[0],
                                           input_shape[1])
       distorted = image_transformations.ApplyPhotometricImageDistortionsParallel(
-          images, random_noise_apply_probability=1.0)
+          images,
+          random_brightness=True,
+          random_saturation=True,
+          random_hue=True,
+          random_contrast=True,
+          random_noise_apply_probability=1.0)
       delta = tf.reduce_sum(tf.square(images - distorted))
       with tf.Session() as sess:
         images_delta = sess.run(delta)
         # Check if any distortion applied.
         self.assertGreater(images_delta, 0)
+
+  @parameterized.parameters(([20, 20], 0), ([32, 32], 1))
+  def testPhotometricImageDistortionsParallelCustomized(self, input_shape,
+                                                        color_value):
+    input_shape = input_shape + [3]
+    with tf.Graph().as_default():
+      batch_size = 4
+      images = self._CreateRampTestImages(batch_size, input_shape[0],
+                                          input_shape[1])
+      def custom_distortion_fn(image):
+        if color_value == 0:
+          return tf.zeros_like(image)
+        else:
+          return tf.ones_like(image)
+
+      distorted = image_transformations.ApplyPhotometricImageDistortionsParallel(
+          images,
+          random_brightness=False,
+          random_saturation=False,
+          random_hue=False,
+          random_contrast=False,
+          random_noise_apply_probability=0.0,
+          custom_distortion_fn=custom_distortion_fn)
+      min_value_tensor = tf.reduce_min(distorted, axis=[0, 1, 2, 3])
+      max_value_tensor = tf.reduce_max(distorted, axis=[0, 1, 2, 3])
+      with tf.Session() as sess:
+        min_value, max_value = sess.run([min_value_tensor, max_value_tensor])
+        # Check if any distortion applied.
+        self.assertEqual(min_value, max_value)
+        self.assertEqual(min_value, color_value)
 
   @parameterized.parameters(([20, 20],), ([32, 32],))
   def testDepthImageDistortions(self, input_shape):
