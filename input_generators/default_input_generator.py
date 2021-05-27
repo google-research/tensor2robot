@@ -22,6 +22,7 @@ import os
 from typing import Dict, Optional, Text, Union, Sequence
 
 import gin
+import numpy as np
 import six
 from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.utils import tensorspec_utils
@@ -289,14 +290,16 @@ class WeightedRecordInputGenerator(DefaultRecordInputGenerator):
             buffer_size=self._shuffle_buffer_size).repeat()
       else:
         dataset = dataset.repeat()
-      dataset = dataset.batch(batch_size, drop_remainder=True)
       datasets.append(dataset)
     if self._weights is None:
       weights = [float(1) for _ in range(len(datasets))]
     else:
-      weights = [float(w) for w in self._weights]
+      weights = self._weights
+    sum_weight = np.sum(weights)
+    weights = [float(w) / sum_weight for w in weights]
     dataset = tf.data.experimental.sample_from_datasets(
         datasets=datasets, weights=weights, seed=self._seed)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
     # Parse all datasets together.
     dataset = tfdata.serialized_to_parsed(
         dataset,
