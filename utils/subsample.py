@@ -157,6 +157,12 @@ def get_subsample_indices_randomized_boundary(sequence_lengths,
   return indices
 
 
+def get_uniform_subsample_indices(sequence_lengths,
+                                  min_length):
+  # TODO(T2R_CONTRIBUTORS): Implement
+  raise NotImplementedError("Not yet implemented.")
+
+
 def get_np_subsample_indices(sequence_lengths,
                              min_length):
   """Same behavior as get_subsample_indices, but in numpy format."""
