@@ -52,6 +52,7 @@ ExportOutputType = Union[Dict[Text, tf.Tensor], Tuple[
 InferenceNetworkOutputsType = Union[DictOrSpec,
                                     Tuple[DictOrSpec,
                                           Optional[Sequence[tf.Tensor]]]]
+TransformGradsType = Sequence[Tuple[tf.Tensor, tf.Variable]]
 
 try:
   flags.DEFINE_string('master', '', 'Master for TPU RunConfig')
@@ -337,7 +338,8 @@ class AbstractT2RModel(
       optimizer,
       update_ops = None,
       train_outputs = None,
-      filter_trainables_fn = None):  # pylint: disable=line-too-long
+      filter_trainables_fn = None,
+      **kwargs):
     """Create the train_op of from the loss obtained from model_train_fn.
 
     Args:
@@ -349,6 +351,8 @@ class AbstractT2RModel(
       filter_trainables_fn: (Optional) A function that takes a trainable
         TensorFlow variable and returns whether it should be updated or not.
         By default, all trainable variables are updated.
+      **kwargs: (Optional) Other keyword arguments passed directly to the
+        underlying create_train_op function.
 
     Returns:
       train_op: Op for the training step.
@@ -373,7 +377,8 @@ class AbstractT2RModel(
         optimizer,
         summarize_gradients=summarize_gradients,
         update_ops=update_ops,
-        variables_to_train=variables_to_train)
+        variables_to_train=variables_to_train,
+        **kwargs)
 
   def maybe_init_from_checkpoint(self):
     """Optionally initialize the model from a checkpoint.
