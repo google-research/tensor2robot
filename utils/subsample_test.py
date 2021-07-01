@@ -28,19 +28,54 @@ class SubsampleTest(parameterized.TestCase, tf.test.TestCase):
   @parameterized.named_parameters({
       'testcase_name': 'length1',
       'min_length': 1,
+      'sampler': 'default',
   }, {
       'testcase_name': 'length_shorter',
       'min_length': 4,
+      'sampler': 'default',
   }, {
       'testcase_name': 'length_longer',
       'min_length': 10,
+      'sampler': 'default',
+  }, {
+      'testcase_name': 'length1uniform',
+      'min_length': 1,
+      'sampler': 'uniform',
+  }, {
+      'testcase_name': 'length_shorter_uniform',
+      'min_length': 4,
+      'sampler': 'uniform',
+  }, {
+      'testcase_name': 'length_longer_uniform',
+      'min_length': 10,
+      'sampler': 'uniform',
+  }, {
+      'testcase_name': 'length1nofirstlast',
+      'min_length': 1,
+      'sampler': 'nofirstlast',
+  }, {
+      'testcase_name': 'length_shorter_nofirstlast',
+      'min_length': 4,
+      'sampler': 'nofirstlast',
+  }, {
+      'testcase_name': 'length_longer_nofirstlast',
+      'min_length': 10,
+      'sampler': 'nofirstlast',
   })
-  def test_subsampling(self, min_length):
+  def test_subsampling(self, min_length, sampler):
     testing_tensor1 = tf.placeholder(tf.float32, shape=(4, None))
     testing_tensor2 = tf.placeholder(tf.float32, shape=(4, None))
     sequence_lengths = tf.placeholder(tf.int64, shape=(4,))
-    indices = subsample.get_subsample_indices(sequence_lengths,
-                                              min_length)
+    if sampler == 'default':
+      indices = subsample.get_subsample_indices(sequence_lengths,
+                                                min_length)
+    elif sampler == 'uniform':
+      indices = subsample.get_uniform_subsample_indices(sequence_lengths,
+                                                        min_length)
+    else:
+      # should be nofirstlast
+      indices = subsample.get_subsample_indices_nofirstlast(sequence_lengths,
+                                                            min_length)
     sampled1 = tf.gather(testing_tensor1, indices, batch_dims=1)
     sampled2 = tf.gather(testing_tensor2, indices, batch_dims=1)
     with tf.Session() as sess:
@@ -62,10 +97,14 @@ class SubsampleTest(parameterized.TestCase, tf.test.TestCase):
       total = samp1 + samp2
       self.assertEqual(total.min(), 0)
       self.assertEqual(total.max(), 0)
-      if min_length > 1:
+      if min_length > 1 and sampler == 'default':
         # Verify first and last always included. In test tensor final entry
         # matches sequence length.
         self.assertAllEqual(samp1.min(axis=1), np.ones(4))
+        self.assertAllEqual(samp1.max(axis=1), seq_len)
+      if sampler == 'uniform':
+        # The last frame should always appear in the sequence. In test tensor
+        # final entry matches sequence length.
         self.assertAllEqual(samp1.max(axis=1), seq_len)
 
   @parameterized.named_parameters({

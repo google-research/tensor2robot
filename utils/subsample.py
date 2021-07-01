@@ -20,6 +20,66 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 
+def get_uniform_subsample_indices(sequence_lengths,
+                                  min_length):
+  """Generate consistent frame rate indices.
+
+  Given a sequence, this will always select the same frames, and is
+  guaranteed to include the last frame. It isn't guaranteed to include the
+  first.
+
+  Note that if min_length = 1 then we will always return the last frame.
+
+  Args:
+    sequence_lengths: An int tensor of shape [B], for the length of each
+      sequence. Since the provided tensors are padded to the length of the
+      longest sequence in the batch, sequence_lengths is needed to avoid
+      sampling from the padding.
+    min_length: The min_length to subsample.
+
+  Returns:
+    An int tensor of shape [B, min_length], for how to index into the sequence.
+  """
+  def get_indices(sequence_length):
+    indices = tf.cast(tf.range(min_length), float)
+    indices = tf.round(indices * tf.cast(sequence_length-1, float) / min_length)
+    indices = tf.cast(sequence_length - 1, float) - indices
+    return tf.sort(tf.cast(indices, tf.int64))
+  indices = tf.map_fn(get_indices, sequence_lengths)
+  batch_size = sequence_lengths.shape[0]
+  indices.set_shape((batch_size, min_length))
+  return indices
+
+
+def get_subsample_indices_nofirstlast(sequence_lengths,
+                                      min_length):
+  """Generate random indices for sequence subsampling, no first/last needed.
+
+  Given a sequence, this will randomly sample min_length frames from the
+  sequence with replacement. There is no requirement to include the first
+  or last frame of the sequence.
+
+  Args:
+    sequence_lengths: An int tensor of shape [B], for the length of each
+      sequence. Since the provided tensors are padded to the length of the
+      longest sequence in the batch, sequence_lengths is needed to avoid
+      sampling from the padding.
+    min_length: The min_length to subsample.
+
+  Returns:
+    An int tensor of shape [B, min_length], for how to index into the sequence.
+  """
+  def get_indices(sequence_length):
+    indices = (tf.random.uniform(shape=[min_length]) *
+               tf.cast(sequence_length, float))
+    indices = tf.cast(tf.math.floor(indices), tf.int64)
+    return tf.sort(indices)
+  indices = tf.map_fn(get_indices, sequence_lengths)
+  batch_size = sequence_lengths.shape[0]
+  indices.set_shape((batch_size, min_length))
+  return indices
+
+
 def get_subsample_indices(sequence_lengths,
                           min_length):
   """Generates random indices for sequence subsampling.
@@ -36,7 +96,7 @@ def get_subsample_indices(sequence_lengths,
       the entire sequence.
 
   Returns:
-    An int tensor of shape [B, min_length], for how to index into the seuqence.
+    An int tensor of shape [B, min_length], for how to index into the sequence.
   """
   def get_indices(sequence_length):
     """Generates indices for single sequence."""
@@ -155,12 +215,6 @@ def get_subsample_indices_randomized_boundary(sequence_lengths,
   batch_size = sequence_lengths.shape[0]
   indices.set_shape((batch_size, min_length))
   return indices
-
-
-def get_uniform_subsample_indices(sequence_lengths,
-                                  min_length):
-  # TODO(T2R_CONTRIBUTORS): Implement
-  raise NotImplementedError("Not yet implemented.")
 
 
 def get_np_subsample_indices(sequence_lengths,
