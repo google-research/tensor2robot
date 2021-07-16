@@ -385,6 +385,21 @@ def ApplyPhotometricImageDistortionsCheap(
     return images
 
 
+def ApplyRandomFlips(images):
+  """Randomly flips images across x-axis and y-axis."""
+  with tf.name_scope('random_flips'):
+    # This is consistent for the entire batch, which guarantees it'll be
+    # consistent for the episode, but will correlate flips across the batch.
+    # Seems fine for now.
+    left_flip = tf.random_uniform([]) > 0.5
+    up_flip = tf.random_uniform([]) > 0.5
+    images = tf.cond(
+        left_flip, lambda: tf.image.flip_left_right(images), lambda: images)
+    images = tf.cond(
+        up_flip, lambda: tf.image.flip_up_down(images), lambda: images)
+    return images
+
+
 @gin.configurable
 def ApplyDepthImageDistortions(depth_images,
                                random_noise_level = 0.05,

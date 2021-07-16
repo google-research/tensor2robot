@@ -250,8 +250,134 @@ def compute_embedding_contrastive_loss(
       positives = tf.range(avg_inf_embedding.shape[0], dtype=tf.int32)
     labels = tf.tile(positives, [2])
     embeds = tf.concat([avg_inf_embedding, avg_con_embedding], axis=0)
-    embed_loss = slim_losses.metric_learning.triplet_semihard_loss(
-        labels, embeds, margin=3.0)
+    embed_loss = cosine_triplet_semihard_loss(
+        labels, embeds, margin=1.0)
   else:
     raise ValueError('Did not understand contrastive_loss_mode')
   return embed_loss
+
+
+def masked_maximum(data, mask, dim=1):
+  """Computes the axis wise maximum over chosen elements.
+
+  Args:
+    data: 2-D float `Tensor` of size [n, m].
+    mask: 2-D Boolean `Tensor` of size [n, m].
+    dim: The dimension over which to compute the maximum.
+
+  Returns:
+    masked_maximums: N-D `Tensor`.
+      The maximized dimension is of size 1 after the operation.
+  """
+  axis_minimums = tf.reduce_min(data, dim, keepdims=True)
+  masked_maximums = tf.reduce_max(
+      tf.math.multiply(data - axis_minimums, mask), dim,
+      keepdims=True) + axis_minimums
+  return masked_maximums
+
+
+def masked_minimum(data, mask, dim=1):
+  """Computes the axis wise minimum over chosen elements.
+
+  Args:
+    data: 2-D float `Tensor` of size [n, m].
+    mask: 2-D Boolean `Tensor` of size [n, m].
+    dim: The dimension over which to compute the minimum.
+
+  Returns:
+    masked_minimums: N-D `Tensor`.
+      The minimized dimension is of size 1 after the operation.
+  """
+  axis_maximums = tf.reduce_max(data, dim, keepdims=True)
+  masked_minimums = tf.reduce_min(
+      tf.math.multiply(data - axis_maximums, mask), dim,
+      keepdims=True) + axis_maximums
+  return masked_minimums
+
+
+def cosine_pairwise_distance(feature):
+  """Compute pairwise distance matrix with cosine similarity.
+
+  Args:
+    feature: A [batch, N] Tensor of vectors, that are all norm 1.
+
+  Returns:
+    B x B matrix, where output[i,j] = 1 - dot_product(v_i, v_j).
+    Entries on the diagonal are masked to 0, so they
+    shouldn't contribute any gradients.
+  """
+  # [B, N] * [N, B] -> desired [B, B]
+  cosine_sim = tf.matmul(feature, feature, transpose_b=True)
+  # this is a loss, so we want the minimum
+  # also add 1 so cosine loss is (0, 2) instead of (-1, +1)
+  cosine_distances = 1. - cosine_sim
+  # 0 mask the diagonals since they are known to be 0.
+  num_data = tf.shape(feature)[0]
+  mask_offdiagonals = (
+      tf.ones_like(cosine_distances) - tf.linalg.diag(tf.ones([num_data])))
+  cosine_distances = cosine_distances * mask_offdiagonals
+  return cosine_distances
+
+
+def cosine_triplet_semihard_loss(labels, embeddings, margin=1.0):
+  """Reproduction of TF-slim triplet semi-hard loss, using cosine distance."""
+  # Reshape [batch_size] label tensor to a [batch_size, 1] label tensor.
+  lshape = tf.shape(labels)
+  assert lshape.shape == 1
+  labels = tf.reshape(labels, [lshape[0], 1])
+
+  # Build pairwise squared distance matrix.
+  pdist_matrix = cosine_pairwise_distance(embeddings)
+  # Build pairwise binary adjacency matrix.
+  adjacency = tf.equal(labels, tf.transpose(labels))
+  # Invert so we can select negatives only.
+  adjacency_not = tf.math.logical_not(adjacency)
+
+  batch_size = tf.size(labels)
+
+  # Compute the mask.
+  pdist_matrix_tile = tf.tile(pdist_matrix, [batch_size, 1])
+  mask = tf.math.logical_and(
+      tf.tile(adjacency_not, [batch_size, 1]),
+      tf.math.greater(
+          pdist_matrix_tile, tf.reshape(
+              tf.transpose(pdist_matrix), [-1, 1])))
+  mask_final = tf.reshape(
+      tf.math.greater(
+          tf.reduce_sum(
+              tf.cast(mask, dtype=tf.float32), 1, keepdims=True),
+          0.0), [batch_size, batch_size])
+  mask_final = tf.transpose(mask_final)
+
+  adjacency_not = tf.cast(adjacency_not, dtype=tf.float32)
+  mask = tf.cast(mask, dtype=tf.float32)
+
+  # negatives_outside: smallest D_an where D_an > D_ap.
+  negatives_outside = tf.reshape(
+      masked_minimum(pdist_matrix_tile, mask), [batch_size, batch_size])
+  negatives_outside = tf.transpose(negatives_outside)
+
+  # negatives_inside: largest D_an.
+  negatives_inside = tf.tile(
+      masked_maximum(pdist_matrix, adjacency_not), [1, batch_size])
+  semi_hard_negatives = tf.where(
+      mask_final, negatives_outside, negatives_inside)
+
+  loss_mat = tf.math.add(margin, pdist_matrix - semi_hard_negatives)
+
+  mask_positives = tf.cast(
+      adjacency, dtype=tf.float32) - tf.linalg.diag(
+          tf.ones([batch_size]))
+
+  # In lifted-struct, the authors multiply 0.5 for upper triangular
+  #   in semihard, they take all positive pairs except the diagonal.
+  num_positives = tf.reduce_sum(mask_positives)
+
+  triplet_loss = tf.math.truediv(
+      tf.reduce_sum(
+          tf.math.maximum(
+              tf.math.multiply(loss_mat, mask_positives), 0.0)),
+      num_positives,
+      name='triplet_semihard_loss')
+
+  return triplet_loss

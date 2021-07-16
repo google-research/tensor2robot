@@ -35,6 +35,23 @@ def maybe_distort_image_batch(images, mode):
   return images
 
 
+def maybe_distort_and_flip_image_batch(images, mode):
+  """Applies data augmentation and random flips to given images.
+
+  Args:
+    images: 4D Tensor (batch images) or 5D Tensor (batch of image sequences).
+    mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
+
+  Returns:
+    Distorted images. Image distortion is identical for every image in the
+      batch.
+  """
+  if mode == tf.estimator.ModeKeys.TRAIN:
+    images = image_transformations.ApplyPhotometricImageDistortions([images])[0]
+    images = image_transformations.ApplyRandomFlips(images)
+  return images
+
+
 def preprocess_image(image,
                      mode,
                      is_sequence,
