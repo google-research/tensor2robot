@@ -58,7 +58,7 @@ def BuildOpt(hparams):
 
   global_step = tf.train.get_or_create_global_step()
 
-  # Configure the learning rate using an exponetial decay.
+  # Configure the learning rate using an exponential decay.
   decay_steps = int(examples_per_epoch / batch_size *
                     num_epochs_per_decay)
 
