@@ -870,6 +870,49 @@ class AbstractT2RModel(
       self._sync_replicas_optimizer = optimizer
     return optimizer
 
+  def host_call_fn(
+      self,
+      features,
+      labels,
+      inference_outputs,
+      train_loss,
+      train_outputs,
+      mode,
+      config = None,
+      params = None
+  ):
+    """Host call for TPU Estimator model.
+
+    Default to None. Can be passed into TPUEstimatorSpec which will be useful
+    to write summries when train on TPU.
+
+    Args:
+      features: This is the first item returned from the input_fn and parsed by
+        tensorspec_utils.validate_and_pack. A spec_structure which fulfills the
+        requirements of the self.get_feature_specification.
+      labels: This is the second item returned from the input_fn and parsed by
+        tensorspec_utils.validate_and_pack. A spec_structure which fulfills the
+        requirements of the self.get_feature_specification.
+      inference_outputs: A dict containing the output tensors of
+        model_inference_fn.
+      train_loss: The final loss from model_train_fn.
+      train_outputs: A dict containing the output tensors (dict) of
+        model_train_fn.
+      mode: (ModeKeys) Specifies if this is training, evaluation or prediction.
+      config: (Optional tf.estimator.RunConfig or contrib_tpu.RunConfig) Will
+        receive what is passed to Estimator in config parameter, or the default
+        config (tf.estimator.RunConfig). Allows updating things in your model_fn
+        based on  configuration such as num_ps_replicas, or model_dir.
+      params: An optional dict of hyper parameters that will be passed into
+        input_fn and model_fn. Keys are names of parameters, values are basic
+        python types. There are reserved keys for TPUEstimator, including
+        'batch_size'.
+    Returns:
+      None, or the host_call which is a tuple of a function and
+      a list or dictionary of tensors
+    """
+    return None
+
   def use_summaries(self, params = None):
     """Determine whether or not summaries should be used within this model.
 

@@ -291,7 +291,11 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
           loss=train_loss,
           train_op=train_op,
           training_hooks=training_hooks,
-          scaffold_fn=create_scaffold_fn)
+          scaffold_fn=create_scaffold_fn,
+          host_call=self._t2r_model.host_call_fn(features, labels,
+                                                 inference_outputs, train_loss,
+                                                 train_outputs, mode, config,
+                                                 params))
 
     if mode == tf.estimator.ModeKeys.EVAL:
       self._t2r_model.add_summaries(features, labels, inference_outputs,
