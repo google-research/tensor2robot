@@ -45,7 +45,8 @@ class EnsembleExportedSavedModelPredictor(
     """Creates an instance.
 
     Args:
-      export_dirs: A list of exported saved model directory paths.
+      export_dirs: A comma-separated list of exported saved model directory
+        paths.
       local_export_root: When loading the model, if export dir does not exist,
         looks for the basename in local_export_dir. This is useful for on-robot
         deployments where we want to refer to the export_dir by its original
@@ -65,7 +66,7 @@ class EnsembleExportedSavedModelPredictor(
         restored in a separate thread.
     """
     super(EnsembleExportedSavedModelPredictor, self).__init__()
-    self._export_dirs = export_dirs
+    self._export_dirs = export_dirs.split(',')
     self._local_export_root = local_export_root
     self._ensemble_size = ensemble_size
     # Resolve export dirs.

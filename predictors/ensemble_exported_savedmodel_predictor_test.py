@@ -58,7 +58,8 @@ class ExportedSavedmodelPredictorTest(tf.test.TestCase, parameterized.TestCase):
         model_dir=model_dir,
         create_exporters_fn=train_eval.create_default_exporters)
     # Create ensemble by duplicating the same directory multiple times.
-    export_dirs = [os.path.join(model_dir, 'export', 'latest_exporter_numpy')]*2
+    export_dirs = ','.join(
+        [os.path.join(model_dir, 'export', 'latest_exporter_numpy')] * 2)
     predictor = ensemble_exported_savedmodel_predictor.EnsembleExportedSavedModelPredictor(
         export_dirs=export_dirs, local_export_root=None, ensemble_size=2)
     predictor.resample_ensemble()
