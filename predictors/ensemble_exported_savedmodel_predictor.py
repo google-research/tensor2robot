@@ -73,6 +73,9 @@ class EnsembleExportedSavedModelPredictor(
     self._resolved_export_dirs = []
     for path in self._export_dirs:
       if local_export_root is not None:
+        # Without stripping '/', the output of os.path.basename(path) will be an
+        # empty string when the path ends with '/'.
+        path = path.strip('/')
         resolved_path = os.path.join(local_export_root, os.path.basename(path))
         if not os.path.exists(resolved_path):
           raise ValueError(
