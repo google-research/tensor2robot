@@ -836,7 +836,7 @@ def make_random_tensors(spec_structure, batch_size = 2):
     shape = tuple(t.shape.as_list())
     if batch_size is None:
       shape = (None,) + shape
-    if batch_size > 0:  # pytype: disable=unsupported-operands
+    elif batch_size > 0:
       shape = (batch_size,) + shape
     r = tf.random_uniform(shape, maxval=maxval, dtype=dtype)
     return tf.cast(r, t.dtype)
@@ -875,7 +875,7 @@ def make_constant_numpy(spec_structure, constant_value,
       shape = (sequence_length,) + shape
     if batch_size is None:
       shape = (None,) + shape
-    if batch_size > 0:  # pytype: disable=unsupported-operands
+    elif batch_size > 0:
       shape = (batch_size,) + shape
     r = np.full(shape, constant_value)
     return r.astype(t.dtype.as_numpy_dtype)
@@ -912,7 +912,7 @@ def make_random_numpy(spec_structure,
       shape = (sequence_length,) + shape
     if batch_size is None:
       shape = (None,) + shape
-    if batch_size > 0:  # pytype: disable=unsupported-operands
+    elif batch_size > 0:
       shape = (batch_size,) + shape
     r = np.random.uniform(size=shape, high=maxval)
     return r.astype(t.dtype.as_numpy_dtype)
