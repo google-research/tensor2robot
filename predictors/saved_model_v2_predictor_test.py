@@ -81,8 +81,8 @@ class SavedModelV2PredictorTest(tf.test.TestCase):
     _generate_assets(model, self._saved_model_path)
     return self._saved_model_path
 
-  def _test_predictor(self, predictor_cls):
-    mock_model = mocks.MockTF2T2RModel()
+  def _test_predictor(self, predictor_cls, multi_dataset):
+    mock_model = mocks.MockTF2T2RModel(multi_dataset=multi_dataset)
 
     # Generate a sample to evaluate
     feature_spec = mock_model.preprocessor.get_in_feature_specification(
@@ -109,11 +109,17 @@ class SavedModelV2PredictorTest(tf.test.TestCase):
     np.testing.assert_almost_equal(original_model_out['logits'],
                                    predictor_out['logits'])
 
-  def testTF1Predictor(self):
-    self._test_predictor(saved_model_v2_predictor.SavedModelTF1Predictor)
+  def testTF1PredictorSingleDataset(self):
+    self._test_predictor(saved_model_v2_predictor.SavedModelTF1Predictor, False)
 
-  def testTF2Predictor(self):
-    self._test_predictor(saved_model_v2_predictor.SavedModelTF2Predictor)
+  def testTF1PredictorMultiDataset(self):
+    self._test_predictor(saved_model_v2_predictor.SavedModelTF1Predictor, True)
+
+  def testTF2PredictorSingleDataset(self):
+    self._test_predictor(saved_model_v2_predictor.SavedModelTF2Predictor, False)
+
+  def testTF2PredictorMultiDataset(self):
+    self._test_predictor(saved_model_v2_predictor.SavedModelTF2Predictor, True)
 
 
 if __name__ == '__main__':

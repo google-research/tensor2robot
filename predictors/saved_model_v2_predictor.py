@@ -78,14 +78,14 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
     if hasattr(self._model, 'predict'):
       predictions = self._model.predict(expanded_features)
     else:
-      tensors = []
-      for v in expanded_features.values():
+      tensors = dict()
+      for k, v in expanded_features.items():
         if not isinstance(v, tf.Tensor):
-          tensors.append(tf.constant(v))
+          tensors[k] = tf.constant(v)
         else:
-          tensors.append(v)
+          tensors[k] = v
       predictions = self._model.signatures[self._model_serving_key](
-          *tensors)
+          **tensors)
 
     return predictions
 
