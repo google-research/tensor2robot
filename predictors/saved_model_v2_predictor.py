@@ -17,6 +17,7 @@
 """Predictor that relies on TF2.x SavedModels."""
 
 import os
+import re
 import time
 from typing import Dict, Optional, Text
 from absl import logging
@@ -56,6 +57,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
     self._feature_spec = None  # type: tensorspec_utils.TensorSpecStruct
     self._label_spec = None
     self._model_serving_key = model_serving_key
+    self._last_checkpoint_path = None
 
   def predict(self, features):
     """Predicts based on feature input using the loaded model.
@@ -100,13 +102,41 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
     self.assert_is_loaded()
     return self._label_spec
 
-  def restore(self):
+  def wait_and_restore(self):
+    """Wait and restores the model parameters."""
+    model_dirs = None
+
+    while model_dirs is None:
+      time.sleep(10)
+      model_dirs_tmp = sorted(
+          tf.io.gfile.glob(
+              os.path.join(self._saved_model_path, '*')), reverse=True)
+      model_dirs_tmp2 = []
+      for checkpoint_dir in model_dirs_tmp:
+        if re.match(r'.*\/([0-9]+)$', checkpoint_dir) is not None:
+          model_dirs_tmp2.append(checkpoint_dir)
+      if not model_dirs_tmp2:
+        model_dirs = None
+      else:
+        model_dirs = model_dirs_tmp2
+
+    for checkpoint_dir in model_dirs:
+      if checkpoint_dir != self._last_checkpoint_path:
+        restore_success = self.restore(checkpoint_dir)
+        if restore_success:
+          self._last_checkpoint_path = checkpoint_dir
+          return True
+
+  def restore(self, checkpoint_dir = None):
     """Restores the model parameters from the latest available data."""
 
+    if checkpoint_dir is None:
+      checkpoint_dir = self._saved_model_path
+
     logging.info('Trying to restore saved model from %s',
-                 self._saved_model_path)
+                 checkpoint_dir)
     # Get the expected assets filename.
-    t2r_assets_dir = os.path.join(self._saved_model_path,
+    t2r_assets_dir = os.path.join(checkpoint_dir,
                                   tensorspec_utils.EXTRA_ASSETS_DIRECTORY)
     t2r_assets_filename = os.path.join(t2r_assets_dir,
                                        tensorspec_utils.T2R_ASSETS_FILENAME)
@@ -119,7 +149,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
         break
 
       logging.info('Waiting for a saved model to become available at %s.',
-                   self._saved_model_path)
+                   checkpoint_dir)
       time.sleep(_BUSY_WAITING_SLEEP_TIME_IN_SECS)
     else:
       logging.warning('No saved_model found after %s seconds.',
@@ -127,7 +157,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
       return False
 
     # Loading assets for features and labels.
-    t2r_assets_file_path = os.path.join(self._saved_model_path,
+    t2r_assets_file_path = os.path.join(checkpoint_dir,
                                         tensorspec_utils.EXTRA_ASSETS_DIRECTORY,
                                         tensorspec_utils.T2R_ASSETS_FILENAME)
     t2r_assets = tensorspec_utils.load_t2r_assets_to_file(t2r_assets_file_path)
@@ -137,7 +167,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
     self._label_spec = tensorspec_utils.TensorSpecStruct.from_proto(
         t2r_assets.label_spec)  # pytype: disable=wrong-arg-types
 
-    self._model = tf.saved_model.load(self._saved_model_path)
+    self._model = tf.saved_model.load(checkpoint_dir)
     return True
 
   def init_randomly(self):
