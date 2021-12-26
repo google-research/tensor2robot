@@ -135,7 +135,7 @@ class PCGrad(tf.train.Optimizer):
           continue
         original_grads.append(grad_var[0])
       task_var_grads.append(original_grads)
-    var_task_grads = np.transpose(task_var_grads)
+    var_task_grads = list(zip(*task_var_grads))
 
     proj_grads = []
     # Loop over vars.
