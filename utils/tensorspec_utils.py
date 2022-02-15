@@ -260,7 +260,7 @@ class ExtendedTensorSpec(TSPEC, object):
     return self._varlen_default_value
 
   def __eq__(self, other):
-    return (self._shape_tuple == other._shape_tuple  # pylint: disable=protected-access
+    return (self._shape == other._shape  # pylint: disable=protected-access
             and self.dtype == other.dtype)
 
   def __repr__(self):
@@ -1100,7 +1100,7 @@ def assert_equal_spec_or_tensor(expected_spec_or_tensor, actual_spec_or_tensor):
   """Check that our expected and actual specs or tensors are equal.
 
   We check by using the hash function since this allows to use tensors
-  as well as specs since TensorSpec will use self._shape_tuple internally.
+  as well as specs since TensorSpec will use self._shape internally.
   Any other access to shape would require additional checks.
 
   Args:
