@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # Lint as python3
-"""T2R Model for MetaTidy single-task models."""
+"""T2R Model for BC-Z."""
 import enum
 from typing import Any, Dict, List, Optional, Text, Tuple
 
@@ -515,7 +515,7 @@ def training_outputs(features,
     reg_loss_fn = piecewise_scaled_huber(loss_fn=tf.losses.huber_loss)
   else:
     raise ValueError('invalid loss')
-  # Predict stop did worse in metatidy, make sure this is set to False.
+  # Predict stop did worse in bcz, make sure this is set to False.
   if 'stop_token' in labels.future.keys():
     stop_mask_value = 1.0 - labels.future.stop_token
   else:
@@ -906,8 +906,6 @@ class BCZModel(abstract_model.AbstractT2RModel):
     if train_outputs is not None:
       for key, value in train_outputs.items():
         metrics['mean_' + key] = tf.metrics.mean(value)
-    # We re-name the tensor to make it easy to access it by name from the
-    # XManagerMeasurementHookBuilder.measurement_tensor_names configurable.
     name = None
     if self.is_joint_space:
       name = 'mean_first_arm_joints_error'
