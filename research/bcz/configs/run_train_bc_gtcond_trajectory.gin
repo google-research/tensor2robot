@@ -1,0 +1,105 @@
+# coding=utf-8
+# Copyright 2022 The Tensor2Robot Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include 'tensor2robot/research/bcz/configs/common_imports.gin'
+include 'tensor2robot/research/bcz/configs/common_imagedistortions.gin'
+
+#######################################
+# INPUT GENERATION
+#######################################
+
+TRAIN_DATA=""
+EVAL_DATA=""
+
+STATE_COMPONENTS = []
+ACTION_COMPONENTS =  [
+    ('xyz', 3, True, 100.),
+    ('axis_angle', 3, True, 10.),
+    ('target_close', 1, False, 0.5), # best m104 model used this param.
+]
+
+NUM_WAYPOINTS = 10
+
+TRAIN_BATCH_SIZE = 32
+EVAL_BATCH_SIZE = 64
+TRAIN_FRACTION = 1.0
+
+TRAIN_INPUT_GENERATOR = @train_input_generator/FractionalRecordInputGenerator()
+train_input_generator/FractionalRecordInputGenerator.file_patterns = %TRAIN_DATA
+train_input_generator/FractionalRecordInputGenerator.batch_size = %TRAIN_BATCH_SIZE
+train_input_generator/FractionalRecordInputGenerator.file_fraction = %TRAIN_FRACTION
+
+EVAL_INPUT_GENERATOR = @eval_input_generator/DefaultRecordInputGenerator()
+eval_input_generator/DefaultRecordInputGenerator.file_patterns = %EVAL_DATA
+eval_input_generator/DefaultRecordInputGenerator.batch_size = %EVAL_BATCH_SIZE
+
+#######################################
+# PREPROCESSOR & DATA AUGMENTATION
+#######################################
+CROP_SIZE = 450
+IMAGE_SIZE = 150
+BCZPreprocessor.binarize_gripper = True
+BCZPreprocessor.crop_size = (%CROP_SIZE, %CROP_SIZE)
+BCZPreprocessor.image_size = (%IMAGE_SIZE, %IMAGE_SIZE)
+
+#######################################
+# MODEL
+#######################################
+
+BCZModel.image_size = (%IMAGE_SIZE, %IMAGE_SIZE)
+BCZModel.network_fn = @resnet_film_network
+BCZModel.predict_stop = False
+MultiHeadMLP.stop_gradient_future_waypoints = False
+
+resnet_film_network.film_generator_fn = @linear_film_generator
+resnet_model.resnet_size = 18
+BCZModel.ignore_task_embedding = False
+BCZModel.task_embedding_noise_std = 0.1
+linear_film_generator.enabled_block_layers = [True, True, True, True]
+MultiHeadMLP.stop_gradient_future_waypoints = False
+
+BCZPreprocessor.cutout_size = 0  # Was 20 in paper, but not implemented in OSS.
+resnet_film_network.fc_layers = (256, 256)
+
+compute_stop_state_loss.class_weights = [[1.0309278350515465, 0, 33.333333333333336]]
+BCZModel.num_past = 0
+BCZModel.num_waypoints = %NUM_WAYPOINTS
+BCZModel.summarize_gradients = False
+BCZModel.state_components = %STATE_COMPONENTS
+BCZModel.action_components = %ACTION_COMPONENTS
+resnet_model.resnet_size = 18
+train_eval_model.t2r_model = @BCZModel()
+
+#####################################
+# TRAINING
+######################################
+default_create_optimizer_fn.learning_rate = %LEARNING_RATE
+LEARNING_RATE = 2.5e-4
+
+train_eval_model.max_train_steps = 50000
+train_eval_model.eval_steps = 1000
+train_eval_model.eval_throttle_secs = 300  # Export model every 5 min.
+train_eval_model.input_generator_train = %TRAIN_INPUT_GENERATOR
+train_eval_model.input_generator_eval = %EVAL_INPUT_GENERATOR
+train_eval_model.create_exporters_fn = @create_default_exporters
+train_eval_model.chief_train_hook_builders = [@OperativeGinConfigLoggerHookBuilder()]
+create_default_exporters.exports_to_keep = None  # Keep all ckpts to support evaluation.
+
+# Export best numpy models based on arm joint loss.
+create_valid_result_smaller.result_key = 'mean_first_xyz_error'
+
+# Save checkpoints frequently for evaluation.
+tf.estimator.RunConfig.save_summary_steps = 1000 # save summary every n global steps
+

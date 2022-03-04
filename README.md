@@ -13,7 +13,7 @@ computer vision communities.
 -   [QT-Opt](research/qtopt)
 -   [Grasp2Vec](research/grasp2vec)
 -   [Watch, Try, Learn](research/vrgripper)
--   More coming soon.
+-   [BC-Z](research/bcz)
 
 ## Features
 
