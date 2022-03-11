@@ -152,12 +152,12 @@ class MAMLPreprocessorV2(abstract_preprocessor.AbstractPreprocessor):
         num_condition_samples_per_task <= 0):
       raise ValueError(
           'num_condition_samples_per_task cannot be None and has '
-          'to be positve but is {}.'.format(num_condition_samples_per_task))
+          'to be positive but is {}.'.format(num_condition_samples_per_task))
     if (num_inference_samples_per_task is None or
         num_inference_samples_per_task <= 0):
       raise ValueError(
           'num_inference_samples_per_task cannot be None and has '
-          'to be positve but is {}.'.format(num_inference_samples_per_task))
+          'to be positive but is {}.'.format(num_inference_samples_per_task))
 
     ref_batch_size = (
         num_condition_samples_per_task + num_inference_samples_per_task)

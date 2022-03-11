@@ -447,7 +447,7 @@ def train_eval_model(
     input_generator_eval: An optional instance of an input generator. If
       provided then we will evaluate the model for at most eval_steps.
     max_train_steps: An optional maximum number of steps. For TPU training, it
-      is a mandetory flag.
+      is a mandatory flag.
     model_dir: An optional location where we want to store or load our model
       from.
     eval_steps: An optional maximum number of evaluation steps.
@@ -698,7 +698,7 @@ def save_copy(src_filename,
     sleep_time: Time to sleep between trials in seconds.
 
   Returns:
-    True is no errors occured, False otherwise.
+    True is no errors occurred, False otherwise.
   """
   if tf.io.gfile.exists(dest_filename):
     logging.warn('Could not copy file "%s" to "%s", because the destination'
