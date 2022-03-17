@@ -505,7 +505,7 @@ def create_parse_tf_example_fn(feature_tspec, label_tspec=None,
           raise ValueError('Encoded images with key {} must be '
                            'specified with uint8 or uint16 dtype.'.format(key))
 
-    # Pad all varlen features to the corresponding spec.
+    # Pad all varlen features to the corrensponding spec.
     for key, val in parsed_tensors.items():
       tensor_spec = tensor_spec_dict[key]
       if tensor_spec.varlen_default_value is not None:
@@ -558,7 +558,7 @@ def create_compress_fn(feature_spec,
       to 100 (higher is better and slower).
 
   Returns:
-    A function which can be used by dataset.map with features and labels.
+    A function which can be used by dataset.map with feautures and labels.
   """
 
   def compress(tensor):
@@ -597,7 +597,7 @@ def create_decompress_fn(feature_spec,
     label_spec: The feature spec allowing to identify features to be compressed.
 
   Returns:
-    A function which can be used by dataset.map with features and labels.
+    A function which can be used by dataset.map with feautures and labels.
   """
 
   def decompress(tensor, tensorspec):

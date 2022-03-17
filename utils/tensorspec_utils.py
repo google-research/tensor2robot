@@ -39,7 +39,7 @@ T2R_ASSETS_FILENAME = 't2r_assets.pbtxt'
 
 
 class ExtendedTensorSpec(TSPEC, object):
-  """Extension to TensorSpec to support optional tensors and data formats.
+  """Extension to TensorSpec to suport optional tensors and data formats.
 
   An ExtendedTensorSpec allows an API to describe the Tensors that it accepts or
   returns, before that Tensor exists. This allows dynamic and flexible graph
@@ -75,7 +75,7 @@ class ExtendedTensorSpec(TSPEC, object):
       dataset_key: Optional key name of which dataset to pull this tensor from.
       varlen_default_value: Optional if a value other than None is provided
         the spec is assumed to be a VarLenFeature with the default value in the
-        corresponding data type. When using a VarLenFeature, the 0th index in
+        corrensponding data type. When using a VarLenFeature, the 0th index in
         the shape corresponds to the length that the feature will be padded or
         clipped to. When padded, the varlen_default_value will be used for
         padding. When clipped, some data might be ignored.
@@ -585,7 +585,7 @@ class TensorSpecStruct(collections.OrderedDict):
 
     Returns:
       The same item in case it meets all requirements for all but named_tuples,
-      this data structure has to be converted to a dictionary for further
+      this data structure has to be converted to a dictionnary for further
       processing.
     """
     if item is None:
@@ -1556,7 +1556,7 @@ def filter_required_flat_tensor_spec(flat_tensor_spec):
 
 
 def is_encoded_image_spec(tensor_spec):
-  """Determines whether the passed tensor_spec specifies an encoded image."""
+  """Determines whether the passed tensor_spec speficies an encoded image."""
   if hasattr(tensor_spec, 'data_format'):
     # If tensor_spec is an ExtendedTensorSpec, use the data_format to check.
     return (tensor_spec.data_format is not None) and (

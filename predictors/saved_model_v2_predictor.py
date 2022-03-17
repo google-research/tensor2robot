@@ -183,7 +183,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
     self.assert_is_loaded()
 
   def assert_is_loaded(self):
-    if self._model is None:
+    if self._model is None:  # pytype: disable=attribute-error  # trace-all-classes
       raise ValueError('The predictor has not yet been successfully restored.')
 
   @property
