@@ -28,12 +28,13 @@ from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import tpu_preprocessor_wrapper
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import tpu as contrib_tpu
 
 FLAGS = flags.FLAGS
-TRAIN = tf.estimator.ModeKeys.TRAIN
-EVAL = tf.estimator.ModeKeys.EVAL
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+EVAL = tf_estimator.ModeKeys.EVAL
+PREDICT = tf_estimator.ModeKeys.PREDICT
 
 RunConfigType = abstract_model.RunConfigType
 ParamsType = abstract_model.ParamsType
@@ -176,13 +177,13 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
     # Note, despite casting the benefit of bfloat16 are still maintained
     # for TPUs since this operation is a noop on this platform.
     # See http://shortn/_TTg3ZyATRo for rationale.
-    if not self._train_in_bfloat16 or (mode == tf.estimator.ModeKeys.PREDICT or
-                                       mode == tf.estimator.ModeKeys.EVAL):
+    if not self._train_in_bfloat16 or (mode == tf_estimator.ModeKeys.PREDICT or
+                                       mode == tf_estimator.ModeKeys.EVAL):
       features = tensorspec_utils.cast_bfloat16_to_float32(features)
       if labels is not None:
         labels = tensorspec_utils.cast_bfloat16_to_float32(labels)
 
-    if self._train_in_bfloat16 and mode == tf.estimator.ModeKeys.TRAIN:
+    if self._train_in_bfloat16 and mode == tf_estimator.ModeKeys.TRAIN:
       with contrib_tpu.bfloat16_scope():
         inference_outputs = self._t2r_model.inference_network_fn(
             features, labels, mode, config, params)
@@ -195,7 +196,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
       update_ops = inference_outputs[1]
       inference_outputs = inference_outputs[0]
 
-    if mode == tf.estimator.ModeKeys.PREDICT:
+    if mode == tf_estimator.ModeKeys.PREDICT:
       model_fn_results = self._t2r_model.create_export_outputs_fn(
           features, inference_outputs, mode, config, params)
       export_outputs = None
@@ -206,10 +207,10 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
         export_outputs = {}
         if len(model_fn_results) == 1:
           name, output = list(model_fn_results.items())[0]
-          export_outputs[name] = tf.estimator.export.RegressionOutput(output)
+          export_outputs[name] = tf_estimator.export.RegressionOutput(output)
         export_outputs[tf.saved_model.signature_constants
                        .DEFAULT_SERVING_SIGNATURE_DEF_KEY] = (
-                           tf.estimator.export.PredictOutput(model_fn_results))
+                           tf_estimator.export.PredictOutput(model_fn_results))
         predictions = model_fn_results
       else:
         raise ValueError('The create_export_outputs_fn should return a '
@@ -231,7 +232,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
       raise ValueError('The model_train_fn should return a '
                        'tuple(loss, train_outputs) or loss.')
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       # Create the tf.train.Optimizer.
       optimizer = get_cross_shard_optimizer(
           self._t2r_model.create_optimizer(params))
@@ -297,7 +298,7 @@ class TPUT2RModelWrapper(model_interface.ModelInterface):
                                                  train_outputs, mode, config,
                                                  params))
 
-    if mode == tf.estimator.ModeKeys.EVAL:
+    if mode == tf_estimator.ModeKeys.EVAL:
       self._t2r_model.add_summaries(features, labels, inference_outputs,
                                     train_loss, train_outputs, mode, config,
                                     params)

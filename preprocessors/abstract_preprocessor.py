@@ -21,9 +21,9 @@ from typing import Any, Callable, Optional, Tuple
 
 import six
 from tensor2robot.utils import tensorspec_utils
-import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
-ModeKeys = tf.estimator.ModeKeys
+ModeKeys = tf_estimator.ModeKeys
 
 
 class AbstractPreprocessor(six.with_metaclass(abc.ABCMeta, object)):

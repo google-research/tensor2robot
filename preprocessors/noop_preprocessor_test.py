@@ -23,6 +23,7 @@ import numpy as np
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 MockFeatures = collections.namedtuple(
     'MockFeatures', ['images', 'actions', 'optional_hierarchy'])
@@ -120,7 +121,7 @@ class NoOpPreprocessorTest(parameterized.TestCase, tf.test.TestCase):
         (features_preprocessed, labels_preprocessed) = preprocessor.preprocess(
             features=feature_placeholders,
             labels=label_placeholders,
-            mode=tf.estimator.ModeKeys.TRAIN)
+            mode=tf_estimator.ModeKeys.TRAIN)
 
         # We create a mapping of {key: np.array} or a namedtuple spec structure.
         np_feature_spec = tensorspec_utils.make_random_numpy(

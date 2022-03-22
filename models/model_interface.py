@@ -33,15 +33,15 @@ from typing import Any, Dict, Optional, Text, Union
 import six
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import tpu as contrib_tpu
 
-TRAIN = tf.estimator.ModeKeys.TRAIN
-EVAL = tf.estimator.ModeKeys.EVAL
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+EVAL = tf_estimator.ModeKeys.EVAL
+PREDICT = tf_estimator.ModeKeys.PREDICT
 TensorSpecStruct = tensorspec_utils.TensorSpecStruct
 
-RunConfigType = Optional[Union[tf.estimator.RunConfig, contrib_tpu.RunConfig]]
+RunConfigType = Optional[Union[tf_estimator.RunConfig, contrib_tpu.RunConfig]]
 ParamsType = Optional[Dict[Text, Any]]
 
 

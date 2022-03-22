@@ -32,23 +32,24 @@ from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import tpu as contrib_tpu
 from tensorflow.contrib import training as contrib_training
 
 FLAGS = flags.FLAGS
-TRAIN = tf.estimator.ModeKeys.TRAIN
-EVAL = tf.estimator.ModeKeys.EVAL
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+EVAL = tf_estimator.ModeKeys.EVAL
+PREDICT = tf_estimator.ModeKeys.PREDICT
 
-RunConfigType = Optional[Union[tf.estimator.RunConfig, contrib_tpu.RunConfig]]
+RunConfigType = Optional[Union[tf_estimator.RunConfig, contrib_tpu.RunConfig]]
 ParamsType = Optional[Dict[Text, Any]]
 
 DictOrSpec = Union[Dict[Text, tf.Tensor], tensorspec_utils.TensorSpecStruct]
 
 ModelTrainOutputType = Union[tf.Tensor, Tuple[tf.Tensor, DictOrSpec]]
 ExportOutputType = Union[Dict[Text, tf.Tensor], Tuple[
-    Dict[Text, tf.Tensor], Dict[Text, tf.estimator.export.PredictOutput]]]
+    Dict[Text, tf.Tensor], Dict[Text, tf_estimator.export.PredictOutput]]]
 InferenceNetworkOutputsType = Union[DictOrSpec,
                                     Tuple[DictOrSpec,
                                           Optional[Sequence[tf.Tensor]]]]
@@ -64,7 +65,7 @@ DEVICE_TYPE_GPU = 'gpu'
 DEVICE_TYPE_TPU = 'tpu'
 
 gin_configurable_run_config_cls = gin.external_configurable(
-    tf.estimator.RunConfig,
+    tf_estimator.RunConfig,
     name='tf.estimator.RunConfig',
     denylist=['model_dir'])
 
@@ -126,7 +127,7 @@ def default_init_from_checkpoint_fn(
   tf.train.init_from_checkpoint(checkpoint, assignment_map)
 
 
-class V2SummaryInitHook(tf.estimator.SessionRunHook):
+class V2SummaryInitHook(tf_estimator.SessionRunHook):
   """Runs v2 summary init op.
 
   When running code that creates v2 summaries in TF 1.x graph mode, a v2
@@ -711,7 +712,7 @@ class AbstractT2RModel(
       update_ops = inference_outputs[1]
       inference_outputs = outputs
 
-    if mode == tf.estimator.ModeKeys.PREDICT:
+    if mode == tf_estimator.ModeKeys.PREDICT:
       model_fn_results = self.create_export_outputs_fn(features,
                                                        inference_outputs, mode,
                                                        config, params)
@@ -723,16 +724,16 @@ class AbstractT2RModel(
         export_outputs = {}
         if len(model_fn_results) == 1:
           name, output = list(model_fn_results.items())[0]
-          export_outputs[name] = tf.estimator.export.RegressionOutput(output)
+          export_outputs[name] = tf_estimator.export.RegressionOutput(output)
         export_outputs[tf.saved_model.signature_constants
                        .DEFAULT_SERVING_SIGNATURE_DEF_KEY] = (
-                           tf.estimator.export.PredictOutput(model_fn_results))
+                           tf_estimator.export.PredictOutput(model_fn_results))
         predictions = model_fn_results
       else:
         raise ValueError('The create_export_outputs_fn should return a '
                          'tuple(predictions, export_outputs) or predictions.')
 
-      return tf.estimator.EstimatorSpec(
+      return tf_estimator.EstimatorSpec(
           mode=mode, predictions=predictions, export_outputs=export_outputs)
 
     train_fn_result = self.model_train_fn(features, labels, inference_outputs,
@@ -747,7 +748,7 @@ class AbstractT2RModel(
       raise ValueError('The model_train_fn should return a '
                        'tuple(loss, train_outputs) or loss.')
 
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       # Create the tf.train.Optimizer.
       optimizer = self.create_optimizer(params)
 
@@ -802,14 +803,14 @@ class AbstractT2RModel(
             max_to_keep=max_to_keep,
         )
         tf.add_to_collection(tf.GraphKeys.SAVERS, saver)
-      return tf.estimator.EstimatorSpec(
+      return tf_estimator.EstimatorSpec(
           mode=mode,
           loss=train_loss,
           train_op=train_op,
           training_hooks=training_hooks,
           scaffold=scaffold)
 
-    if mode == tf.estimator.ModeKeys.EVAL:
+    if mode == tf_estimator.ModeKeys.EVAL:
       self.add_summaries(features, labels, inference_outputs, train_loss,
                          train_outputs, mode, config, params)
 
@@ -825,7 +826,7 @@ class AbstractT2RModel(
                 summarize_config=True))
         if hasattr(self, 'writer_init_ops'):
           evaluation_hooks.append(V2SummaryInitHook(self.writer_init_ops[mode]))
-      return tf.estimator.EstimatorSpec(
+      return tf_estimator.EstimatorSpec(
           mode=mode,
           loss=train_loss,
           eval_metric_ops=eval_metrics,

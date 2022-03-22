@@ -17,6 +17,7 @@
 
 from tensor2robot.preprocessors import image_transformations
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 def maybe_distort_image_batch(images, mode):
@@ -30,7 +31,7 @@ def maybe_distort_image_batch(images, mode):
     Distorted images. Image distortion is identical for every image in the
       batch.
   """
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     images = image_transformations.ApplyPhotometricImageDistortions([images])[0]
   return images
 
@@ -46,7 +47,7 @@ def maybe_distort_and_flip_image_batch(images, mode):
     Distorted images. Image distortion is identical for every image in the
       batch.
   """
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     images = image_transformations.ApplyPhotometricImageDistortions([images])[0]
     images = image_transformations.ApplyRandomFlips(images)
   return images
@@ -128,7 +129,7 @@ def crop_image(img, mode, input_size=(512, 640), target_size=(472, 472)):
   input_shape = (input_height, input_width, 3)
   target_shape = target_size
 
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     crops = image_transformations.RandomCropImages([img],
                                                    input_shape=input_shape,
                                                    target_shape=target_shape)[0]

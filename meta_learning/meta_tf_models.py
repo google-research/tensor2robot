@@ -33,12 +33,13 @@ from tensor2robot.meta_learning import meta_tfdata
 from tensor2robot.models import abstract_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import framework as contrib_framework
 
-TRAIN = tf.estimator.ModeKeys.TRAIN
-EVAL = tf.estimator.ModeKeys.EVAL
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+EVAL = tf_estimator.ModeKeys.EVAL
+PREDICT = tf_estimator.ModeKeys.PREDICT
 
 framework = contrib_framework
 nest = framework.nest

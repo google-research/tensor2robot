@@ -26,6 +26,7 @@ from tensor2robot.meta_learning import preprocessors
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import framework as contrib_framework
 
 nest = contrib_framework.nest
@@ -108,7 +109,7 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
   def _create_mock_tensors(self,
                            base_preprocessor,
                            batch_size,
-                           mode=tf.estimator.ModeKeys.TRAIN):
+                           mode=tf_estimator.ModeKeys.TRAIN):
     np.random.seed(_RANDOM_SEED)
     features = utils.make_random_numpy(
         base_preprocessor.get_in_feature_specification(mode),
@@ -118,7 +119,7 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
         batch_size=batch_size)
     return (features, labels)
 
-  def _init_mock(self, batch_size, mode=tf.estimator.ModeKeys.TRAIN):
+  def _init_mock(self, batch_size, mode=tf_estimator.ModeKeys.TRAIN):
     base_preprocessor = MockBasePreprocessor()
     maml_preprocessor = preprocessors.MAMLPreprocessorV2(
         base_preprocessor=MockBasePreprocessor())
@@ -254,7 +255,7 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
       dataset = dataset.batch(outer_batch_size, drop_remainder=True)
 
       preprocess_fn = functools.partial(
-          maml_preprocessor.preprocess, mode=tf.estimator.ModeKeys.TRAIN)
+          maml_preprocessor.preprocess, mode=tf_estimator.ModeKeys.TRAIN)
       dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=1)
 
       raw_meta_features, raw_meta_labels = dataset.make_one_shot_iterator(
@@ -396,7 +397,7 @@ class PreprocessorsTest(tf.test.TestCase, parameterized.TestCase):
 
       preprocess_fn = functools.partial(
           meta_example_preprocessor.preprocess,
-          mode=tf.estimator.ModeKeys.TRAIN)
+          mode=tf_estimator.ModeKeys.TRAIN)
       dataset = dataset.map(map_func=preprocess_fn, num_parallel_calls=1)
 
       raw_meta_features, raw_meta_labels = (

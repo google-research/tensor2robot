@@ -20,7 +20,7 @@ from typing import Optional, Tuple
 import gin
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
-import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 @gin.configurable

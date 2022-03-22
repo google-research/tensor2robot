@@ -25,11 +25,12 @@ import six
 from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 FLAGS = flags.FLAGS
-TRAIN = tf.estimator.ModeKeys.TRAIN
-EVAL = tf.estimator.ModeKeys.EVAL
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+EVAL = tf_estimator.ModeKeys.EVAL
+PREDICT = tf_estimator.ModeKeys.PREDICT
 
 RunConfigType = abstract_model.RunConfigType
 ParamsType = abstract_model.ParamsType

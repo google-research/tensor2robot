@@ -20,6 +20,7 @@ import collections
 import gin
 from tensor2robot.utils import tensorspec_utils as utils
 from tensor2robot.utils import tfdata
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import framework as contrib_framework
 
@@ -37,7 +38,7 @@ def parallel_read(file_patterns,
                   shuffle_buffer_size=50,
                   filter_fn=None,
                   interleave_cycle_length=None,
-                  mode=tf.estimator.ModeKeys.TRAIN):
+                  mode=tf_estimator.ModeKeys.TRAIN):
   """Read and parse multiple examples per task, per train/val split.
 
   This pipeline does the following:
@@ -100,7 +101,7 @@ def parallel_read(file_patterns,
     effective_shuffle_buffer_size = max(
         shuffle_buffer_size,
         num_train_samples_per_task + num_val_samples_per_task)
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       dataset_ = dataset_.shuffle(
           buffer_size=effective_shuffle_buffer_size).repeat()
     else:

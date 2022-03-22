@@ -20,6 +20,7 @@ from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.preprocessors import tpu_preprocessor_wrapper
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 FLAGS = flags.FLAGS
 
@@ -45,7 +46,7 @@ _LABEL_SPEC_CAST.some_value = tensorspec_utils.ExtendedTensorSpec(
 _LABEL_SPEC_CAST.optional_value = tensorspec_utils.ExtendedTensorSpec(
     name='optional_value', dtype=tf.bfloat16, shape=(1,), is_optional=True)
 
-_MODE_TRAIN = tf.estimator.ModeKeys.TRAIN
+_MODE_TRAIN = tf_estimator.ModeKeys.TRAIN
 
 
 class MockPreprocessor(noop_preprocessor.NoOpPreprocessor):

@@ -32,6 +32,7 @@ from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
 from tensor2robot.utils import train_eval
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import predictor as contrib_predictor
 FLAGS = flags.FLAGS
 
@@ -71,7 +72,7 @@ class MockMetaInputGenerator(mocks.MockInputGenerator):
 
     tf_labels = {'y': tf.constant(labels, dtype=tf.float32)}
     dataset = tf.data.Dataset.from_tensor_slices((tf_features, tf_labels))
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       dataset = dataset.repeat()
       dataset = dataset.shuffle(buffer_size=features.shape[0])
 
@@ -89,7 +90,7 @@ class MockMetaInputGenerator(mocks.MockInputGenerator):
     # shape which is required for the meta preprocessing.
     dataset = dataset.batch(self._batch_size, drop_remainder=True)
     preprocess_fn = functools.partial(
-        self._preprocess_fn, mode=tf.estimator.ModeKeys.TRAIN)
+        self._preprocess_fn, mode=tf_estimator.ModeKeys.TRAIN)
     return dataset.map(map_func=preprocess_fn, num_parallel_calls=1)
 
 
@@ -108,11 +109,11 @@ class MockMetaExportGenerator(mocks.MockExportGenerator):
     super(MockMetaExportGenerator, self).set_specification_from_model(t2r_model)
     self._base_feature_spec = (
         t2r_model.preprocessor.base_preprocessor.get_in_feature_specification(
-            tf.estimator.ModeKeys.PREDICT))
+            tf_estimator.ModeKeys.PREDICT))
     tensorspec_utils.assert_valid_spec_structure(self._base_feature_spec)
     self._base_label_spec = (
         t2r_model.preprocessor.base_preprocessor.get_in_label_specification(
-            tf.estimator.ModeKeys.PREDICT))
+            tf_estimator.ModeKeys.PREDICT))
     tensorspec_utils.assert_valid_spec_structure(self._base_label_spec)
 
   def create_serving_input_receiver_numpy_fn(self, params=None):
@@ -164,9 +165,9 @@ class MockMetaExportGenerator(mocks.MockExportGenerator):
 
       if self._preprocess_fn is not None:
         features, _ = self._preprocess_fn(
-            features=features, labels=None, mode=tf.estimator.ModeKeys.PREDICT)
+            features=features, labels=None, mode=tf_estimator.ModeKeys.PREDICT)
 
-      return tf.estimator.export.ServingInputReceiver(features,
+      return tf_estimator.export.ServingInputReceiver(features,
                                                       receiver_tensors)
 
     return serving_input_receiver_fn
@@ -226,9 +227,9 @@ class MockMetaExportGenerator(mocks.MockExportGenerator):
 
       if self._preprocess_fn is not None:
         features, _ = self._preprocess_fn(
-            features=features, labels=None, mode=tf.estimator.ModeKeys.PREDICT)
+            features=features, labels=None, mode=tf_estimator.ModeKeys.PREDICT)
 
-      return tf.estimator.export.ServingInputReceiver(features,
+      return tf_estimator.export.ServingInputReceiver(features,
                                                       receiver_tensors)
 
     return serving_input_receiver_fn
@@ -267,14 +268,14 @@ class MAMLModelTest(parameterized.TestCase):
         num_condition_samples_per_task=_NUM_CONDITION_SAMPLES_PER_TASK,
         num_inference_samples_per_task=_NUM_CONDITION_SAMPLES_PER_TASK)
     mock_input_generator_train.set_specification_from_model(
-        mock_tf_model, mode=tf.estimator.ModeKeys.TRAIN)
+        mock_tf_model, mode=tf_estimator.ModeKeys.TRAIN)
 
     mock_input_generator_eval = MockMetaInputGenerator(
         batch_size=_BATCH_SIZE,
         num_condition_samples_per_task=_NUM_CONDITION_SAMPLES_PER_TASK,
         num_inference_samples_per_task=1)
     mock_input_generator_eval.set_specification_from_model(
-        mock_tf_model, mode=tf.estimator.ModeKeys.TRAIN)
+        mock_tf_model, mode=tf_estimator.ModeKeys.TRAIN)
     mock_export_generator = MockMetaExportGenerator(
         num_condition_samples_per_task=_NUM_CONDITION_SAMPLES_PER_TASK,
         num_inference_samples_per_task=1)
