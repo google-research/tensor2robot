@@ -28,6 +28,7 @@ from tensor2robot.preprocessors import distortion
 from tensor2robot.preprocessors import spec_transformation_preprocessor
 from tensor2robot.research.bcz import pose_components_lib
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow_graphics.geometry.transformation import quaternion as quaternion_lib
 import tensorflow_probability as tfp
@@ -40,9 +41,9 @@ tfd = tfp.distributions
 nest = tf.nest
 TensorSpec = tensorspec_utils.ExtendedTensorSpec  # pylint: disable=invalid-name
 
-TRAIN = tf.estimator.ModeKeys.TRAIN
-EVAL = tf.estimator.ModeKeys.EVAL
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+EVAL = tf_estimator.ModeKeys.EVAL
+PREDICT = tf_estimator.ModeKeys.PREDICT
 
 RunConfigType = abstract_model.RunConfigType
 ParamsType = abstract_model.ParamsType

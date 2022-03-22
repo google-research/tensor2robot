@@ -18,6 +18,7 @@
 
 from tensor2robot.research.grasp2vec import resnet
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 def Embedding(image, mode, params, reuse=tf.AUTO_REUSE, scope='scene'):
@@ -33,7 +34,7 @@ def Embedding(image, mode, params, reuse=tf.AUTO_REUSE, scope='scene'):
     A tuple (batch of summed embeddings, batch of embedding maps).
   """
   del params
-  is_training = mode == tf.estimator.ModeKeys.TRAIN
+  is_training = mode == tf_estimator.ModeKeys.TRAIN
   with tf.variable_scope(scope, reuse=reuse):
     scene = resnet.get_resnet50_spatial(image, is_training)
     scene = tf.nn.relu(scene)

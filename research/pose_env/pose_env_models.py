@@ -28,14 +28,15 @@ from tensor2robot.models import regression_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.research.dql_grasping_lib import tf_modules
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow.contrib import framework
 from tensorflow.contrib import layers
 
 TensorSpec = tensorspec_utils.ExtendedTensorSpec  # pylint: disable=invalid-name
 
-TRAIN = tf.estimator.ModeKeys.TRAIN
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+PREDICT = tf_estimator.ModeKeys.PREDICT
 
 
 class DefaultPoseEnvContinuousPreprocessor(
@@ -261,7 +262,7 @@ class PoseEnvRegressionModel(regression_model.RegressionModel):
 
   def get_config(self):
     """This model trains fairly quickly so evaluate frequently."""
-    return tf.estimator.RunConfig(
+    return tf_estimator.RunConfig(
         save_checkpoints_steps=2000,
         keep_checkpoint_max=5)
 

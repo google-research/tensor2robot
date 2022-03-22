@@ -20,7 +20,7 @@ import gin
 import numpy as np
 from tensor2robot.meta_learning import maml_model
 from tensor2robot.utils import tensorspec_utils
-import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import framework as contrib_framework
 nest = contrib_framework.nest
 
@@ -32,7 +32,7 @@ class PoseEnvRegressionModelMAML(maml_model.MAMLModel):
   def _make_dummy_labels(self):
     """Helper function to make dummy labels for pack_labels."""
     label_spec = self._base_model.get_label_specification(
-        tf.estimator.ModeKeys.TRAIN)
+        tf_estimator.ModeKeys.TRAIN)
     reward_shape = tuple(label_spec.reward.shape)
     pose_shape = tuple(label_spec.target_pose.shape)
     dummy_reward = np.zeros(reward_shape).astype(np.float32)

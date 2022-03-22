@@ -23,9 +23,10 @@ import gin
 from tensor2robot.research.bcz import model
 from tensor2robot.utils.t2r_test_fixture import T2RModelFixture
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 FLAGS = flags.FLAGS
-TRAIN = tf.estimator.ModeKeys.TRAIN
+TRAIN = tf_estimator.ModeKeys.TRAIN
 _POSE_COMPONENTS_LIST = list(itertools.product(*[
     [True, False], [True, False], ['axis_angle', 'quaternion'], [False]]))
 

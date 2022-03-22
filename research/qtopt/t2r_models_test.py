@@ -20,9 +20,10 @@ from absl.testing import parameterized
 from tensor2robot.research.qtopt import t2r_models
 from tensor2robot.utils.t2r_test_fixture import T2RModelFixture
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 FLAGS = flags.FLAGS
-TRAIN = tf.estimator.ModeKeys.TRAIN
+TRAIN = tf_estimator.ModeKeys.TRAIN
 MODEL_NAME = 'Grasping44E2EOpenCloseTerminateGripperStatusHeightToBottom'
 
 

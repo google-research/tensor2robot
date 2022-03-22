@@ -31,13 +31,14 @@ from tensor2robot.research.qtopt import networks
 from tensor2robot.research.qtopt import optimizer_builder
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import framework as contrib_framework
 from tensorflow.contrib import training as contrib_training
 from tensorflow_estimator.contrib.estimator.python.estimator import replicate_model_fn
 
-TRAIN = tf.estimator.ModeKeys.TRAIN
-EVAL = tf.estimator.ModeKeys.EVAL
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+EVAL = tf_estimator.ModeKeys.EVAL
+PREDICT = tf_estimator.ModeKeys.PREDICT
 INPUT_SHAPE = (512, 640, 3)
 TARGET_SHAPE = (472, 472)
 
