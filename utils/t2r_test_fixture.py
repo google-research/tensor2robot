@@ -29,10 +29,11 @@ from tensor2robot.input_generators import default_input_generator
 from tensor2robot.utils import train_eval
 from tensor2robot.utils import train_eval_test_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 from tensorflow.python.tpu import tpu  # pylint: disable=g-direct-tensorflow-import
 
-TRAIN = tf.estimator.ModeKeys.TRAIN
+TRAIN = tf_estimator.ModeKeys.TRAIN
 _MAX_TRAIN_STEPS = 2
 _BATCH_SIZE = 2
 _USE_TPU_WRAPPER = True

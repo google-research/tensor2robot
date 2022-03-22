@@ -22,11 +22,11 @@ from absl import logging
 import gin
 from tensor2robot.hooks import hook_builder
 from tensor2robot.models import model_interface
-import tensorflow as tf
+from tensorflow import estimator as tf_estimator
 
 
 @gin.configurable
-class GinConfigLoggerHook(tf.estimator.SessionRunHook):
+class GinConfigLoggerHook(tf_estimator.SessionRunHook):
   """A SessionRunHook that logs the operative config to stdout."""
 
   def __init__(self, only_once=True):

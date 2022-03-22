@@ -21,6 +21,7 @@ from typing import List
 
 import six
 from tensor2robot.models import model_interface
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 
 

@@ -21,6 +21,7 @@ from tensor2robot.hooks import checkpoint_hooks
 from tensor2robot.hooks import td3
 from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 
 _BATCH_SIZES_FOR_EXPORT = [128]
@@ -30,7 +31,7 @@ _EXPORT_DIR = "export_dir"
 _LAGGED_EXPORT_DIR = "lagged_export_dir"
 
 
-class MockEstimator(tf.estimator.Estimator):
+class MockEstimator(tf_estimator.Estimator):
 
   def __init__(self):
     pass

@@ -25,6 +25,7 @@ import numpy as np
 from tensor2robot.models import abstract_model
 from tensor2robot.predictors import abstract_predictor
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 
 from tensorflow.contrib import framework as contrib_framework
@@ -66,7 +67,7 @@ class CheckpointPredictor(abstract_predictor.AbstractPredictor):
     # As done in model_inference.py, a separate graph is used to build the
     # target network.
     g = tf.Graph()
-    mode = tf.estimator.ModeKeys.PREDICT
+    mode = tf_estimator.ModeKeys.PREDICT
     with g.as_default():
       preprocessor = t2r_model.preprocessor
       feature_tspec = preprocessor.get_in_feature_specification(mode)

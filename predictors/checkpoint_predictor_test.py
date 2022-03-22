@@ -24,6 +24,7 @@ from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import train_eval
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 FLAGS = flags.FLAGS
 
@@ -59,7 +60,7 @@ class CheckpointPredictorTest(tf.test.TestCase):
     self.assertGreater(predictor.model_version, 0)
     self.assertEqual(predictor.global_step, 3)
     ref_feature_spec = mock_model.preprocessor.get_in_feature_specification(
-        tf.estimator.ModeKeys.PREDICT)
+        tf_estimator.ModeKeys.PREDICT)
     tensorspec_utils.assert_equal(predictor.get_feature_specification(),
                                   ref_feature_spec)
     features = tensorspec_utils.make_random_numpy(

@@ -27,6 +27,7 @@ from tensor2robot.hooks import hook_builder
 from tensor2robot.models import model_interface
 from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 
 from tensorflow.contrib import tpu as contrib_tpu
@@ -93,9 +94,9 @@ class TD3Hooks(hook_builder.HookBuilder):
         export_dir=estimator.model_dir)
 
     in_feature_spec = t2r_model.get_feature_specification_for_packing(
-        mode=tf.estimator.ModeKeys.PREDICT)
+        mode=tf_estimator.ModeKeys.PREDICT)
     in_label_spec = t2r_model.get_label_specification_for_packing(
-        mode=tf.estimator.ModeKeys.PREDICT)
+        mode=tf_estimator.ModeKeys.PREDICT)
     t2r_assets = t2r_pb2.T2RAssets()
     t2r_assets.feature_spec.CopyFrom(in_feature_spec.to_proto())
     t2r_assets.label_spec.CopyFrom(in_label_spec.to_proto())

@@ -25,6 +25,7 @@ from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 SEED = 1234
 POSITIVE_SIZE = 64
@@ -87,7 +88,7 @@ class MockInputGenerator(abstract_input_generator.AbstractInputGenerator):
 
     tf_labels = {'y': tf.constant(labels, dtype=tf.float32)}
     dataset = tf.data.Dataset.from_tensor_slices((tf_features, tf_labels))
-    if mode == tf.estimator.ModeKeys.TRAIN:
+    if mode == tf_estimator.ModeKeys.TRAIN:
       dataset = dataset.repeat()
       dataset = dataset.shuffle(buffer_size=features.shape[0])
     dataset = dataset.batch(batch_size, drop_remainder=True)

@@ -32,6 +32,7 @@ from tensor2robot.models import model_interface
 from tensor2robot.models import tpu_model_wrapper
 from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 
 from tensorflow.contrib import tpu as contrib_tpu
@@ -40,7 +41,7 @@ from tensorflow.contrib import training as contrib_training
 ExporterFn = Callable[[
     model_interface.ModelInterface, abstract_export_generator
     .AbstractExportGenerator
-], List[tf.estimator.Exporter]]
+], List[tf_estimator.Exporter]]
 
 FLAGS = flags.FLAGS
 
@@ -54,7 +55,7 @@ except flags.DuplicateFlagError:
   pass
 
 gin_configurable_eval_spec = gin.external_configurable(
-    tf.estimator.EvalSpec, name='tf.estimator.EvalSpec')
+    tf_estimator.EvalSpec, name='tf.estimator.EvalSpec')
 
 
 def print_spec(tensor_spec):
@@ -76,7 +77,7 @@ def print_specification(t2r_model):
     t2r_model: A TFModel from which we obtain the preprocessor used to prepare
       the input generator instance for usage.
   """
-  for mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.PREDICT]:
+  for mode in [tf_estimator.ModeKeys.TRAIN, tf_estimator.ModeKeys.PREDICT]:
     logging.info('Preprocessor in feature specification for mode %s', mode)
     print_spec(t2r_model.preprocessor.get_in_feature_specification(mode))
     logging.info('Preprocessor in label specification.')
@@ -195,7 +196,7 @@ def create_estimator(t2r_model,
     An instance of tf.estimator.Estimator.
   """
   del kwargs
-  return tf.estimator.Estimator(
+  return tf_estimator.Estimator(
       model_fn=t2r_model.model_fn,
       model_dir=model_dir,
       config=t2r_model.get_run_config(),
@@ -332,9 +333,9 @@ def create_default_exporters(
   # Create pkl of the input to save alongside the exported models
   tmpdir = tempfile.mkdtemp()
   in_feature_spec = t2r_model.get_feature_specification_for_packing(
-      mode=tf.estimator.ModeKeys.PREDICT)
+      mode=tf_estimator.ModeKeys.PREDICT)
   in_label_spec = t2r_model.get_label_specification_for_packing(
-      mode=tf.estimator.ModeKeys.PREDICT)
+      mode=tf_estimator.ModeKeys.PREDICT)
   t2r_assets = t2r_pb2.T2RAssets()
   t2r_assets.feature_spec.CopyFrom(in_feature_spec.to_proto())
   t2r_assets.label_spec.CopyFrom(in_label_spec.to_proto())
@@ -347,14 +348,14 @@ def create_default_exporters(
   exporters = []
   if use_numpy_exporters:
     exporters.append(
-        tf.estimator.BestExporter(
+        tf_estimator.BestExporter(
             name='best_exporter_numpy',
             compare_fn=compare_fn(),
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_numpy_fn(),
             assets_extra=assets))
     exporters.append(
-        tf.estimator.LatestExporter(
+        tf_estimator.LatestExporter(
             name='latest_exporter_numpy',
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_numpy_fn(),
@@ -362,14 +363,14 @@ def create_default_exporters(
             assets_extra=assets))
   if use_tfexample_exporters:
     exporters.append(
-        tf.estimator.BestExporter(
+        tf_estimator.BestExporter(
             name='best_exporter_tf_example',
             compare_fn=compare_fn(),
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_tf_example_fn(),
             assets_extra=assets))
     exporters.append(
-        tf.estimator.LatestExporter(
+        tf_estimator.LatestExporter(
             name='latest_exporter_tf_example',
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_tf_example_fn(),
@@ -377,7 +378,7 @@ def create_default_exporters(
             assets_extra=assets))
   if use_servo_exporter:
     exporters.append(
-        tf.estimator.LatestExporter(
+        tf_estimator.LatestExporter(
             name='Servo',
             serving_input_receiver_fn=export_generator
             .create_serving_input_receiver_numpy_fn(),
@@ -405,10 +406,10 @@ def predict_from_model(
     input_generator_predict.
   """
   input_generator_predict = provide_input_generator_with_model_information(
-      input_generator_predict, t2r_model, mode=tf.estimator.ModeKeys.PREDICT)
+      input_generator_predict, t2r_model, mode=tf_estimator.ModeKeys.PREDICT)
 
   input_fn = input_generator_predict.create_dataset_input_fn(
-      mode=tf.estimator.ModeKeys.PREDICT)
+      mode=tf_estimator.ModeKeys.PREDICT)
   create_estimator_fn = create_estimator
   if t2r_model.is_device_tpu:
     create_estimator_fn = create_tpu_estimator
@@ -488,7 +489,7 @@ def train_eval_model(
     input_generator_train = provide_input_generator_with_model_information(
         input_generator_train,
         t2r_model,
-        mode=tf.estimator.ModeKeys.TRAIN,
+        mode=tf_estimator.ModeKeys.TRAIN,
     )
     train_batch_size = input_generator_train.batch_size
 
@@ -497,7 +498,7 @@ def train_eval_model(
   eval_spec = None
   if input_generator_eval is not None:
     input_generator_eval = provide_input_generator_with_model_information(
-        input_generator_eval, t2r_model, mode=tf.estimator.ModeKeys.EVAL)
+        input_generator_eval, t2r_model, mode=tf_estimator.ModeKeys.EVAL)
     eval_batch_size = input_generator_eval.batch_size
 
   create_estimator_fn = create_estimator
@@ -525,9 +526,9 @@ def train_eval_model(
     train_hooks = _build_hooks(train_hook_builders)
     if t2r_model.get_run_config().is_chief:
       train_hooks.extend(_build_hooks(chief_train_hook_builders))
-    train_spec = tf.estimator.TrainSpec(
+    train_spec = tf_estimator.TrainSpec(
         input_fn=input_generator_train.create_dataset_input_fn(
-            mode=tf.estimator.ModeKeys.TRAIN),
+            mode=tf_estimator.ModeKeys.TRAIN),
         max_steps=max_train_steps,
         hooks=train_hooks)
 
@@ -547,7 +548,7 @@ def train_eval_model(
 
     eval_spec = gin_configurable_eval_spec(
         input_fn=input_generator_eval.create_dataset_input_fn(
-            mode=tf.estimator.ModeKeys.EVAL),
+            mode=tf_estimator.ModeKeys.EVAL),
         steps=eval_steps,
         throttle_secs=eval_throttle_secs,
         exporters=exporters,
@@ -566,7 +567,7 @@ def train_eval_model(
       estimator._params['eval_name'] = params['eval_name']  # pylint: disable=protected-access
 
   if (train_spec is not None and eval_spec is not None):
-    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+    tf_estimator.train_and_evaluate(estimator, train_spec, eval_spec)
   elif train_spec is not None:
     estimator.train(
         input_fn=train_spec.input_fn,

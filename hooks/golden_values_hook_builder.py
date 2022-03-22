@@ -28,8 +28,9 @@ import numpy as np
 from tensor2robot.hooks import hook_builder
 from tensor2robot.models import model_interface
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
-ModeKeys = tf.estimator.ModeKeys
+ModeKeys = tf_estimator.ModeKeys
 COLLECTION = 'golden'
 PREFIX = 'golden_'
 

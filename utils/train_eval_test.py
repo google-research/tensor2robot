@@ -30,6 +30,7 @@ from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 from tensor2robot.utils import train_eval
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import predictor as contrib_predictor
 
 FLAGS = flags.FLAGS
@@ -138,13 +139,13 @@ class TrainEvalTest(tf.test.TestCase):
 
     # Verify that the serving estimator does exactly the same as the normal
     # estimator with all the parameters.
-    estimator_predict = tf.estimator.Estimator(
+    estimator_predict = tf_estimator.Estimator(
         model_fn=mock_t2r_model.model_fn,
-        config=tf.estimator.RunConfig(model_dir=model_dir))
+        config=tf_estimator.RunConfig(model_dir=model_dir))
 
     prediction_ref = estimator_predict.predict(
         input_fn=mock_input_generator_eval.create_dataset_input_fn(
-            mode=tf.estimator.ModeKeys.EVAL))
+            mode=tf_estimator.ModeKeys.EVAL))
 
     # Now we can load our exported estimator graph with the numpy feed_dict
     # interface, there are no dependencies on the model_fn or preprocessor
@@ -260,7 +261,7 @@ class TrainEvalTest(tf.test.TestCase):
 
     mock_input_generator = mocks.MockInputGenerator(batch_size=1)
     mock_input_generator.set_specification_from_model(
-        mock_t2r_model, tf.estimator.ModeKeys.TRAIN)
+        mock_t2r_model, tf_estimator.ModeKeys.TRAIN)
 
     train_eval.train_eval_model(
         t2r_model=mock_t2r_model,
@@ -273,16 +274,16 @@ class TrainEvalTest(tf.test.TestCase):
 
     # Verify that the serving estimator does exactly the same as the normal
     # estimator with all the parameters.
-    initial_estimator_predict = tf.estimator.Estimator(
+    initial_estimator_predict = tf_estimator.Estimator(
         model_fn=mock_t2r_model.model_fn,
-        config=tf.estimator.RunConfig(model_dir=model_dir))
+        config=tf_estimator.RunConfig(model_dir=model_dir))
 
     # pylint: disable=g-complex-comprehension
     initial_predictions = [
         prediction['logit'] for prediction in list(
             initial_estimator_predict.predict(
                 input_fn=mock_input_generator.create_dataset_input_fn(
-                    mode=tf.estimator.ModeKeys.EVAL)))
+                    mode=tf_estimator.ModeKeys.EVAL)))
     ]
 
     # The continuous training has its own directory.
@@ -323,29 +324,29 @@ class TrainEvalTest(tf.test.TestCase):
 
     # Verify that the serving estimator does exactly the same as the normal
     # estimator with all the parameters.
-    continue_estimator_predict = tf.estimator.Estimator(
+    continue_estimator_predict = tf_estimator.Estimator(
         model_fn=mock_t2r_model.model_fn,
-        config=tf.estimator.RunConfig(model_dir=continue_model_dir))
+        config=tf_estimator.RunConfig(model_dir=continue_model_dir))
 
     continue_predictions = [
         prediction['logit'] for prediction in list(
             continue_estimator_predict.predict(
                 input_fn=mock_input_generator.create_dataset_input_fn(
-                    mode=tf.estimator.ModeKeys.EVAL)))
+                    mode=tf_estimator.ModeKeys.EVAL)))
     ]
 
     self.assertTrue(
         np.allclose(initial_predictions, continue_predictions, atol=1e-1))
 
     # A randomly initialized model estimator with all the parameters.
-    random_estimator_predict = tf.estimator.Estimator(
+    random_estimator_predict = tf_estimator.Estimator(
         model_fn=mock_t2r_model.model_fn)
 
     random_predictions = [
         prediction['logit'] for prediction in list(
             random_estimator_predict.predict(
                 input_fn=mock_input_generator.create_dataset_input_fn(
-                    mode=tf.estimator.ModeKeys.EVAL)))
+                    mode=tf_estimator.ModeKeys.EVAL)))
     ]
     self.assertFalse(
         np.allclose(initial_predictions, random_predictions, atol=1e-2))

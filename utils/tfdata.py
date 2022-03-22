@@ -711,7 +711,7 @@ def get_input_fn(feature_spec, label_spec, file_patterns, mode, batch_size,
         batch_size=used_batch_size,
         feature_spec=feature_spec,
         label_spec=label_spec,
-        is_training=(mode == tf.estimator.ModeKeys.TRAIN),
+        is_training=(mode == tf_estimator.ModeKeys.TRAIN),
         preprocess_fn=preprocess_fn)
     return dataset
 

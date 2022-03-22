@@ -24,6 +24,8 @@ from tensor2robot.proto import t2r_pb2
 from tensor2robot.utils import mocks
 from tensor2robot.utils import tensorspec_utils
 
+from tensorflow import estimator as tf_estimator
+from tensorflow.compat.v1 import estimator as tf_compat_v1_estimator
 import tensorflow.compat.v2 as tf
 
 _BATCH_SIZE = 2
@@ -35,9 +37,9 @@ def setUpModule():
 
 def _generate_assets(model, export_dir):
   in_feature_spec = model.get_feature_specification_for_packing(
-      mode=tf.estimator.ModeKeys.PREDICT)
+      mode=tf_estimator.ModeKeys.PREDICT)
   in_label_spec = model.get_label_specification_for_packing(
-      mode=tf.compat.v1.estimator.ModeKeys.PREDICT)
+      mode=tf_compat_v1_estimator.ModeKeys.PREDICT)
 
   in_feature_spec = tensorspec_utils.filter_required_flat_tensor_spec(
       in_feature_spec)
@@ -70,7 +72,7 @@ class SavedModelV2PredictorTest(tf.test.TestCase):
     @tf.function(autograph=False)
     def predict(features):
       return model.inference_network_fn(features, None,
-                                        tf.compat.v1.estimator.ModeKeys.PREDICT)
+                                        tf_compat_v1_estimator.ModeKeys.PREDICT)
 
     # Call the model for the tf.function tracing side effects.
     predict(sample_features)
@@ -86,7 +88,7 @@ class SavedModelV2PredictorTest(tf.test.TestCase):
 
     # Generate a sample to evaluate
     feature_spec = mock_model.preprocessor.get_in_feature_specification(
-        tf.compat.v1.estimator.ModeKeys.PREDICT)
+        tf_compat_v1_estimator.ModeKeys.PREDICT)
     sample_features = tensorspec_utils.make_random_numpy(
         feature_spec, batch_size=_BATCH_SIZE)
 
@@ -102,7 +104,7 @@ class SavedModelV2PredictorTest(tf.test.TestCase):
 
     # Validate evaluations are the same afterwards.
     original_model_out = mock_model.inference_network_fn(
-        sample_features, None, tf.compat.v1.estimator.ModeKeys.PREDICT)
+        sample_features, None, tf_compat_v1_estimator.ModeKeys.PREDICT)
 
     predictor_out = saved_model_predictor.predict(sample_features)
 
