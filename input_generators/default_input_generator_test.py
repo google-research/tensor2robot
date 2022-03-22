@@ -23,6 +23,7 @@ import six
 from tensor2robot.input_generators import default_input_generator
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -51,13 +52,13 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
         shape=(), dtype=tf.float32, name='reward')
     with self.assertRaises(ValueError):
       _ = input_generator.create_dataset_input_fn(
-          mode=tf.estimator.ModeKeys.TRAIN)
+          mode=tf_estimator.ModeKeys.TRAIN)
 
     input_generator.set_feature_specifications(feature_spec, feature_spec)
     input_generator.set_label_specifications(label_spec, label_spec)
 
     np_features, np_labels = input_generator.create_dataset_input_fn(
-        mode=tf.estimator.ModeKeys.TRAIN)().make_one_shot_iterator().get_next()
+        mode=tf_estimator.ModeKeys.TRAIN)().make_one_shot_iterator().get_next()
 
     np_features = tensorspec_utils.validate_and_pack(
         feature_spec, np_features, ignore_batch=True)
@@ -87,7 +88,7 @@ class DefaultInputGeneratorTest(tf.test.TestCase):
     input_generator.set_label_specifications(label_spec, label_spec)
 
     np_features, np_labels = input_generator.create_dataset_input_fn(
-        mode=tf.estimator.ModeKeys.TRAIN)().make_one_shot_iterator().get_next()
+        mode=tf_estimator.ModeKeys.TRAIN)().make_one_shot_iterator().get_next()
 
     np_features = tensorspec_utils.validate_and_pack(
         feature_spec, np_features, ignore_batch=True)

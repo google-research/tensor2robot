@@ -26,13 +26,14 @@ from tensor2robot.models import regression_model
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.preprocessors import distortion
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 import tensorflow_probability as tfp
 from tensorflow.contrib import layers as contrib_layers
 
 TensorSpec = tensorspec_utils.ExtendedTensorSpec
-TRAIN = tf.estimator.ModeKeys.TRAIN
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+PREDICT = tf_estimator.ModeKeys.PREDICT
 FLOAT_DTYPES = [tf.bfloat16, tf.float32, tf.float64]
 
 

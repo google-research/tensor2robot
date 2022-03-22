@@ -28,6 +28,7 @@ from tensor2robot.input_generators import abstract_input_generator
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 _TF_CONFIG_ENV = 'TF_CONFIG'
 _MULTI_EVAL_NAME = 'multi_eval_name'
@@ -265,7 +266,7 @@ class WeightedRecordInputGenerator(DefaultRecordInputGenerator):
   def create_dataset(self, mode, params, **unused_kwargs):
     """This abstract function is not required for default input generators."""
     batch_size = tfdata.get_batch_size(params, self.batch_size)
-    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
+    is_training = (mode == tf_estimator.ModeKeys.TRAIN)
     data_format, filenames_list = tfdata.get_data_format_and_filenames_list(
         self._file_patterns)
     datasets = []

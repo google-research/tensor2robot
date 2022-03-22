@@ -31,10 +31,11 @@ from tensor2robot.models import abstract_model
 from tensor2robot.research.vrgripper import episode_to_transitions
 from tensor2robot.research.vrgripper import vrgripper_env_models
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 
-TRAIN = tf.estimator.ModeKeys.TRAIN
-PREDICT = tf.estimator.ModeKeys.PREDICT
+TRAIN = tf_estimator.ModeKeys.TRAIN
+PREDICT = tf_estimator.ModeKeys.PREDICT
 TensorSpec = tensorspec_utils.ExtendedTensorSpec
 
 
@@ -325,7 +326,7 @@ class VRGripperEnvSimpleTrialModel(abstract_model.AbstractT2RModel):
       return eval_outputs
 
   def get_run_config(self):
-    return tf.estimator.RunConfig(
+    return tf_estimator.RunConfig(
         save_checkpoints_steps=self._save_checkpoint_steps)
 
   def pack_features(
@@ -543,7 +544,7 @@ class VRGripperEnvVisionTrialModel(abstract_model.AbstractT2RModel):
       return eval_outputs
 
   def get_run_config(self):
-    return tf.estimator.RunConfig(
+    return tf_estimator.RunConfig(
         save_checkpoints_steps=self._save_checkpoint_steps)
 
   def pack_features(

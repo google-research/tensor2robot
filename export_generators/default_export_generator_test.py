@@ -21,6 +21,7 @@ from tensor2robot.export_generators import default_export_generator
 from tensor2robot.preprocessors import noop_preprocessor
 from tensor2robot.utils import mocks
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import predictor as contrib_predictor
 from tensorflow.contrib import tpu as contrib_tpu
 
@@ -47,23 +48,23 @@ class DefaultExportGeneratorTest(tf.test.TestCase, parameterized.TestCase):
     mock_input_generator = mocks.MockInputGenerator(batch_size=BATCH_SIZE,
                                                     multi_dataset=multi_dataset)
     mock_input_generator.set_specification_from_model(
-        mock_t2r_model, tf.estimator.ModeKeys.TRAIN)
+        mock_t2r_model, tf_estimator.ModeKeys.TRAIN)
 
     # We optimize our network.
     estimator.train(
         input_fn=mock_input_generator.create_dataset_input_fn(
-            mode=tf.estimator.ModeKeys.TRAIN),
+            mode=tf_estimator.ModeKeys.TRAIN),
         max_steps=MAX_STEPS)
 
     # Verify that the serving estimator does exactly the same as the normal
     # estimator with all the parameters.
-    estimator_predict = tf.estimator.Estimator(
+    estimator_predict = tf_estimator.Estimator(
         model_fn=mock_t2r_model.model_fn,
-        config=tf.estimator.RunConfig(model_dir=model_dir))
+        config=tf_estimator.RunConfig(model_dir=model_dir))
 
     prediction_ref = estimator_predict.predict(
         input_fn=mock_input_generator.create_dataset_input_fn(
-            mode=tf.estimator.ModeKeys.EVAL))
+            mode=tf_estimator.ModeKeys.EVAL))
 
     return model_dir, mock_t2r_model, prediction_ref
 
@@ -74,9 +75,9 @@ class DefaultExportGeneratorTest(tf.test.TestCase, parameterized.TestCase):
     exporter.set_specification_from_model(mock_t2r_model)
 
     # Export trained serving estimator.
-    estimator_exporter = tf.estimator.Estimator(
+    estimator_exporter = tf_estimator.Estimator(
         model_fn=mock_t2r_model.model_fn,
-        config=tf.estimator.RunConfig(model_dir=model_dir))
+        config=tf_estimator.RunConfig(model_dir=model_dir))
 
     serving_input_receiver_fn = (
         exporter.create_serving_input_receiver_numpy_fn())
@@ -109,9 +110,9 @@ class DefaultExportGeneratorTest(tf.test.TestCase, parameterized.TestCase):
          'tf_example', multi_dataset=multi_dataset)
 
     # Now we can actually export our serving estimator.
-    estimator_exporter = tf.estimator.Estimator(
+    estimator_exporter = tf_estimator.Estimator(
         model_fn=mock_t2r_model.model_fn,
-        config=tf.estimator.RunConfig(model_dir=model_dir))
+        config=tf_estimator.RunConfig(model_dir=model_dir))
 
     exporter = default_export_generator.DefaultExportGenerator()
     exporter.set_specification_from_model(mock_t2r_model)

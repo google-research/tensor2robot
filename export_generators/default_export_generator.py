@@ -25,8 +25,9 @@ from tensor2robot.export_generators import abstract_export_generator
 from tensor2robot.utils import tensorspec_utils
 from tensor2robot.utils import tfdata
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
-MODE = tf.estimator.ModeKeys.PREDICT
+MODE = tf_estimator.ModeKeys.PREDICT
 
 
 @gin.configurable
@@ -76,7 +77,7 @@ class DefaultExportGenerator(abstract_export_generator.AbstractExportGenerator):
       if (not self._export_raw_receivers and self._preprocess_fn is not None):
         features, _ = self._preprocess_fn(features=features, labels=None)
 
-      return tf.estimator.export.ServingInputReceiver(features,
+      return tf_estimator.export.ServingInputReceiver(features,
                                                       receiver_tensors)
 
     return serving_input_receiver_fn
@@ -127,7 +128,7 @@ class DefaultExportGenerator(abstract_export_generator.AbstractExportGenerator):
       if (not self._export_raw_receivers and self._preprocess_fn is not None):
         features, _ = self._preprocess_fn(features=features, labels=None)
 
-      return tf.estimator.export.ServingInputReceiver(features,
+      return tf_estimator.export.ServingInputReceiver(features,
                                                       receiver_tensors)
 
     return serving_input_receiver_fn
