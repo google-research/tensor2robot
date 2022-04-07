@@ -194,6 +194,8 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
       if self._is_final_export_dir(self._export_dir):
         model_dir = self._export_dir
       else:
+        logging.info('Looking for a model in subfolders of %s',
+                     self._export_dir)
         model_dir = self._latest_valid_model_dirs(
             tf.io.gfile.glob(os.path.join(self._export_dir, '*')))
 
@@ -345,8 +347,11 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
     # the latest exported model. Lexicographical sorting will maintain this
     # order.
     for model_dir in sorted(model_dirs, key=os.path.basename, reverse=True):
+      logging.info('Checking %s for valid model.', model_dir)
       if _isvalid(model_dir):
         return model_dir
+    else:
+      logging.info('No valid model found in %d directories.', len(model_dirs))
 
   def _maybe_join_restore_thread(self):
     if self._restore_thread:
