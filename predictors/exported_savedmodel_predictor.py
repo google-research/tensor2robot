@@ -205,7 +205,7 @@ class ExportedSavedModelPredictor(abstract_predictor.AbstractPredictor):
 
       logging.info('Waiting for an exported model to become available at %s.',
                    self._export_dir)
-      if time.time() - start_time < self._timeout:
+      if time.time() - start_time > self._timeout:
         break
       # Since a checkpoint might not be available and this is a busy waiting
       # loop, we throttle checking for checkpoints.
