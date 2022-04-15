@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """Specialized preprocessors for meta learning e.g. for MAML."""
 
 from typing import Optional, Text, Tuple
