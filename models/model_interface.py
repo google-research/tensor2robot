@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """The minimal T2RModel interface required by T2R infrastructure.
 
 # TODO(T2R_CONTRIBUTORS): Sunset this interface in favor of AbstractT2RModel.

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """Contains definitions for Residual Networks with/without FiLM conditioning.
 
 Residual networks ('v1' ResNets) were originally proposed in:

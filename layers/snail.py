@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """Implementation of building blocks from https://arxiv.org/abs/1707.03141.
 
 Implementation here is designed to match pseudocode in the paper.

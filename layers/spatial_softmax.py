@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """TensorFlow impl of Spatial Softmax layers. (spatial soft arg-max).
 
 TODO(T2R_CONTRIBUTORS) - consider replacing with contrib version.

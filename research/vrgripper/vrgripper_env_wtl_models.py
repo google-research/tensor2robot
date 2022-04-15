@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """T2R models for the Watch, Try, Learn experiments: https://arxiv.org/abs/1906.03352."""  # pylint: disable=line-too-long
 
 from typing import Any, Dict, Optional, Text, Tuple
