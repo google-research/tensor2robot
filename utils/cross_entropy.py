@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """Cross-entropy method for continuous optimization.
 
 Given some parametric family of sampling densities, the cross-entropy method
