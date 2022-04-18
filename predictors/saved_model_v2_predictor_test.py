@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for tensor2robot.predictors.saved_model_v2_predictor."""
 
 import os

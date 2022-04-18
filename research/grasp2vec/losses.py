@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """Losses for feature learning.
 
 Implements several loss functions for training models.

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """An experimental predictor over an ensemble of exported models."""
 
 import os

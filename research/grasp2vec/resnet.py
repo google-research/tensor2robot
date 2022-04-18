@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """Modified ResNet for Grasp2Vec.
 
 Note: for future uses of Grasp2Vec, please use `get_resnet50_spatial` instead

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """MAML-based meta-learning models for the duck task."""
 
 import gin

@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for tensor2robot.research.qtopt.pcgrad."""
 
 from tensor2robot.research.qtopt import pcgrad

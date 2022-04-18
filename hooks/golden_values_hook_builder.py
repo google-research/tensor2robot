@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as python3
 """Hook that logs golden values to be used in unit tests.
 
 In the Data -> Checkpoint -> Inference -> Eval flow, this verifies no regression
