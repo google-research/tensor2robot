@@ -145,6 +145,7 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
       # Check for the assets.extra/t2r_assets.pbtxt file which is materialized
       # last. Otherwise we should check for saved_model.pb
       if tf.io.gfile.exists(t2r_assets_filename):
+        logging.info('Got a checkpoint at %s', t2r_assets_filename)
         break
 
       logging.info('Waiting for a saved model to become available at %s.',
@@ -166,7 +167,9 @@ class SavedModelPredictorBase(abstract_predictor.AbstractPredictor):
     self._label_spec = tensorspec_utils.TensorSpecStruct.from_proto(
         t2r_assets.label_spec)  # pytype: disable=wrong-arg-types
 
+    logging.info('Loading model from %s', checkpoint_dir)
     self._model = tf.saved_model.load(checkpoint_dir)
+    logging.info('Done loading model from %s', checkpoint_dir)
     return True
 
   def init_randomly(self):
