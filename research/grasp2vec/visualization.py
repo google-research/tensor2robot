@@ -137,8 +137,8 @@ def np_render_keypoints(image, locations, num_images=3, dot_radius=3):
     hues = np.linspace(0, 1, num_points + 1)[:-1]
     colors = [np.array(colorsys.hsv_to_rgb(hue, 1.0, 0.9)) for hue in hues]
     # (i, j) = (-1, -1) is the top left corner of the image. -1 -> 0
-    xs = np.round((locations[i, :, 0] + 1.0) * w / 2.0).astype(np.int)
-    ys = np.round((locations[i, :, 1] + 1.0) * h / 2.0).astype(np.int)
+    xs = np.round((locations[i, :, 0] + 1.0) * w / 2.0).astype(int)
+    ys = np.round((locations[i, :, 1] + 1.0) * h / 2.0).astype(int)
     for x, y, color in zip(xs, ys, colors):
       # Paint a dot of color at (x, y).
       dist_x = x - mx
