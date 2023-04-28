@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Tensor2Robot Authors.
+# Copyright 2023 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -158,7 +158,7 @@ class MetaPreprocessor(abstract_preprocessor.AbstractPreprocessor):
   def base_preprocessor(self):
     return self._base_preprocessor
 
-  def get_in_feature_specification(
+  def get_in_feature_specification(  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
       self):
     """See parent class."""
     return _create_meta_spec(
@@ -167,7 +167,7 @@ class MetaPreprocessor(abstract_preprocessor.AbstractPreprocessor):
         num_train_samples_per_task=self._num_train_samples_per_task,
         num_val_samples_per_task=self._num_val_samples_per_task)
 
-  def get_in_label_specification(self):
+  def get_in_label_specification(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """See parent class."""
     return _create_meta_spec(
         self._base_preprocessor.get_in_label_specification(),
@@ -175,7 +175,7 @@ class MetaPreprocessor(abstract_preprocessor.AbstractPreprocessor):
         num_train_samples_per_task=self._num_train_samples_per_task,
         num_val_samples_per_task=self._num_val_samples_per_task)
 
-  def get_out_feature_specification(
+  def get_out_feature_specification(  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
       self):
     """See parent class."""
     return _create_meta_spec(
@@ -184,7 +184,7 @@ class MetaPreprocessor(abstract_preprocessor.AbstractPreprocessor):
         num_train_samples_per_task=self._num_train_samples_per_task,
         num_val_samples_per_task=self._num_val_samples_per_task)
 
-  def get_out_label_specification(self):
+  def get_out_label_specification(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """See parent class."""
     return _create_meta_spec(
         self._base_preprocessor.get_out_label_specification(),

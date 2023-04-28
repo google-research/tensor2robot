@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Tensor2Robot Authors.
+# Copyright 2023 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -264,7 +264,7 @@ class SavedModelTF1Predictor(SavedModelPredictorBase):
           self._predictions,
           tensorspec_utils.map_feed_dict(self._features, features))
 
-  def restore(self):
+  def restore(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     # Forcing both session and graph to be defaults here to force a graph
     # context if this ever gets used during Eager execution. Makes testing
     # easier too.
