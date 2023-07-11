@@ -33,7 +33,7 @@ import six
 from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils
 from tensorflow.compat.v1 import estimator as tf_estimator
-from tensorflow.contrib import tpu as contrib_tpu
+from tensorflow.compat.v1.estimator import tpu as contrib_tpu
 
 TRAIN = tf_estimator.ModeKeys.TRAIN
 EVAL = tf_estimator.ModeKeys.EVAL

@@ -33,7 +33,7 @@ from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 from tensorflow.contrib import framework as contrib_framework
-from tensorflow.contrib import tpu as contrib_tpu
+from tensorflow.compat.v1.estimator import tpu as contrib_tpu
 from tensorflow.contrib import training as contrib_training
 
 FLAGS = flags.FLAGS
