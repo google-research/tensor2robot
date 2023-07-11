@@ -29,8 +29,8 @@ from tensor2robot.research.dql_grasping_lib import tf_modules
 from tensor2robot.utils import tensorspec_utils
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
-from tensorflow.contrib import framework
-from tensorflow.contrib import layers
+import tf_slim as slim
+from tensorflow.keras import layers
 
 TensorSpec = tensorspec_utils.ExtendedTensorSpec  # pylint: disable=invalid-name
 
@@ -134,7 +134,7 @@ class PoseEnvContinuousMCModel(critic_model.CriticModel):
     net = state
     channels = 32
     with tf.variable_scope('q_features', reuse=reuse):
-      with framework.arg_scope(tf_modules.argscope(is_training=is_training)):
+      with slim.arg_scope(tf_modules.argscope(is_training=is_training)):
         for layer_index in range(3):
           net = layers.conv2d(net, channels, kernel_size=3)
           logging.info('conv%d %s', layer_index, net.get_shape())

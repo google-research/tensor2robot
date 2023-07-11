@@ -22,7 +22,7 @@ import gin
 from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import framework as contrib_framework
+import tensorflow as contrib_framework
 from tensorflow.contrib import slim as contrib_slim
 
 slim = contrib_slim

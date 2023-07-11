@@ -20,8 +20,8 @@ import numpy as np
 from tensor2robot.meta_learning import maml_model
 from tensor2robot.utils import tensorspec_utils
 from tensorflow.compat.v1 import estimator as tf_estimator
-from tensorflow.contrib import framework as contrib_framework
-nest = contrib_framework.nest
+from tensorflow import nest
+nest = nest
 
 
 @gin.configurable

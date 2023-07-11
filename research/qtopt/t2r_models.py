@@ -32,7 +32,7 @@ from tensor2robot.research.qtopt import optimizer_builder
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-from tensorflow.contrib import framework as contrib_framework
+import tensorflow as contrib_framework
 from tensorflow.contrib import training as contrib_training
 from tensorflow_estimator.contrib.estimator.python.estimator import replicate_model_fn
 
