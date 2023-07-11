@@ -21,9 +21,9 @@ from tensor2robot.utils import tensorspec_utils as utils
 from tensor2robot.utils import tfdata
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
-from tensorflow.contrib import framework as contrib_framework
+from tensorflow import nest
 
-nest = contrib_framework.nest
+nest = nest
 TrainValPair = collections.namedtuple(
     'TrainValPair', ['train', 'val', 'val_mode'])
 
