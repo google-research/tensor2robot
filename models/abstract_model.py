@@ -199,7 +199,7 @@ class AbstractT2RModel(
         summaries in case of DEVICE_TYPE_TPU.
       use_sync_replicas_optimizer: If True, synchronize gradient updates from
         the different replicas. (GPU-only, since TPUs are already synchronous).
-      use_avg_model_params: During training use a MovingAverageOptimizer and
+      use_avg_model_params: During training use a MovingAverage optimizer and
         swapping saver to compute a running average of the model variables for
         inference.
       init_from_checkpoint_fn: A function that calls

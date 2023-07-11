@@ -23,6 +23,7 @@ import gin
 import six
 
 from tensor2robot.utils import tensorspec_utils
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf
 
 

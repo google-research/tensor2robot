@@ -133,7 +133,7 @@ def create_momentum_optimizer(
 def create_moving_average_optimizer(optimizer,
                                     average_decay = 0.999
                                    ):
-  """Creates a function that returns a configured MovingAverageOptimizer.
+  """Creates a function that returns a configured MovingAverage optimizer.
 
   Args:
     optimizer: The original tf.Optimizer.
@@ -142,7 +142,7 @@ def create_moving_average_optimizer(optimizer,
   Returns:
     A parameterless function that returns the configured Momentum Optimizer.
   """
-  return MovingAverageOptimizer(
+  return MovingAverage(
       optimizer, average_decay=average_decay)
 
 

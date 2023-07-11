@@ -164,12 +164,12 @@ class LegacyGraspingModelWrapper(critic_model.CriticModel):
     original_optimizer = self._create_optimizer_fn(self.use_summaries(params))
 
     # Override self.scaffold_fn with a custom scaffold_fn that uses the
-    # swapping saver required for MovingAverageOptimizer.
+    # swapping saver required for MovingAverage optimizer.
     use_avg_model_params = self.hparams.use_avg_model_params
 
     def scaffold_fn():
       """Create a scaffold object."""
-      # MovingAverageOptimizer requires Swapping Saver.
+      # MovingAverage optimizer requires Swapping Saver.
       scaffold = tf.train.Scaffold()
       if use_avg_model_params:
         saver = original_optimizer.swapping_saver(

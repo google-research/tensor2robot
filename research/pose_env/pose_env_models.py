@@ -308,7 +308,7 @@ class PoseEnvRegressionModel(regression_model.RegressionModel):
         feature_points, end_points = vision_layers.BuildImagesToFeaturesModel(
             image,
             is_training=is_training,
-            normalizer_fn=layers.layer_norm)
+            normalizer_fn=slim.layer_norm)
       del end_points
       if context_fn:
         feature_points = context_fn(feature_points)

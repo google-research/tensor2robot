@@ -31,7 +31,7 @@ from tensorflow.keras import layers
 @gin.configurable
 def SpatialSoftmaxTorso(image, aux_input, is_training):
   feature_points, end_points = vision_layers.BuildImagesToFeaturesModel(
-      image, is_training=is_training, normalizer_fn=layers.layer_norm)
+      image, is_training=is_training, normalizer_fn=slim.layer_norm)
   end_points["feature_points"] = feature_points
   if aux_input is not None:
     feature_points = tf.concat([feature_points, aux_input], axis=1)

@@ -117,7 +117,7 @@ def provide_input_generator_with_model_information(
       Note it is not a copy but an in-place operation.
   """
   tf.logging.info('!' * 80)
-  tf.logging.info('guzzler_use_compression %s', str(guzzler_use_compression))
+  #tf.logging.info('guzzler_use_compression %s', str(guzzler_use_compression))
   tf.logging.info('!' * 80)
   if not isinstance(input_generator_instance,
                     abstract_input_generator.AbstractInputGenerator):
