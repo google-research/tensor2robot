@@ -31,7 +31,7 @@ from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow_graphics.geometry.transformation import quaternion as quaternion_lib
 import tensorflow_probability as tfp
-from tensorflow.contrib import slim as contrib_slim
+import tf_slim as contrib_slim
 
 slim = contrib_slim
 

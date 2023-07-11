@@ -45,7 +45,7 @@ class AsyncExportHookBuilderTest(tf.test.TestCase):
         export_dir=export_dir,
         create_export_fn=async_export_hook_builder.default_create_export_fn)
 
-    gin.parse_config('tf.contrib.tpu.TPUConfig.iterations_per_loop=1')
+    gin.parse_config('tensorflow.compat.v1.estimator.tpu.TPUConfig.iterations_per_loop=1')
     gin.parse_config('tf.estimator.RunConfig.save_checkpoints_steps=1')
 
     # We optimize our network.

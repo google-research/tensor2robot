@@ -25,7 +25,7 @@ import sonnet as snt
 from tensor2robot.layers import snail
 from tensor2robot.layers import vision_layers
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import layers
+from tensorflow.keras import layers
 
 
 @gin.configurable

@@ -23,7 +23,7 @@ from six.moves import range
 import tensorflow.compat.v1 as tf  # tf
 from tf_slim import losses as slim_losses
 
-from tensorflow.contrib import layers as contrib_layers
+from tensorflow.keras import layers as contrib_layers
 
 
 def L2ArithmeticLoss(pregrasp_embedding, goal_embedding, postgrasp_embedding,

@@ -69,11 +69,11 @@ gin_configurable_run_config_cls = gin.external_configurable(
 
 gin_configurable_tpu_run_config_cls = gin.external_configurable(
     contrib_tpu.RunConfig,
-    name='tf.contrib.tpu.RunConfig',
+    name='tensorflow.compat.v1.estimator.tpu.RunConfig',
     denylist=['model_dir', 'tpu_config'])
 
 gin_configurable_tpu_config_cls = gin.external_configurable(
-    contrib_tpu.TPUConfig, name='tf.contrib.tpu.TPUConfig')
+    contrib_tpu.TPUConfig, name='tensorflow.compat.v1.estimator.tpu.TPUConfig')
 
 # Expose the tf.train.Saver to gin.
 gin_configurable_saver = gin.external_configurable(

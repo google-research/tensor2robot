@@ -23,7 +23,7 @@ from six.moves import range
 from tensor2robot.layers import film_resnet_model as resnet_lib
 import tensorflow.compat.v1 as tf
 import tensorflow as contrib_framework
-from tensorflow.contrib import slim as contrib_slim
+import tf_slim as contrib_slim
 
 slim = contrib_slim
 

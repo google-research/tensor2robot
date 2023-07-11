@@ -24,7 +24,7 @@ import six
 from six.moves import range
 from six.moves import zip
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import layers as contrib_layers
+from tensorflow.keras import layers as contrib_layers
 
 try:
   from cvx2 import latest as cv2  # pylint: disable=g-import-not-at-top

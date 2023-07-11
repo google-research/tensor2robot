@@ -36,7 +36,7 @@ from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
 
 from tensorflow.compat.v1.estimator import tpu as contrib_tpu
-from tensorflow.contrib import training as contrib_training
+from tensorflow import train as contrib_training
 
 ExporterFn = Callable[[
     model_interface.ModelInterface, abstract_export_generator
