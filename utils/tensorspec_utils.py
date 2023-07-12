@@ -28,7 +28,8 @@ from tensor2robot.proto import t2r_pb2
 import tensorflow.compat.v1 as tf
 
 from google.protobuf import text_format
-from tensorflow import TensorSpec, nest
+from tensorflow import TensorSpec
+from tensorflow.python.util import nest
 
 TSPEC = TensorSpec
 
