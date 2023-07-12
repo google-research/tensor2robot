@@ -26,7 +26,7 @@ from tensor2robot.models import abstract_model
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-from tensorflow.contrib import util as contrib_util
+import tensorflow as contrib_util
 
 from tensorflow_serving.apis import predict_pb2
 from tensorflow_serving.apis import prediction_log_pb2

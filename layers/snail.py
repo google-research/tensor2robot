@@ -23,7 +23,7 @@ from typing import Text
 import numpy as np
 from six.moves import range
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import layers
+from tensorflow.keras import layers
 
 
 def CausalConv(x, dilation_rate, filters, kernel_size=2, scope = ""):

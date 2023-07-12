@@ -34,14 +34,13 @@ from tensor2robot.preprocessors import abstract_preprocessor
 from tensor2robot.utils import tensorspec_utils as utils
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v1 as tf  # tf
-from tensorflow.contrib import framework as contrib_framework
+from tensorflow import nest
 
 TRAIN = tf_estimator.ModeKeys.TRAIN
 EVAL = tf_estimator.ModeKeys.EVAL
 PREDICT = tf_estimator.ModeKeys.PREDICT
 
-framework = contrib_framework
-nest = framework.nest
+nest = nest
 # pylint: disable=invalid-name
 TensorSpec = utils.ExtendedTensorSpec
 TrainValPair = meta_tfdata.TrainValPair

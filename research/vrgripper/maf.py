@@ -21,7 +21,7 @@ import numpy as np
 from six.moves import range
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import slim
+import tf_slim as slim
 tfd = tfp.distributions
 tfb = tfp.bijectors
 

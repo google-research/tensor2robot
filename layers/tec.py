@@ -24,7 +24,7 @@ import gin
 from tensor2robot.layers import vision_layers
 import tensorflow.compat.v1 as tf  # tf
 from tf_slim import losses as slim_losses
-from tensorflow.contrib import layers
+from tensorflow.keras import layers
 
 
 def embed_fullstate(fullstate,
@@ -51,7 +51,7 @@ def embed_fullstate(fullstate,
         layers.fully_connected,
         fc_layers,
         activation_fn=tf.nn.relu,
-        normalizer_fn=layers.layer_norm)
+        normalizer_fn=layers.slim.layer_norm)
     embedding = layers.fully_connected(
         embedding, embed_size, activation_fn=None)
   return embedding
@@ -94,7 +94,7 @@ def embed_condition_images(condition_image,
             layers.fully_connected,
             fc_layers[:-1],
             activation_fn=tf.nn.relu,
-            normalizer_fn=layers.layer_norm)
+            normalizer_fn=layers.slim.layer_norm)
         image_embedding = layers.fully_connected(
             image_embedding, fc_layers[-1], activation_fn=None)
       else:
@@ -104,7 +104,7 @@ def embed_condition_images(condition_image,
             fc_layers[:-1],
             kernel_size=[1, 1],
             activation_fn=tf.nn.relu,
-            normalizer_fn=layers.layer_norm)
+            normalizer_fn=layers.slim.layer_norm)
         image_embedding = layers.conv2d(
             image_embedding, fc_layers[-1], activation_fn=None)
   return image_embedding
@@ -152,7 +152,7 @@ def reduce_temporal_embeddings(
         for num_filters in conv1d_layers:
           embedding = tf.layers.conv1d(
               embedding, num_filters, 10, activation=tf.nn.relu, use_bias=False)
-          embedding = layers.layer_norm(embedding)
+          embedding = layers.slim.layer_norm(embedding)
       if combine_mode == 'temporal_conv_avg_after':
         embedding = tf.reduce_mean(embedding, axis=1)
       else:
@@ -163,7 +163,7 @@ def reduce_temporal_embeddings(
         layers.fully_connected,
         fc_hidden_layers,
         activation_fn=tf.nn.relu,
-        normalizer_fn=layers.layer_norm)
+        normalizer_fn=layers.slim.layer_norm)
     embedding = layers.fully_connected(
         embedding, output_size, activation_fn=None)
   return embedding

@@ -47,7 +47,7 @@ class T2RModelFixture(object):
     self._use_tpu = use_tpu
     if self._use_tpu:
       gin.bind_parameter('AbstractT2RModel.device_type', 'tpu')
-      gin.bind_parameter('tf.contrib.tpu.TPUConfig.iterations_per_loop', 1)
+      gin.bind_parameter('tensorflow.compat.v1.estimator.tpu.TPUConfig.iterations_per_loop', 1)
     gin.bind_parameter('tf.estimator.RunConfig.save_checkpoints_steps', 1)
 
     if extra_bindings:

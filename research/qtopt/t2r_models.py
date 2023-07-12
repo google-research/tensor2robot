@@ -32,8 +32,9 @@ from tensor2robot.research.qtopt import optimizer_builder
 from tensor2robot.utils import tensorspec_utils
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
-from tensorflow.contrib import framework as contrib_framework
-from tensorflow.contrib import training as contrib_training
+import tensorflow as contrib_framework
+import tf_slim as slim
+from tensorboard.plugins.hparams import api as hp
 from tensorflow_estimator.contrib.estimator.python.estimator import replicate_model_fn
 
 TRAIN = tf_estimator.ModeKeys.TRAIN
@@ -88,7 +89,7 @@ class LegacyGraspingModelWrapper(critic_model.CriticModel):
         rmsprop_epsilon=1.0,
         use_avg_model_params=use_avg_model_params)
 
-    self.hparams = contrib_training.HParams(**default_hparams)
+    self.hparams = hp.HParams(**default_hparams)
     self._export_batch_size = export_batch_size
     self.kwargs = kwargs
     super(LegacyGraspingModelWrapper, self).__init__(
@@ -163,12 +164,12 @@ class LegacyGraspingModelWrapper(critic_model.CriticModel):
     original_optimizer = self._create_optimizer_fn(self.use_summaries(params))
 
     # Override self.scaffold_fn with a custom scaffold_fn that uses the
-    # swapping saver required for MovingAverageOptimizer.
+    # swapping saver required for MovingAverage optimizer.
     use_avg_model_params = self.hparams.use_avg_model_params
 
     def scaffold_fn():
       """Create a scaffold object."""
-      # MovingAverageOptimizer requires Swapping Saver.
+      # MovingAverage optimizer requires Swapping Saver.
       scaffold = tf.train.Scaffold()
       if use_avg_model_params:
         saver = original_optimizer.swapping_saver(
@@ -219,7 +220,7 @@ class LegacyGraspingModelWrapper(critic_model.CriticModel):
       if self._summarize_gradients:
         logging.info('We cannot use summarize_gradients on TPUs.')
       summarize_gradients = False
-    return contrib_training.create_train_op(
+    return slim.learning.create_train_op(
         loss,
         optimizer,
         summarize_gradients=summarize_gradients,

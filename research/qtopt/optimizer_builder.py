@@ -88,9 +88,9 @@ def BuildOpt(hparams):
 
   if use_avg_model_params:
     # Callers of BuildOpt() with use_avg_model_params=True expect the
-    # MovingAverageOptimizer to be the last optimizer returned by this function
+    # MovingAverage optimizer to be the last optimizer returned by this function
     # so that the swapping_saver can be constructed from it.
-    return contrib_opt.MovingAverageOptimizer(
+    return contrib_opt.MovingAverage(
         opt, average_decay=model_weights_averaging)
 
   return opt
