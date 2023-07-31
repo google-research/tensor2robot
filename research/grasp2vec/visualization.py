@@ -13,23 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Visualization utilities for models, mostly for tensorboard summaries.
-"""
+"""Visualization utilities for models, mostly for tensorboard summaries."""
 
 import colorsys
 
+import cv2
 import gin
 import numpy as np
 import six
 from six.moves import range
 from six.moves import zip
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import layers as contrib_layers
 
-try:
-  from cvx2 import latest as cv2  # pylint: disable=g-import-not-at-top
-except ImportError:
-  pass  # pylint: disable=unnecessary-pass
+from tensorflow.contrib import layers as contrib_layers
 
 
 def plot_labels(labels, max_label=1, predictions=None, name=''):
