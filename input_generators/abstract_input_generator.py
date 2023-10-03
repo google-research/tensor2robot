@@ -120,13 +120,7 @@ class AbstractInputGenerator(six.with_metaclass(abc.ABCMeta, object)):
         raise ValueError('The preprocess_fn mode has to be set if a partial'
                          'function has been passed.')
     else:
-      if six.PY3:
-        argspec = inspect.getfullargspec(preprocess_fn)
-        # first 4 element of fullspec corresponds to spec:
-        # https://docs.python.org/3.4/library/inspect.html
-        argspec = inspect.ArgSpec(*argspec[:4])
-      else:
-        argspec = inspect.getargspec(preprocess_fn)  # pylint: disable=deprecated-method
+      argspec = inspect.getfullargspec(preprocess_fn)
       if 'mode' in argspec.args:
         raise ValueError('The passed preprocess_fn has an open argument `mode`'
                          'which should be patched by a closure or with '
