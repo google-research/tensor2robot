@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Tensor2Robot Authors.
+# Copyright 2024 The Tensor2Robot Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -541,6 +541,7 @@ class TensorSpecStruct(collections.OrderedDict):
     Returns:
       A list of valid keys.
     """
+    assert self._dict_view is not None
     return [
         key for key in self._dict_view.keys()
         if key.startswith(self._path_prefix + '/')
